@@ -183,8 +183,10 @@ out of the responsabilies of this library.
 
 ## Owner
 
-Hunor Kovács,
+Hunor Kovács
+
 kovacshuni@yahoo.com
+
 [hunorkovacs.com](http://www.hunorkovacs.com)
 
 ## Licence
