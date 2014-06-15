@@ -1,5 +1,7 @@
 # KOauth - Asynchronous Scala Library for OAuth 1.0a
 
+**Not released yet. Work is in progress. Not ready for any kind of testing or using in production.**
+
 This library aids calculations according to the [Oauth 1.0a](http://oauth.net/core/1.0a/)
 specifications for both HTTP server and client.
 
@@ -50,6 +52,16 @@ or
 
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/snapshots/"
+```
+
+## Asynchronous
+
+*Futures* were used everywhere possible in the code, trying to make the every call
+independent to run in parallel. You will need to supply an `ExecutionContext` for
+the `OauthService` functions:
+
+```scala
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
 ```
 
 ## Step By Step Example - Provider
@@ -119,7 +131,7 @@ object OauthController extends Controller {
 
 ### Calling the Oauth services
 
-There are service methods defined in `OauthService` for every necessary step in OAuth 1.
+There are service functions defined in `OauthService` for every necessary step in OAuth 1.
 Please read [the documentation](http://oauth.net/core/1.0a/) of Oauth 1, understand the process
 of obtaining an access token and using one for authenticating requests. Implement your controllers
 for the specification's steps and use the service's methods.
