@@ -30,7 +30,7 @@ Add as dependency by editing your `build.sbt` and adding the following:
 libraryDependencies ++= Seq(
   "com.hunorkovacs" % "koauth_2.11" % "1.0"
 )
-```scala
+```
 
 Or if you want to be on the bleeding edge using snapshots:
 
