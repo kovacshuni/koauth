@@ -1,0 +1,8 @@
+.idea/
+.idea_modules/
+target/
+project/project/
+logs/
+*.swp
+*~
+
