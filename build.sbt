@@ -1,3 +1,5 @@
+organization := """com.hunorkovacs"""
+
 name := """koauth"""
 
 version := "1.0-SNAPSHOT"
