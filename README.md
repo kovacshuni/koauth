@@ -6,34 +6,6 @@ specifications for both HTTP server and client.
 * Provider library: Verifying and responding to HTTP requests according to OAuth 1.0 specifications.
 * Consumer library: Complementing HTTP requests to be sent with OAuth parameters. 
 
-Provides service methods for all the steps defined in the OAuth 1.0 specifications.
-
-## Fully, absolutely REST-ful
-
-At the step where the *request token* is exchanged to and *access token* there is a part where
-the user logs in to the service provider (if not logged in yet), reads the rights that the token
-will have permission to use and authorizes the *request token*. This will be permitted
-to be exchanged to an *access token* with the corresponding rights to use.
-
-This step is called *authorize*.
-
-Now this part is not strictly specified how to be done, but most of the documentations I found
-are talking about logging in the service provider website and clicking the an, for example,
-approve button, then that website redirecting them and so on.
-
-This library was designed to be able to be used **without the need to pass by the REST API**,
-without directly communicating with a so-called website, reading rights in HTML or clicking buttons.
-So the *authorize* step is done by adding the *username* and *password* of the user as
-additional OAuth parameters to the *Authorization* header of the *authorize* HTTP request.
-No need for verifying any signature as, if the user know the passoword, he must be the one. This is
-the only call when we are sending the real password to the application server, it represents
-the part when the user would type their username and password on a website and hitting the log in button.
-
-Presenting the user with the rights the token is warranted would be another necessity. One should 
-define a REST endpoint that presents these rights, but because this does not expose any
-specific info about any user, it's close to being static (except the list of rights) I left this
-out of the responsabilies of this library. 
-
 ## Set up your project dependencies
 
 If you're using SBT, clone this project, build and publish it to your local repository and
@@ -169,6 +141,33 @@ but it is *in-memory*, and all the kept data is lost after stopping the applicat
 How to build HTTP requests that should be OAuth signed, using this library.
 
 todo write this readme part
+
+## Fully, absolutely RESTful
+
+At the step where the *request token* is exchanged to an *access token*, there is a part where
+the user logs in to the service provider (if not logged in yet), reads the rights that the token
+will have permission to use and authorizes the *request token*. This will be permitted
+to be exchanged to an *access token* with the corresponding rights to use.
+
+This step is called *authorize*.
+
+Now this part is not strictly specified how to be done, but most of the documentations I found
+are talking about logging in the service provider website and clicking an, for example,
+approve button, then that website redirecting them and so on.
+
+This library was designed to be able to be used **without the need to pass by the REST API**,
+without directly communicating with a so-called website, reading rights in HTML or clicking buttons.
+So the *authorize* step is done by adding the *username* and *password* as
+additional OAuth parameters to the *Authorization* header of the *authorize* HTTP request.
+No need for verifying any signature in this step. But authenticating the user by the provided 
+username and password. This is
+the only call when we are sending the real password to the application server, it represents
+the part when the user would type their credentials on a website and hitting the log in button.
+
+Presenting the user with the rights the token is warranted would be another necessity. One should 
+define a REST endpoint that presents these rights, but because this does not expose any
+specific info about any user, it's close to being static (except the list of rights) I left this
+out of the responsabilies of this library. 
 
 ## Owner
 
