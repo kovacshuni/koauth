@@ -6,7 +6,7 @@ import com.hunorkovacs.koauth.domain.{OauthParams, Rights}
 
 trait OauthPersistence {
 
-  def persistRequestToken(requestTokenResourcesF: Future[RequestTokenResources])
+  def persistRequestToken(requestTokenF: Future[RequestToken])
                          (implicit ec: ExecutionContext): Future[Unit]
 
   def getRights(requestTokenF: Future[String])
@@ -30,4 +30,10 @@ trait OauthPersistence {
 
   def getToken(consumerKeyF: Future[String], tokenF: Future[String])
                         (implicit ec: ExecutionContext): Future[(String, String, String, Rights)]
+
+  def getConsumerSecret(consumerKeyF: Future[String]): Future[String]
 }
+
+case class RequestToken(consumerKey: String,
+                        token: String,
+                        tokenSecret: String)

@@ -18,18 +18,6 @@ object OauthExtractor {
   final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
     signatureName, timestampName, nonceName, versionName)
 
-  def extractSpecificOauthParams(allOauthParams: Future[List[(String, String)]],
-                                 requiredParams: List[String])(implicit ec: ExecutionContext): Future[OauthParams] =
-    allOauthParams map { paramList =>
-      val paramMap = paramList.toMap
-      RequestTokenRequiredParams foreach { requiredParam =>
-        if (!paramMap.contains(requiredParam))
-          throw new OauthBadRequestException(s"OAuth parameter '$requiredParam' is missing or duplicate, " +
-            s"in 'Authorization' header.")
-      }
-      new OauthParams(paramMap)
-    }
-
   def extractAllOauthParams(headerF: Future[String])(implicit ec: ExecutionContext): Future[List[(String, String)]] = {
     headerF map { header =>
       val array = header.stripPrefix("OAuth ")

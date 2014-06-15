@@ -28,7 +28,7 @@ class InMemoryOauthPersistence extends OauthPersistence {
   val accessTokenColl = new ListBuffer[AccessToken]()
   val usersColl = Map[String, String](("someUser", "somePass"))
 
-  override def persistRequestToken(requestTokenResourcesF: Future[RequestTokenResources])
+  override def persistRequestToken(requestTokenF: Future[RequestToken])
                                     (implicit ec: ExecutionContext): Future[Unit] = {
     async {
       val requestTokenResources = await(requestTokenResourcesF)
