@@ -58,7 +58,11 @@ resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositori
 
 *Futures* were used everywhere possible in the code, trying to make the every call
 independent to run in parallel. You will need to supply an `ExecutionContext` for
-the `OauthService` functions: `import play.api.libs.concurrent.Execution.Implicits.defaultContext`
+the `OauthService` functions:
+
+```scala
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+```
 
 ## Step By Step Example - Provider
 
