@@ -1,8 +1,8 @@
-# KOauth - Asynchronous Scala Library for OAuth 1.0a
+# KOAuth - Asynchronous Scala Library for OAuth 1.0a
 
 **Not released yet. Work is in progress. Not ready for any kind of testing or using in production.**
 
-This library aids calculations according to the [Oauth 1.0a](http://oauth.net/core/1.0a/)
+This library aids calculations according to the [OAuth 1.0a](http://oauth.net/core/1.0a/)
 specifications for both HTTP server and client.
 
 * Provider library: Verifying and responding to HTTP requests according to OAuth 1.0 specifications.
@@ -129,7 +129,7 @@ object OauthController extends Controller {
 }
 ```
 
-### Calling the Oauth services
+### Calling the OauthService
 
 There are service functions defined in `OauthService` for every necessary step in OAuth 1.
 Please read [the documentation](http://oauth.net/core/1.0a/) of Oauth 1, understand the process
