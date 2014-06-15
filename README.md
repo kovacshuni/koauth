@@ -62,10 +62,73 @@ as web framework, [MongoDB](http://www.mongodb.org/) with [ReactiveMongo](http:/
 to save client credentials and other details. Worth to use as the starting point, because it is
 easier to understand.
 
+### Define the HTTP paths required by OAuth 1
+
+* POST to /oauth/request-token
+* POST to /oauth/authorize
+* POST to /oauth/access-token
+
+Your exact paths may differ, but for a proper OAuth 1 you'll need to define at least 3 for these above.
+You will probably want paths, to register a new user, verify their email, read the rights a token gives
+access to, and invalidate tokens but that not mandatory here, but your app's part to do.
+
 ### Mapping your HTTP requests and responses.
+
+You will need to implement the `OauthRequestMapper` and `OauthResponseMapper` to map your web
+framework's HTTP request and response types to the library's independent types.
+After that, you can easily call the service methods of the koauth library.
+You may also want to catch the exception that may occur during authentication and return your specific
+HTTP responses accordingly.
+
+```scala
+object PlayToOauthRequestMapper extends OauthRequestMapper[Request[AnyContent]] {
+  override def map(source: Request[AnyContent])(implicit ec: ExecutionContext): Future[OauthRequest] = {
+    Future {
+      OauthRequest(source.headers("Authorization"),
+        "http://" + source.host.toLowerCase + "/" + source.path,
+        source.method.toUpperCase,
+        source.queryString)
+    }
+  }
+}
+
+object OauthToPlayResponseMapper extends OauthResponseMapper[SimpleResult] {
+  override def map(source: Future[OauthResponseOk])(implicit ec: ExecutionContext): Future[SimpleResult] = {
+    source.map(r => Ok(r.body))
+  }
+}
+
+object OauthController extends Controller {
+  /**
+   * Mapped to POST /oauth/request-token
+   */
+  def requestToken = Action.async { request =>
+    try {
+      val oauthRequestF = PlayToOauthRequestMapper.map(request)
+
+      val oauthResponseF = OauthService.requestToken(oauthRequestF)
+
+      OauthToPlayResponseMapper.map(oauthResponseF)
+    } catch {
+      case badRequestEx: OauthBadRequestException => Future(BadRequest(badRequestEx.message))
+      case unauthorizedEx: OauthUnauthorizedException => Future(Unauthorized(unauthorizedEx.message))
+    }
+  }
+}
+```
 
 ## Step By Step Example - Consumer
 
 How to build HTTP requests that should be OAuth signed, using this library.
 
 todo write this readme part
+
+## Owner
+
+Hunor Kovács,
+kovacshuni@yahoo.com
+[hunorkovacs.com](http://www.hunorkovacs.com)
+
+## Licence
+
+Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0) .
