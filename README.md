@@ -6,6 +6,34 @@ specifications for both HTTP server and client.
 * Provider library: Verifying and responding to HTTP requests according to OAuth 1.0 specifications.
 * Consumer library: Complementing HTTP requests to be sent with OAuth parameters. 
 
+Provides service methods for all the steps defined in the OAuth 1.0 specifications.
+
+## Fully, absolutely REST-ful
+
+At the step where the *request token* is exchanged to and *access token* there is a part where
+the user logs in to the service provider (if not logged in yet), reads the rights that the token
+will have permission to use and authorizes the *request token*. This will be permitted
+to be exchanged to an *access token* with the corresponding rights to use.
+
+This step is called *authorize*.
+
+Now this part is not strictly specified how to be done, but most of the documentations I found
+are talking about logging in the service provider website and clicking the an, for example,
+approve button, then that website redirecting them and so on.
+
+This library was designed to be able to be used **without the need to pass by the REST API**,
+without directly communicating with a so-called website, reading rights in HTML or clicking buttons.
+So the *authorize* step is done by adding the *username* and *password* of the user as
+additional OAuth parameters to the *Authorization* header of the *authorize* HTTP request.
+No need for verifying any signature as, if the user know the passoword, he must be the one. This is
+the only call when we are sending the real password to the application server, it represents
+the part when the user would type their username and password on a website and hitting the log in button.
+
+Presenting the user with the rights the token is warranted would be another necessity. One should 
+define a REST endpoint that presents these rights, but because this does not expose any
+specific info about any user, it's close to being static (except the list of rights) I left this
+out of the responsabilies of this library. 
+
 ## Set up your project dependencies
 
 If you're using SBT, clone this project, build and publish it to your local repository and
@@ -68,13 +96,13 @@ easier to understand.
 * POST to /oauth/authorize
 * POST to /oauth/access-token
 
-Your exact paths may differ, but for a proper OAuth 1 you'll need to define at least 3 for these above.
+Your exact paths may differ, but for a proper OAuth 1 you will need to define at least 3 for these above.
 You will probably want paths, to register a new user, verify their email, read the rights a token gives
-access to, and invalidate tokens but that not mandatory here, but your app's part to do.
+access to, and invalidate tokens but that is not mandatory here, but your app's part to do.
 
-### Mapping your HTTP requests and responses.
+### Mapping your HTTP requests and responses
 
-You will need to implement the `OauthRequestMapper` and `OauthResponseMapper` to map your web
+You will need to **implement the `OauthRequestMapper` and `OauthResponseMapper`** to map your web
 framework's HTTP request and response types to the library's independent types.
 After that, you can easily call the service methods of the koauth library.
 You may also want to catch the exception that may occur during authentication and return your specific
@@ -116,6 +144,25 @@ object OauthController extends Controller {
   }
 }
 ```
+
+### Calling the Oauth services
+
+There are service methods defined in `OauthService` for every necessary step in OAuth 1.
+Please read [the documentation](http://oauth.net/core/1.0a/) of Oauth 1, understand the process
+of obtaining an access token and using one for authenticating requests. Implement your controllers
+for the specification's steps and use the service's methods.
+
+### Persistence
+
+Another **must is to provide an implementation for the `OauthPersistence` trait*** and relate to
+the object in your controller class implicitly (or pass to service methods explicitly).
+
+```scala
+implicit val persistenceService: OauthPersistence = new InMemoryOauthPersistence()
+```
+
+There is one implementation provided by the koauth library itself, as a guideline 
+but it is *in-memory*, and all the kept data is lost after stopping the application.
 
 ## Step By Step Example - Consumer
 
