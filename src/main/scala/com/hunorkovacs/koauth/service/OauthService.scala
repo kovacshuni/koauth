@@ -22,7 +22,7 @@ object OauthService {
     val consumerKeyF = allParamsMapF.map(p => p.applyOrElse(consumerKeyName, x => ""))
     val consumerSecretF = consumerKeyF.flatMap(persistenceService.getConsumerSecret)
 
-    for {
+    val verificationF = for {
       allParamsList <- allParamsListF
       allParamsMap <- allParamsMapF
       consumerSecret <- consumerSecretF
@@ -31,24 +31,28 @@ object OauthService {
       verify(request, allParamsList, allParamsMap, consumerSecret, tokenSecret)
     }
 
+    verificationF flatMap {
+      case VerificationOk => {
+        val (tokenF, secretF) = generateTokenAndSecret
+        val callbackF = allParamsMapF.map(p => p.applyOrElse(callbackName, x => ""))
+        val requestTokenF = for {
+          token <- tokenF
+          secret <- secretF
+          consumerKey <- consumerKeyF
+          callback <- callbackF
+        } yield new RequestToken(consumerKey, token, secret, callback)
+        val responseF = for {
+          token <- tokenF
+          secret <- secretF
+          callback <- callbackF
+          response <- createRequestTokenResponse(token, secret, callback)
+        } yield response
 
-      val verifiedPositiveF = verify(request, allParamsListF, allParamsMapF, consumerSecretF)
-
-      if (!Await.result(verifiedPositiveF, Inf)) {
-        Future.failed(new OauthUnauthorizedException("Bad signature."))
+        persistenceService.persistRequestToken(requestTokenF)
+          .flatMap(u => responseF)
       }
-    } else {
-      val (tokenF, secretF) = generateTokenAndSecret
-      val callbackF = allParamsMapF.map(p => p.applyOrElse(callbackName, x => ""))
-      val requestTokenF = for {
-        token <- tokenF
-        secret <- secretF
-        consumerKey <- consumerKeyF
-      } yield new RequestToken(consumerKey, token, secret)
-
-      persistenceService.persistRequestToken(requestTokenF)
-
-      createRequestTokenResponse(tokenF, secretF, callbackF)
+      case VerificationFailed => Future(new OauthResponseOk("Bad sign."))
+      case VerificationUnsupported => Future(new OauthResponseOk("Not supp."))
     }
   }
 

@@ -49,20 +49,15 @@ object OauthCombiner {
     }
   }
 
-  def createRequestTokenResponse(tokenF: Future[String], secretF: Future[String],callbackF: Future[String])
+  def createRequestTokenResponse(token: String, secret: String,callback: String)
                                 (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
-    val listF = for {
-      token <- tokenF
-      secret <- secretF
-      callback <- callbackF
-    } yield {
+    Future {
       List((OauthParams.tokenName, token),
         (OauthParams.tokenSecretName, secret),
         (OauthParams.callbackName, callback))
     }
-    combineOauthParams(listF) map { body: String =>
-      new OauthResponseOk(body)
-    }
+      .flatMap(combineOauthParams)
+      .map(body => new OauthResponseOk(body))
   }
 
   def createAuthorizeResponse(tokenF: Future[String], verifierF: Future[String])
