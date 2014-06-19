@@ -11,43 +11,40 @@ object OauthCombiner {
 
   def URLEncode(s: String) = URLEncoder.encode(s, OauthExtractor.UTF8).replaceAll("+", "%20")
 
-  def concatItemsForSignature(requestF: Future[OauthRequest], allOauthParams: Future[List[(String, String)]])
+  def concatItemsForSignature(request: OauthRequest, allParamsList: List[(String, String)])
                              (implicit ec: ExecutionContext): Future[String] = {
-    val methodF = requestF.map(r => r.method)
-    val urlF = requestF.map(r => r.urlWithoutParams)
-    val normalizedOauthParametersF = normalizeOauthParamsForSignature(allOauthParams)
-    concatItems(List(methodF, urlF, normalizedOauthParametersF))
+    normalizeOauthParamsForSignature(allParamsList) flatMap { n =>
+      concatItems(List(request.method, request.urlWithoutParams, n))
+    }
   }
 
-  private def normalizeOauthParamsForSignature(allOauthParamsF: Future[List[(String, String)]])
+  private def normalizeOauthParamsForSignature(allParamsList: List[(String, String)])
                                               (implicit ec: ExecutionContext): Future[String] = {
-    val filteredParams = allOauthParamsF map { allOauthParams =>
-      allOauthParams filterNot { keyValue =>
+    Future {
+      allParamsList filterNot { keyValue =>
         keyValue._1 == OauthParams.realmName && keyValue._1 == OauthParams.signatureName
       }
-    }
-    combineOauthParams(filteredParams)
+    } flatMap combineOauthParams
   }
 
-  def combineOauthParams(keyValueListF: Future[List[(String, String)]])
+  def combineOauthParams(keyValueList: List[(String, String)])
                         (implicit ec: ExecutionContext): Future[String] = {
-    val itemListF = keyValueListF map { keyValueList =>
+    Future {
       val paramsTogetherEncoded = keyValueList map { keyValue =>
         val (key, value) = keyValue
         URLEncode(key) + "=" + URLEncode(value)
       }
       paramsTogetherEncoded.sorted
-    }
-    concatItems(itemListF)
+    } flatMap concatItems
   }
 
-  def concatItems(itemsFList: List[Future[String]])(implicit ec: ExecutionContext): Future[String] = {
-    val itemListF = Future.sequence(itemsFList)
-    concatItems(itemListF)
-  }
+//  def concatItems(itemsFList: List[Future[String]])(implicit ec: ExecutionContext): Future[String] = {
+//    val itemListF = Future.sequence(itemsFList)
+//    concatItems(itemListF)
+//  }
 
-  def concatItems(itemListF: Future[List[String]])(implicit ec: ExecutionContext): Future[String] = {
-    itemListF map { itemList =>
+  def concatItems(itemList: List[String])(implicit ec: ExecutionContext): Future[String] = {
+    Future {
       itemList.map(item => URLEncode(item)).mkString("&")
     }
   }

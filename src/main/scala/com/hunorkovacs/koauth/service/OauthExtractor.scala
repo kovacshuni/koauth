@@ -18,8 +18,8 @@ object OauthExtractor {
   final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
     signatureName, timestampName, nonceName, versionName)
 
-  def extractAllOauthParams(headerF: Future[String])(implicit ec: ExecutionContext): Future[List[(String, String)]] = {
-    headerF map { header =>
+  def extractAllOauthParams(header: String)(implicit ec: ExecutionContext): Future[List[(String, String)]] = {
+    Future {
       val array = header.stripPrefix("OAuth ")
         .replaceAll("\"", "")
         .split(",") map { param =>

@@ -11,60 +11,80 @@ import com.hunorkovacs.koauth.domain.exception.OauthBadRequestException
 import com.hunorkovacs.koauth.domain.OauthParams.{signatureMethodName, signatureName}
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
 
+import scala.util.{Try, Failure}
+
 object OauthVerifier {
 
-  private final val HmacSha1Algorithm = "HmacSHA1"
-  private final val HmacReadable = "HMAC-SHA1"
-  private final val UTF8Charset = Charset.forName(UTF8)
-  private final val Base64Encoder = Base64.getEncoder
+  private val HmacSha1Algorithm = "HmacSHA1"
+  private val HmacReadable = "HMAC-SHA1"
+  private val UTF8Charset = Charset.forName(UTF8)
+  private val Base64Encoder = Base64.getEncoder
 
-  def verify(requestF: Future[OauthRequest],
-             allOauthParamsF: Future[List[(String, String)]],
-             flatOauthParamsF: Future[Map[String, String]],
-             consumerSecretF: Future[String])
-            (implicit ec: ExecutionContext): Future[Boolean] = {
-    val actualSignatureF = flatOauthParamsF.map(p => p.applyOrElse(signatureName, x => ""))
-    val signatureBaseF = concatItemsForSignature(requestF, allOauthParamsF)
+  trait Verification
+  case object VerificationPositive extends Verification
+  case class VerificationNegative(message: String) extends Verification
 
-    val expectedSignatureF = sign(signatureBaseF, consumerSecretF, Future(""))
-    
-    val equalityF = for {
-      actualSignature <- actualSignatureF
-      expectedSignature <- expectedSignatureF
-    } yield {
-      actualSignature.equals(expectedSignature)
+  def verify(request: OauthRequest,
+             allParamsList: List[(String, String)],
+             allParamsMap: Map[String, String],
+             tokenSecret: String,
+             consumerSecret: String)
+            (implicit ec: ExecutionContext): Future[Verification] = {
+    val equalityF: Future[Verification] = concatItemsForSignature(request, allParamsList) flatMap { signatureBase =>
+      sign(signatureBase, consumerSecret, tokenSecret)
+    } map { expectedSignature =>
+      val actualSignature = allParamsMap.applyOrElse(signatureName, x => "")
+      if(actualSignature.equals(expectedSignature)) VerificationPositive
+      else VerificationNegative("ana are mere")
     }
 
-    val correctMethodF = flatOauthParamsF map { p =>
-      p.applyOrElse(signatureMethodName, x => "")
-    } map { methodName =>
-      if (HmacReadable != methodName)
-        throw new OauthBadRequestException(s"Signature method '$methodName' is not supported.")
-      true
+    val correctMethodF: Future[Verification] = Future {
+      val signatureMethod = allParamsMap.applyOrElse(signatureMethodName, x => "")
+      if (HmacReadable != signatureMethod) VerificationNegative(s"Signature method '$signatureMethod' is not supported.")
+      else VerificationPositive
+      //        new OauthBadRequestException(s"Signature method '$signatureMethod' is not supported."))
+      // throw new OauthBadRequestException(s"Signature method '$signatureMethod' is not supported.")
     }
 
     for {
       equality <- equalityF
       correctMethod <- correctMethodF
-    } yield equality && correctMethod
+    } yield {
+      equality match {
+        case VerificationPositive => {
+          correctMethod match {
+            case VerificationPositive => VerificationPositive
+            case els => els
+          }
+        }
+        case els => els
+      }
+    }
+
+//    }List(equality, correctMethod).collectFirst{
+//      case _: VerificationNegative => true
+//      case _ => false
+//    }
   }
 
-  def sign(baseF: Future[String], consumerSecretF: Future[String], tokenSecretF: Future[String])
-          (implicit ec: ExecutionContext): Future[String] = {
-    val secretsF = concatItems(List(consumerSecretF, tokenSecretF))
-    val signingKeyF = secretsF.map(secrets => new SecretKeySpec(secrets.getBytes(UTF8Charset), HmacSha1Algorithm))
-    val bytesToSignF = baseF.map(textToSign => textToSign.getBytes(UTF8Charset))
-    val macF = Future(Mac.getInstance(HmacSha1Algorithm))
-    val digestBytesFuture = for {
-      signingKey <- signingKeyF
-      bytesToSign <- bytesToSignF
-      mac <- macF
-    } yield {
-      mac.init(signingKey)
-      mac.doFinal(bytesToSign)
+  def k = {
+    verify().recover {
+      ex: OauthBadRequestException => BadRequest(ex.message)
     }
-    digestBytesFuture.map(Base64Encoder.encode)
-      .map(digest64 => new String(digest64, UTF8Charset))
-      .map(digestString => URLEncode(digestString))
+
+  }
+
+  def sign(base: String, consumerSecret: String, tokenSecret: String)
+          (implicit ec: ExecutionContext): Future[String] = {
+    concatItems(List(consumerSecret, tokenSecret)) map { secrets =>
+      new SecretKeySpec(secrets.getBytes(UTF8Charset), HmacSha1Algorithm)
+    } map { signingKey: SecretKeySpec =>
+      val bytesToSign = base.getBytes(UTF8Charset)
+      val mac = Mac.getInstance(HmacSha1Algorithm)
+      mac.init(signingKey)
+      val digest64 = mac.doFinal(bytesToSign)
+      val digestString = new String(digest64, UTF8Charset)
+      URLEncode(digestString)
+    }
   }
 }

@@ -10,25 +10,36 @@ import com.hunorkovacs.koauth.domain.exception.{OauthUnauthorizedException, Oaut
 import com.hunorkovacs.koauth.domain.OauthResponseOk
 import com.hunorkovacs.koauth.domain.OauthRequest
 import scala.util.{Failure, Success}
-import com.hunorkovacs.koauth.domain.OauthParams.{callbackName, consumerKeyName}
+import com.hunorkovacs.koauth.domain.OauthParams.{callbackName, consumerKeyName, signatureMethodName}
 import scala.concurrent.duration.Duration.Inf
 
 object OauthService {
 
-  def requestToken(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,
+  def requestToken(request: OauthRequest)(implicit persistenceService: OauthPersistence,
                    ec: ExecutionContext): Future[OauthResponseOk] = {
-    val allOauthParamsF = extractParams(requestF)
-    val flatParamsF = allOauthParamsF.map(all => all.toMap)
-    val consumerKeyF = flatParamsF.map(p => p.applyOrElse(consumerKeyName, x => ""))
+    val allParamsListF = extractParams(request)
+    val allParamsMapF = allParamsListF.map(all => all.toMap)
+    val consumerKeyF = allParamsMapF.map(p => p.applyOrElse(consumerKeyName, x => ""))
+    val consumerSecretF = consumerKeyF.flatMap(persistenceService.getConsumerSecret)
 
-    val consumerSecretF = persistenceService.getConsumerSecret(consumerKeyF)
+    for {
+      allParamsList <- allParamsListF
+      allParamsMap <- allParamsMapF
+      consumerSecret <- consumerSecretF
+      tokenSecret <- tokenSecretF
+    } yield {
+      verify(request, allParamsList, allParamsMap, consumerSecret, tokenSecret)
+    }
 
-    val verifiedPositiveF = verify(requestF, allOauthParamsF, flatParamsF, consumerSecretF)
-    if (!Await.result(verifiedPositiveF, Inf)) {
-      Future.failed(new OauthUnauthorizedException("Bad signature."))
+
+      val verifiedPositiveF = verify(request, allParamsListF, allParamsMapF, consumerSecretF)
+
+      if (!Await.result(verifiedPositiveF, Inf)) {
+        Future.failed(new OauthUnauthorizedException("Bad signature."))
+      }
     } else {
       val (tokenF, secretF) = generateTokenAndSecret
-      val callbackF = flatParamsF.map(p => p.applyOrElse(callbackName, x => ""))
+      val callbackF = allParamsMapF.map(p => p.applyOrElse(callbackName, x => ""))
       val requestTokenF = for {
         token <- tokenF
         secret <- secretF
@@ -41,9 +52,9 @@ object OauthService {
     }
   }
 
-  def extractParams(requestF: Future[OauthRequest]) = {
-    val headerF = requestF.map(oauthRequestF => oauthRequestF.authorizationHeader)
-    extractAllOauthParams(headerF)
+  def extractParams(request: OauthRequest) = {
+    Future(request.authorizationHeader).
+      flatMap(extractAllOauthParams)
   }
 
   def getRights(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,

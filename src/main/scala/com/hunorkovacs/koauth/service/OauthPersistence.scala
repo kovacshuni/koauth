@@ -31,7 +31,7 @@ trait OauthPersistence {
   def getToken(consumerKeyF: Future[String], tokenF: Future[String])
                         (implicit ec: ExecutionContext): Future[(String, String, String, Rights)]
 
-  def getConsumerSecret(consumerKeyF: Future[String]): Future[String]
+  def getConsumerSecret(consumerKey: String): Future[String]
 }
 
 case class RequestToken(consumerKey: String,
