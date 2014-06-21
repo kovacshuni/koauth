@@ -16,7 +16,7 @@ import scala.concurrent.duration.Duration.Inf
 object OauthService {
 
   def requestToken(request: OauthRequest)(implicit persistenceService: OauthPersistence,
-                   ec: ExecutionContext): Future[OauthResponseOk] = {
+                   ec: ExecutionContext): Future[OauthResponse] = {
     val allParamsListF = extractParams(request)
     val allParamsMapF = allParamsListF.map(all => all.toMap)
     val consumerKeyF = allParamsMapF.map(p => p.applyOrElse(consumerKeyName, x => ""))
@@ -41,15 +41,15 @@ object OauthService {
           consumerKey <- consumerKeyF
           callback <- callbackF
         } yield new RequestToken(consumerKey, token, secret, callback)
-        val responseF = for {
-          token <- tokenF
-          secret <- secretF
-          callback <- callbackF
-          response <- createRequestTokenResponse(token, secret, callback)
-        } yield response
 
-        persistenceService.persistRequestToken(requestTokenF)
-          .flatMap(u => responseF)
+        persistenceService.persistRequestToken(requestTokenF).flatMap { u =>
+          for {
+            token <- tokenF
+            secret <- secretF
+            callback <- callbackF
+            response <- createRequestTokenResponse(token, secret, callback)
+          } yield response
+        }
       }
       case VerificationFailed => Future(new OauthResponseOk("Bad sign."))
       case VerificationUnsupported => Future(new OauthResponseOk("Not supp."))
