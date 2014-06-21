@@ -31,21 +31,14 @@ object OauthService {
       case VerificationOk =>
         val (tokenF, secretF) = generateTokenAndSecret
         val callbackF = enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(callbackName, x => ""))
-        val requestTokenF = for {
+        for {
           token <- tokenF
           secret <- secretF
           consumerKey <- consumerKeyF
           callback <- callbackF
-        } yield new RequestToken(consumerKey, token, secret, callback)
-
-        persistenceService.persistRequestToken(requestTokenF).flatMap { u =>
-          for {
-            token <- tokenF
-            secret <- secretF
-            callback <- callbackF
-            response <- createRequestTokenResponse(token, secret, callback)
-          } yield response
-        }
+          persisted <- persistenceService.persistRequestToken(consumerKey, token, secret, callback)
+          response <- createRequestTokenResponse(token, secret, callback)
+        } yield response
       case VerificationFailed => Future(new OauthResponseOk("Bad sign."))
       case VerificationUnsupported => Future(new OauthResponseOk("Not supp."))
     }
