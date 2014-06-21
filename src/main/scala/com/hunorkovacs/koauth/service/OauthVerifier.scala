@@ -5,7 +5,7 @@ import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
 import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.{EnhancedRequest, OauthRequest}
+import com.hunorkovacs.koauth.domain.{OauthParams, EnhancedRequest, OauthRequest}
 import com.hunorkovacs.koauth.service.OauthCombiner._
 import com.hunorkovacs.koauth.domain.OauthParams.{signatureMethodName, signatureName}
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
@@ -27,27 +27,47 @@ object OauthVerifier {
              tokenSecret: String,
              consumerSecret: String)
             (implicit ec: ExecutionContext): Future[Verification] = {
-    val equalityF: Future[Verification] = concatItemsForSignature(enhancedRequest) flatMap { signatureBase =>
+    val signatureF = verifySignature(enhancedRequest, tokenSecret, consumerSecret)
+    val algorithmF = verifyAlgorithm(enhancedRequest)
+    val algorithmF = verifyAlgorithm(enhancedRequest)
+
+    for {
+      equality <- signatureF
+      correctMethod <- algorithmF
+    } yield {
+      List(equality, correctMethod)
+        .collectFirst({ case nok: VerificationNok => nok})
+        .getOrElse(VerificationOk)
+    }
+  }
+
+  def verifySignature(enhancedRequest: EnhancedRequest,
+                      tokenSecret: String,
+                      consumerSecret: String): Future[Verification] = {
+    concatItemsForSignature(enhancedRequest) flatMap { signatureBase =>
       sign(signatureBase, consumerSecret, tokenSecret)
     } map { expectedSignature =>
       val actualSignature = enhancedRequest.oauthParamsMap.applyOrElse(signatureName, x => "")
       if (actualSignature.equals(expectedSignature)) VerificationOk
       else VerificationFailed
     }
+  }
 
-    val correctMethodF: Future[Verification] = Future {
+  def verifyNonce(enhancedRequest: EnhancedRequest): Future[Verification] = {
+    val nonceF = enhancedRequest.oauthParamsMap.applyOrElse(OauthParams.nonceName, x => "")
+
+    Future(VerificationOk)
+  }
+
+  def verifyTimestamp(): Future[Verification] = {
+    Future(VerificationOk)
+  }
+
+  def verifyAlgorithm(enhancedRequest: EnhancedRequest): Future[Verification] = {
+    Future {
       val signatureMethod = enhancedRequest.oauthParamsMap.applyOrElse(signatureMethodName, x => "")
       if (HmacReadable != signatureMethod) VerificationUnsupported
       else VerificationOk
-    }
-
-    for {
-      equality <- equalityF
-      correctMethod <- correctMethodF
-    } yield {
-      List(equality, correctMethod)
-        .collectFirst({ case nok: VerificationNok => nok})
-        .getOrElse(VerificationOk)
     }
   }
 

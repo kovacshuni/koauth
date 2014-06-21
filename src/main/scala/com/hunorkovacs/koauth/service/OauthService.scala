@@ -19,12 +19,10 @@ object OauthService {
                    ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
     val consumerKeyF = enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
-    val consumerSecretF = consumerKeyF.flatMap(persistenceService.getConsumerSecret)
 
     val verificationF = for {
       enhancedRequest <- enhancedRequestF
-      consumerSecret <- consumerSecretF
-      verification <- verify(enhancedRequest, consumerSecret, "")
+      verification <- verify(enhancedRequest)
     } yield verification
 
     verificationF flatMap {
