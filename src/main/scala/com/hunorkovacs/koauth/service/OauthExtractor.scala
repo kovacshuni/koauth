@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.OauthParams
+import com.hunorkovacs.koauth.domain.{EnhancedRequest, OauthRequest, OauthParams}
 import OauthParams._
 import java.net.URLDecoder
 import scala.concurrent.{ExecutionContext, Future}
@@ -17,6 +17,22 @@ object OauthExtractor {
     signatureName, timestampName, nonceName, versionName, verifierName)
   final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
     signatureName, timestampName, nonceName, versionName)
+
+  def enhanceRequest(request: OauthRequest): Future[EnhancedRequest] = {
+    val allParamsListF = extractParams(request)
+    val allParamsMapF = allParamsListF.map(all => all.toMap)
+    for {
+      allParamsList <- allParamsListF
+      allParamsMap <- allParamsMapF
+    } yield {
+      EnhancedRequest(request, allParamsList, allParamsMap)
+    }
+  }
+
+  def extractParams(request: OauthRequest) = {
+    Future(request.authorizationHeader).
+      flatMap(extractAllOauthParams)
+  }
 
   def extractAllOauthParams(header: String)(implicit ec: ExecutionContext): Future[List[(String, String)]] = {
     Future {

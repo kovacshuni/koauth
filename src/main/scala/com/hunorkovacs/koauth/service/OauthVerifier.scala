@@ -5,7 +5,7 @@ import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
 import java.util.Base64
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.OauthRequest
+import com.hunorkovacs.koauth.domain.{EnhancedRequest, OauthRequest}
 import com.hunorkovacs.koauth.service.OauthCombiner._
 import com.hunorkovacs.koauth.domain.OauthParams.{signatureMethodName, signatureName}
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
@@ -23,22 +23,20 @@ object OauthVerifier {
   private val UTF8Charset = Charset.forName(UTF8)
   private val Base64Encoder = Base64.getEncoder
 
-  def verify(request: OauthRequest,
-             allParamsList: List[(String, String)],
-             allParamsMap: Map[String, String],
+  def verify(enhancedRequest: EnhancedRequest,
              tokenSecret: String,
              consumerSecret: String)
             (implicit ec: ExecutionContext): Future[Verification] = {
-    val equalityF: Future[Verification] = concatItemsForSignature(request, allParamsList) flatMap { signatureBase =>
+    val equalityF: Future[Verification] = concatItemsForSignature(enhancedRequest) flatMap { signatureBase =>
       sign(signatureBase, consumerSecret, tokenSecret)
     } map { expectedSignature =>
-      val actualSignature = allParamsMap.applyOrElse(signatureName, x => "")
+      val actualSignature = enhancedRequest.oauthParamsMap.applyOrElse(signatureName, x => "")
       if (actualSignature.equals(expectedSignature)) VerificationOk
       else VerificationFailed
     }
 
     val correctMethodF: Future[Verification] = Future {
-      val signatureMethod = allParamsMap.applyOrElse(signatureMethodName, x => "")
+      val signatureMethod = enhancedRequest.oauthParamsMap.applyOrElse(signatureMethodName, x => "")
       if (HmacReadable != signatureMethod) VerificationUnsupported
       else VerificationOk
     }

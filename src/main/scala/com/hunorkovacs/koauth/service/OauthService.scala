@@ -17,24 +17,20 @@ object OauthService {
 
   def requestToken(request: OauthRequest)(implicit persistenceService: OauthPersistence,
                    ec: ExecutionContext): Future[OauthResponse] = {
-    val allParamsListF = extractParams(request)
-    val allParamsMapF = allParamsListF.map(all => all.toMap)
-    val consumerKeyF = allParamsMapF.map(p => p.applyOrElse(consumerKeyName, x => ""))
+    val enhancedRequestF = enhanceRequest(request)
+    val consumerKeyF = enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
     val consumerSecretF = consumerKeyF.flatMap(persistenceService.getConsumerSecret)
 
     val verificationF = for {
-      allParamsList <- allParamsListF
-      allParamsMap <- allParamsMapF
+      enhancedRequest <- enhancedRequestF
       consumerSecret <- consumerSecretF
-      tokenSecret <- tokenSecretF
-    } yield {
-      verify(request, allParamsList, allParamsMap, consumerSecret, tokenSecret)
-    }
+      verification <- verify(enhancedRequest, consumerSecret, "")
+    } yield verification
 
     verificationF flatMap {
-      case VerificationOk => {
+      case VerificationOk =>
         val (tokenF, secretF) = generateTokenAndSecret
-        val callbackF = allParamsMapF.map(p => p.applyOrElse(callbackName, x => ""))
+        val callbackF = enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(callbackName, x => ""))
         val requestTokenF = for {
           token <- tokenF
           secret <- secretF
@@ -50,15 +46,9 @@ object OauthService {
             response <- createRequestTokenResponse(token, secret, callback)
           } yield response
         }
-      }
       case VerificationFailed => Future(new OauthResponseOk("Bad sign."))
       case VerificationUnsupported => Future(new OauthResponseOk("Not supp."))
     }
-  }
-
-  def extractParams(request: OauthRequest) = {
-    Future(request.authorizationHeader).
-      flatMap(extractAllOauthParams)
   }
 
   def getRights(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,

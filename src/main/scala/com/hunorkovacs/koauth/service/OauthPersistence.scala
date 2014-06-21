@@ -1,7 +1,8 @@
 package com.hunorkovacs.koauth.service
 
+import java.util.Date
+
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.service.OauthService.RequestTokenResources
 import com.hunorkovacs.koauth.domain.{OauthParams, Rights}
 
 trait OauthPersistence {
@@ -32,8 +33,32 @@ trait OauthPersistence {
                         (implicit ec: ExecutionContext): Future[(String, String, String, Rights)]
 
   def getConsumerSecret(consumerKey: String): Future[String]
+
+  /// new functions
+
+  def nonceExists(nonce: String, consumerKey: String, token: String): Future[Boolean]
+
 }
 
-case class RequestToken(consumerKey: String,
-                        token: String,
-                        tokenSecret: String)
+case class Consumer(consumerKey: String,
+                     consumerSecret: String,
+                     appId: Int,
+                     username: String,
+                     rights: Rights)
+
+case class RequesToken(consumerKey: String,
+                        requestToken: String,
+                        requestTokenSecret: String,
+                        callback: String,
+                        verifierUsername: String,
+                        verifier: String)
+
+case class AccessToken(consumerKey: String,
+                        accessToken: String,
+                        accessTokenSecret: String,
+                        username: String)
+
+case class Nonce(nonce: String,
+                  time: Date,
+                  consumerKey: String,
+                  token: String)

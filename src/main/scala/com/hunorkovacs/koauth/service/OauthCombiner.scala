@@ -2,18 +2,16 @@ package com.hunorkovacs.koauth.service
 
 import java.net.URLEncoder
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.{OauthRequest, OauthResponseOk, OauthParams}
+import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.TokenGenerator._
-import com.hunorkovacs.koauth.domain.OauthRequest
-import com.hunorkovacs.koauth.domain.OauthResponseOk
 
 object OauthCombiner {
 
   def URLEncode(s: String) = URLEncoder.encode(s, OauthExtractor.UTF8).replaceAll("+", "%20")
 
-  def concatItemsForSignature(request: OauthRequest, allParamsList: List[(String, String)])
+  def concatItemsForSignature(request: EnhancedRequest)
                              (implicit ec: ExecutionContext): Future[String] = {
-    normalizeOauthParamsForSignature(allParamsList) flatMap { n =>
+    normalizeOauthParamsForSignature(request.oauthParamsList) flatMap { n =>
       concatItems(List(request.method, request.urlWithoutParams, n))
     }
   }
