@@ -8,11 +8,9 @@ object TokenGenerator {
   private final val Length = 32
   private val random = new Random(System.currentTimeMillis)
 
-  def generateTokenAndSecret(implicit ec: ExecutionContext) =
-    (Future(generate), Future(generate))
+  def generateTokenAndSecret(implicit ec: ExecutionContext) = Future((generate, generate))
 
-  def generateVerifier(implicit ec: ExecutionContext) =
-    Future(generate)
+  def generateVerifier(implicit ec: ExecutionContext) = Future(generate)
 
   private def generate: String = random.alphanumeric.take(Length).mkString
 }

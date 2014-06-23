@@ -15,30 +15,20 @@ import scala.concurrent.duration.Duration.Inf
 
 object OauthService {
 
-  def requestToken(request: OauthRequest)(implicit persistenceService: OauthPersistence,
-                   ec: ExecutionContext): Future[OauthResponse] = {
+  def requestToken(request: OauthRequest)
+                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
-    val consumerKeyF = enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
-
-    val verificationF = for {
-      enhancedRequest <- enhancedRequestF
-      verification <- verify(enhancedRequest)
-    } yield verification
-
-    verificationF flatMap {
+    enhancedRequestF.flatMap(verifyForRequestToken) flatMap {
       case VerificationOk =>
-        val (tokenF, secretF) = generateTokenAndSecret
-        val callbackF = enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(callbackName, x => ""))
         for {
-          token <- tokenF
-          secret <- secretF
-          consumerKey <- consumerKeyF
-          callback <- callbackF
+          (token, secret) <- generateTokenAndSecret
+          consumerKey <- enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
+          callback <- enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(callbackName, x => ""))
           persisted <- persistenceService.persistRequestToken(consumerKey, token, secret, callback)
           response <- createRequestTokenResponse(token, secret, callback)
         } yield response
-      case VerificationFailed => Future(new OauthResponseOk("Bad sign."))
-      case VerificationUnsupported => Future(new OauthResponseOk("Not supp."))
+      case VerificationFailed => Future(new OauthResponseUnauthorized("Bad sign."))
+      case VerificationUnsupported => Future(new OauthResponseBadRequest("Not supp."))
     }
   }
 

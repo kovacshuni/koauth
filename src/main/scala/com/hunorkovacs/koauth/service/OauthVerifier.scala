@@ -5,9 +5,9 @@ import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
 import java.util.{TimeZone, Calendar, Base64}
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.{OauthParams, EnhancedRequest}
+import com.hunorkovacs.koauth.domain.EnhancedRequest
 import com.hunorkovacs.koauth.service.OauthCombiner._
-import com.hunorkovacs.koauth.domain.OauthParams.{consumerKeyName, timestampName, signatureMethodName, signatureName}
+import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
 
 trait Verification
@@ -25,26 +25,28 @@ object OauthVerifier {
   private val Base64Encoder = Base64.getEncoder
   private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
-  def verify(enhancedRequest: EnhancedRequest,
-             tokenSecret: String,
-             consumerSecret: String)
-            (implicit ec: ExecutionContext): Future[Verification] = {
-    val signatureF = verifySignature(enhancedRequest, tokenSecret, consumerSecret)
+  def verifyForRequestToken(enhancedRequest: EnhancedRequest)
+            (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+    val signatureF = verifySignature(enhancedRequest, "")
     val algorithmF = verifyAlgorithm(enhancedRequest)
     val timestampF = verifyTimestamp(enhancedRequest)
-    val nonceF = verifyNonce(enhancedRequest, "token123")
-    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)).map { list =>
-      list.collectFirst({ case nok: VerificationNok => nok})
+    val nonceF = verifyNonce(enhancedRequest, "")
+    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
+      list.collectFirst({ case nok: VerificationNok => nok })
         .getOrElse(VerificationOk)
     }
   }
 
-  def verifySignature(enhancedRequest: EnhancedRequest,
-                      tokenSecret: String,
-                      consumerSecret: String): Future[Verification] = {
-    concatItemsForSignature(enhancedRequest) flatMap { signatureBase =>
-      sign(signatureBase, consumerSecret, tokenSecret)
-    } map { expectedSignature =>
+  def verifySignature(enhancedRequest: EnhancedRequest, tokenSecret: String)
+                     (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+    val consumerSecretF = Future(enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
+      .flatMap(consumerKey => persistence.getConsumerSecret(consumerKey))
+    val signatureBaseF = concatItemsForSignature(enhancedRequest)
+    for {
+      consumerSecret <- consumerSecretF
+      signatureBase <- signatureBaseF
+      expectedSignature <- sign(signatureBase, consumerSecret, tokenSecret)
+    } yield {
       val actualSignature = enhancedRequest.oauthParamsMap.applyOrElse(signatureName, x => "")
       if (actualSignature.equals(expectedSignature)) VerificationOk
       else VerificationFailed
@@ -54,12 +56,11 @@ object OauthVerifier {
   def verifyNonce(enhancedRequest: EnhancedRequest, token: String)
                  (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     Future {
-      val nonce = enhancedRequest.oauthParamsMap.applyOrElse(OauthParams.nonceName, x => "")
+      val nonce = enhancedRequest.oauthParamsMap.applyOrElse(nonceName, x => "")
       val consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
-      val token = enhancedRequest.oauthParamsMap.applyOrElse(token, x => "")
-      (nonce, consumerKey, token)
+      (nonce, consumerKey)
     } flatMap { t =>
-      persistence.nonceExists(t._1, t._2, t._3)
+      persistence.nonceExists(t._1, t._2, token)
     } map { exists =>
       if (exists) VerificationOk
       else VerificationFailed
