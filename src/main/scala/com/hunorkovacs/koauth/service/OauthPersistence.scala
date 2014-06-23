@@ -7,11 +7,7 @@ import com.hunorkovacs.koauth.domain.{OauthParams, Rights}
 
 trait OauthPersistence {
 
-  def persistRequestToken(consumerKey: String,
-                          requestToken: String,
-                          requestTokenSecret: String,
-                          callback: String)
-                         (implicit ec: ExecutionContext): Future[Unit]
+
 
   def getRights(requestTokenF: Future[String])
                (implicit ec: ExecutionContext): Future[Rights]
@@ -39,7 +35,16 @@ trait OauthPersistence {
 
   /// new functions
 
-  def nonceExists(nonce: String, consumerKey: String, token: String): Future[Boolean]
+  def nonceExists(nonce: String,
+                  consumerKey: String,
+                  token: String)
+                 (implicit ec: ExecutionContext): Future[Boolean]
+
+  def persistRequestToken(consumerKey: String,
+                          requestToken: String,
+                          requestTokenSecret: String,
+                          callback: String)
+                         (implicit ec: ExecutionContext): Future[Unit]
 
 }
 

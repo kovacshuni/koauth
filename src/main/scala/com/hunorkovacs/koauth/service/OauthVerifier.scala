@@ -3,11 +3,11 @@ package com.hunorkovacs.koauth.service
 import javax.crypto.Mac
 import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
-import java.util.Base64
+import java.util.{TimeZone, Calendar, Base64}
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.{OauthParams, EnhancedRequest, OauthRequest}
+import com.hunorkovacs.koauth.domain.{OauthParams, EnhancedRequest}
 import com.hunorkovacs.koauth.service.OauthCombiner._
-import com.hunorkovacs.koauth.domain.OauthParams.{signatureMethodName, signatureName}
+import com.hunorkovacs.koauth.domain.OauthParams.{consumerKeyName, timestampName, signatureMethodName, signatureName}
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
 
 trait Verification
@@ -20,8 +20,10 @@ object OauthVerifier {
 
   private val HmacSha1Algorithm = "HmacSHA1"
   private val HmacReadable = "HMAC-SHA1"
+  private val TimePrecisionMillis = 10 * 60 * 1000
   private val UTF8Charset = Charset.forName(UTF8)
   private val Base64Encoder = Base64.getEncoder
+  private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
   def verify(enhancedRequest: EnhancedRequest,
              tokenSecret: String,
@@ -29,14 +31,10 @@ object OauthVerifier {
             (implicit ec: ExecutionContext): Future[Verification] = {
     val signatureF = verifySignature(enhancedRequest, tokenSecret, consumerSecret)
     val algorithmF = verifyAlgorithm(enhancedRequest)
-    val algorithmF = verifyAlgorithm(enhancedRequest)
-
-    for {
-      equality <- signatureF
-      correctMethod <- algorithmF
-    } yield {
-      List(equality, correctMethod)
-        .collectFirst({ case nok: VerificationNok => nok})
+    val timestampF = verifyTimestamp(enhancedRequest)
+    val nonceF = verifyNonce(enhancedRequest, "token123")
+    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)).map { list =>
+      list.collectFirst({ case nok: VerificationNok => nok})
         .getOrElse(VerificationOk)
     }
   }
@@ -53,14 +51,34 @@ object OauthVerifier {
     }
   }
 
-  def verifyNonce(enhancedRequest: EnhancedRequest): Future[Verification] = {
-    val nonceF = enhancedRequest.oauthParamsMap.applyOrElse(OauthParams.nonceName, x => "")
-
-    Future(VerificationOk)
+  def verifyNonce(enhancedRequest: EnhancedRequest, token: String)
+                 (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+    Future {
+      val nonce = enhancedRequest.oauthParamsMap.applyOrElse(OauthParams.nonceName, x => "")
+      val consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
+      val token = enhancedRequest.oauthParamsMap.applyOrElse(token, x => "")
+      (nonce, consumerKey, token)
+    } flatMap { t =>
+      persistence.nonceExists(t._1, t._2, t._3)
+    } map { exists =>
+      if (exists) VerificationOk
+      else VerificationFailed
+    }
   }
 
-  def verifyTimestamp(): Future[Verification] = {
-    Future(VerificationOk)
+  def verifyTimestamp(enhancedRequest: EnhancedRequest)
+                     (implicit ec: ExecutionContext): Future[Verification] = {
+    Future {
+      val timestamp = enhancedRequest.oauthParamsMap.applyOrElse(timestampName, x => "")
+      try {
+        val actualStamp = timestamp.toLong
+        val expectedStamp = Calendar1.getTimeInMillis
+        if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionMillis) VerificationOk
+        else VerificationFailed
+      } catch {
+        case nfEx: NumberFormatException => VerificationUnsupported
+      }
+    }
   }
 
   def verifyAlgorithm(enhancedRequest: EnhancedRequest): Future[Verification] = {
