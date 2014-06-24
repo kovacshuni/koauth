@@ -21,7 +21,7 @@ object OauthVerifier {
 
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
-    Future(enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
+    Future(enhancedRequest.oauthParamsMap(consumerKeyName))
       .flatMap(persistence.getConsumerSecret)
       .flatMap {
         case None => Future(VerificationFailed)
@@ -63,7 +63,7 @@ object OauthVerifier {
       signatureBase <- concatItemsForSignature(enhancedRequest)
       expectedSignature <- sign(signatureBase, consumerSecret, tokenSecret)
     } yield {
-      val actualSignature = enhancedRequest.oauthParamsMap.applyOrElse(signatureName, x => "")
+      val actualSignature = enhancedRequest.oauthParamsMap(signatureName)
       if (actualSignature.equals(expectedSignature)) VerificationOk
       else VerificationFailed
     }
@@ -72,8 +72,8 @@ object OauthVerifier {
   private def verifyNonce(enhancedRequest: EnhancedRequest, token: String)
                  (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     Future {
-      val nonce = enhancedRequest.oauthParamsMap.applyOrElse(nonceName, x => "")
-      val consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
+      val nonce = enhancedRequest.oauthParamsMap(nonceName)
+      val consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
       (nonce, consumerKey)
     } flatMap { t =>
       persistence.nonceExists(t._1, t._2, token)
@@ -84,9 +84,9 @@ object OauthVerifier {
   }
 
   private def verifyTimestamp(enhancedRequest: EnhancedRequest)
-                     (implicit ec: ExecutionContext): Future[Verification] = {
+                              (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
-      val timestamp = enhancedRequest.oauthParamsMap.applyOrElse(timestampName, x => "")
+      val timestamp = enhancedRequest.oauthParamsMap(timestampName)
       try {
         val actualStamp = timestamp.toLong
         val expectedStamp = Calendar1.getTimeInMillis
@@ -98,16 +98,17 @@ object OauthVerifier {
     }
   }
 
-  private def verifyAlgorithm(enhancedRequest: EnhancedRequest): Future[Verification] = {
+  private def verifyAlgorithm(enhancedRequest: EnhancedRequest)
+                              (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
-      val signatureMethod = enhancedRequest.oauthParamsMap.applyOrElse(signatureMethodName, x => "")
+      val signatureMethod = enhancedRequest.oauthParamsMap(signatureMethodName)
       if (HmacReadable != signatureMethod) VerificationUnsupported
       else VerificationOk
     }
   }
 
   private def sign(base: String, consumerSecret: String, tokenSecret: String)
-          (implicit ec: ExecutionContext): Future[String] = {
+                   (implicit ec: ExecutionContext): Future[String] = {
     concatItems(List(consumerSecret, tokenSecret)) map { secrets =>
       new SecretKeySpec(secrets.getBytes(UTF8Charset), HmacSha1Algorithm)
     } map { signingKey: SecretKeySpec =>

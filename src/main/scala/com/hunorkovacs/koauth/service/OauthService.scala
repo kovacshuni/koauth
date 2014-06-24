@@ -18,8 +18,8 @@ object OauthService {
       case VerificationOk =>
         for {
           (token, secret) <- generateTokenAndSecret
-          consumerKey <- enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
-          callback <- enhancedRequestF.map(r => r.oauthParamsMap.applyOrElse(callbackName, x => ""))
+          consumerKey <- enhancedRequestF.map(r => r.oauthParamsMap(consumerKeyName))
+          callback <- enhancedRequestF.map(r => r.oauthParamsMap(callbackName))
           persisted <- persistenceService.persistRequestToken(consumerKey, token, secret, callback)
           response <- createRequestTokenResponse(token, secret, callback)
         } yield response
@@ -32,16 +32,16 @@ object OauthService {
                (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     (for {
       enhancedRequest <- enhanceRequest(request)
-      username = enhancedRequest.oauthParamsMap.applyOrElse(usernameName, x => "br")
-      password = enhancedRequest.oauthParamsMap.applyOrElse(passwordName, x => "ab")
+      username = enhancedRequest.oauthParamsMap(usernameName)
+      password = enhancedRequest.oauthParamsMap(passwordName)
       auth <- persistenceService.authenticate(username, password)
     } yield auth) flatMap {
       case true =>
         for {
           enhancedRequest <- enhanceRequest(request)
-          consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
-          requestToken = enhancedRequest.oauthParamsMap.applyOrElse(tokenName, x => "")
-          username = enhancedRequest.oauthParamsMap.applyOrElse(usernameName, x => "")
+          consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
+          requestToken = enhancedRequest.oauthParamsMap(tokenName)
+          username = enhancedRequest.oauthParamsMap(usernameName)
           verifier <- generateVerifier
           authorization <- persistenceService.authorizeRequestToken(consumerKey, requestToken, username, verifier)
           response <- createAuthorizeResponse(requestToken, verifier)
@@ -59,15 +59,15 @@ object OauthService {
       case VerificationOk =>
         (for {
           enhancedRequest <- enhancedRequestF
-          consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
-          requestToken = enhancedRequest.oauthParamsMap.applyOrElse(tokenName, x => "")
+          consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
+          requestToken = enhancedRequest.oauthParamsMap(tokenName)
           user <- persistenceService.whoAuthorizedRequesToken(consumerKey, requestToken)
         } yield user) flatMap {
           case None => Future(new OauthResponseUnauthorized("Request Token not authorized"))
           case Some(username) =>
             for {
               enhancedRequest <- enhanceRequest(request)
-              consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
+              consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
               (token, secret) <- generateTokenAndSecret
               accessToken <- persistenceService.persistAccessToken(consumerKey, token, secret, username)
               response <- createAccesTokenResponse(token, secret)

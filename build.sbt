@@ -13,6 +13,5 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-actor_2.10" % "2.3.3",
-  "org.scala-lang.modules" %% "scala-async" % "0.9.1",
   "org.specs2" %% "specs2" % "2.3.12" % "test"
 )

@@ -4,6 +4,18 @@ import org.specs2.mutable._
 
 class OauthExtractorSpec extends Specification {
 
+  "The 'Hello world' string" should {
+    "contain 11 characters" in {
+      "Hello world" must have size(11)
+    }
+    "start with 'Hello'" in {
+      "Hello world" must startWith("Hello")
+    }
+    "end with 'world'" in {
+      "Hello world" must endWith("world")
+    }
+  }
+
 //   private final val SampleHeader = "OAuth realm=\"http://localhost:9000/authorization/request-token\"," +
 //     "oauth_consumer_key=\"something%20space\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"1402347948\"," +
 //     "oauth_nonce=\"hly1EI\",oauth_version=\"1.0\",oauth_signature=\"aGFG3tBdf5qwqMJgDkoQ0pvo7Mc%3D\""

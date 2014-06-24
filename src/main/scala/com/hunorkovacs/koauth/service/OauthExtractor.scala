@@ -17,7 +17,8 @@ object OauthExtractor {
   final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
     signatureName, timestampName, nonceName, versionName)
 
-  def enhanceRequest(request: OauthRequest): Future[EnhancedRequest] = {
+  def enhanceRequest(request: OauthRequest)
+                    (implicit ec: ExecutionContext): Future[EnhancedRequest] = {
     val allParamsListF = extractAllOauthParams(request)
     val allParamsMapF = allParamsListF.map(all => all.toMap)
     for {
