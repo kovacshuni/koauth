@@ -8,7 +8,10 @@ import com.hunorkovacs.koauth.domain._
 
 object OauthCombiner {
 
-  def URLEncode(s: String) = URLEncoder.encode(s, OauthExtractor.UTF8).replaceAll("+", "%20")
+  def urlEncode(s: String) = URLEncoder.encode(s, OauthExtractor.UTF8)
+    .replaceAll("\\+", "%20")
+    .replaceAll("\\*", "%2A")
+    .replaceAll("%7E", "~")
 
   def concatItemsForSignature(request: EnhancedRequest)
                              (implicit ec: ExecutionContext): Future[String] = {
@@ -31,7 +34,7 @@ object OauthCombiner {
     Future {
       val paramsTogetherEncoded = keyValueList map { keyValue =>
         val (key, value) = keyValue
-        URLEncode(key) + "=" + URLEncode(value)
+        urlEncode(key) + "=" + urlEncode(value)
       }
       paramsTogetherEncoded.sorted
     } flatMap concatItems
@@ -40,7 +43,7 @@ object OauthCombiner {
   def concatItems(itemList: List[String])(implicit ec: ExecutionContext): Future[String] = {
     Future {
       itemList
-        .map(item => URLEncode(item))
+        .map(item => urlEncode(item))
         .mkString("&")
     }
   }

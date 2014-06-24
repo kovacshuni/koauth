@@ -118,7 +118,7 @@ object OauthVerifier {
       val digest = mac.doFinal(bytesToSign)
       val digest64 = Base64Encoder.encode(digest)
       val digestString = new String(digest64, UTF8Charset)
-      URLEncode(digestString)
+      urlEncode(digestString)
     }
   }
 }

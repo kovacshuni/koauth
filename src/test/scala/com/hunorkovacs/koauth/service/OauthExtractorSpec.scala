@@ -1,18 +1,20 @@
 package com.hunorkovacs.koauth.service
 
+import com.hunorkovacs.koauth.service.OauthExtractor.urlDecode
+import com.hunorkovacs.koauth.service.OauthExtractorSpec._
 import org.specs2.mutable._
 
 class OauthExtractorSpec extends Specification {
 
-  "The 'Hello world' string" should {
-    "contain 11 characters" in {
-      "Hello world" must have size(11)
+  "URL decoding" should {
+    "convert normal characters" in {
+      urlDecode(NormalCharacters) must equalTo (NormalCharacters)
     }
-    "start with 'Hello'" in {
-      "Hello world" must startWith("Hello")
+    "convert illegal characters" in {
+      urlDecode(IllegalCharactersEncoded) must equalTo (IllegalCharacters)
     }
-    "end with 'world'" in {
-      "Hello world" must endWith("world")
+    "convert characters on two bytes" in {
+      urlDecode(DoubleByteCharactersEncoded) must equalTo (DoubleByteCharacters)
     }
   }
 
@@ -45,4 +47,13 @@ class OauthExtractorSpec extends Specification {
 //        beEqualTo("keyA=valA&keyC=valB&keyC=valC")
 //    }
 //  }
+}
+
+object OauthExtractorSpec {
+
+  val NormalCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
+  val IllegalCharacters = " !\"#$%&\'()*+,/:;<=>?@"
+  val IllegalCharactersEncoded = "%20%21%22%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40"
+  val DoubleByteCharacters = "áéő"
+  val DoubleByteCharactersEncoded = "%C3%A1%C3%A9%C5%91"
 }

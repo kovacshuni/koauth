@@ -33,7 +33,7 @@ object OauthExtractor {
       request.authorizationHeader.stripPrefix("OAuth ")
         .replaceAll("\"", "")
         .split(",")
-        .map(param => URLDecode(param))
+        .map(param => urlDecode(param))
         .map { keyValue: String =>
         val kv = keyValue.split("=")
         val k = kv(0)
@@ -43,5 +43,5 @@ object OauthExtractor {
     }
   }
 
-  private def URLDecode(s: String) = URLDecoder.decode(s, UTF8)
+  def urlDecode(s: String) = URLDecoder.decode(s, UTF8)
 }
