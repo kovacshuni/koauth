@@ -5,7 +5,6 @@ import com.hunorkovacs.koauth.domain.OauthParams.{tokenSecretName, verifierName,
 
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
-import com.hunorkovacs.koauth.service.TokenGenerator._
 
 object OauthCombiner {
 
@@ -27,7 +26,7 @@ object OauthCombiner {
     } flatMap combineOauthParams
   }
 
-  def combineOauthParams(keyValueList: List[(String, String)])
+  private def combineOauthParams(keyValueList: List[(String, String)])
                         (implicit ec: ExecutionContext): Future[String] = {
     Future {
       val paramsTogetherEncoded = keyValueList map { keyValue =>
@@ -38,14 +37,11 @@ object OauthCombiner {
     } flatMap concatItems
   }
 
-//  def concatItems(itemsFList: List[Future[String]])(implicit ec: ExecutionContext): Future[String] = {
-//    val itemListF = Future.sequence(itemsFList)
-//    concatItems(itemListF)
-//  }
-
   def concatItems(itemList: List[String])(implicit ec: ExecutionContext): Future[String] = {
     Future {
-      itemList.map(item => URLEncode(item)).mkString("&")
+      itemList
+        .map(item => URLEncode(item))
+        .mkString("&")
     }
   }
 

@@ -18,36 +18,29 @@ object OauthExtractor {
     signatureName, timestampName, nonceName, versionName)
 
   def enhanceRequest(request: OauthRequest): Future[EnhancedRequest] = {
-    val allParamsListF = extractParams(request)
+    val allParamsListF = extractAllOauthParams(request)
     val allParamsMapF = allParamsListF.map(all => all.toMap)
     for {
       allParamsList <- allParamsListF
       allParamsMap <- allParamsMapF
-    } yield {
-      EnhancedRequest(request, allParamsList, allParamsMap)
-    }
+    } yield EnhancedRequest(request, allParamsList, allParamsMap)
   }
 
-  def extractParams(request: OauthRequest) = {
-    Future(request.authorizationHeader).
-      flatMap(extractAllOauthParams)
-  }
-
-  def extractAllOauthParams(header: String)(implicit ec: ExecutionContext): Future[List[(String, String)]] = {
+  def extractAllOauthParams(request: OauthRequest)
+                           (implicit ec: ExecutionContext): Future[List[(String, String)]] = {
     Future {
-      val array = header.stripPrefix("OAuth ")
+      request.authorizationHeader.stripPrefix("OAuth ")
         .replaceAll("\"", "")
-        .split(",") map { param =>
-        URLDecode(param)
-      } map { keyValue: String =>
+        .split(",")
+        .map(param => URLDecode(param))
+        .map { keyValue: String =>
         val kv = keyValue.split("=")
         val k = kv(0)
         val v = if (kv.size == 2) kv(1) else ""
         (k, v)
-      }
-      array.toList
+      }.toList
     }
   }
 
-  def URLDecode(s: String) = URLDecoder.decode(s, UTF8)
+  private def URLDecode(s: String) = URLDecoder.decode(s, UTF8)
 }
