@@ -16,11 +16,6 @@ trait OauthPersistence {
                                verifierF: Future[String])
                               (implicit ec: ExecutionContext): Future[(String, Rights)]
 
-  def persistAccessToken(consumerKeyF: Future[String], consumerSecretF: Future[String],
-                         tokenF: Future[String], tokenSecretF: Future[String],
-                         rightsF: Future[Rights], usernameF: Future[String])
-                         (implicit ec: ExecutionContext): Future[Unit]
-
   def getToken(consumerKeyF: Future[String], tokenF: Future[String])
                         (implicit ec: ExecutionContext): Future[(String, String, String, Rights)]
 
@@ -37,6 +32,9 @@ trait OauthPersistence {
                           callback: String)
                          (implicit ec: ExecutionContext): Future[Unit]
 
+  def getConsumerSecret(consumerKey: String)
+                       (implicit ec: ExecutionContext): Future[String]
+
   /**
    * You should be able to find a RequestToken by its Consumer Key and Request Token.
    * This method should complete and persist (update) that already exisiting record with the verifying username and verifier key.
@@ -51,11 +49,24 @@ trait OauthPersistence {
                             verifier: String)
                            (implicit ec: ExecutionContext): Future[Unit]
 
-  def getConsumerSecret(consumerKey: String)
-                       (implicit ec: ExecutionContext): Future[String]
-
   def authenticate(username: String, password: String)
                   (implicit ec: ExecutionContext): Future[Boolean]
+
+  /**
+   * 
+   * @param consumerKey
+   * @param requestToken
+   * @return The associated username to the token in a Some, otherwise a None.
+   */
+  def whoAuthorizedRequesToken(consumerKey: String,
+                               requestToken: String)
+                              (implicit ec: ExecutionContext): Future[Option[String]]
+
+  def persistAccessToken(consumerKey: String,
+                         accessToken: String,
+                         accessTokenSecret: String,
+                         username: String)
+                        (implicit ec: ExecutionContext): Future[Unit]
 }
 
 case class Consumer(consumerKey: String,

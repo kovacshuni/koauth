@@ -54,28 +54,30 @@ object OauthService {
     }
   }
 
-  def accessToken(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,
-                                                  ec: ExecutionContext): Future[OauthResponseOk] = {
-    val headerF = requestF.map(oauthRequestF => oauthRequestF.authorizationHeader)
-    val allOauthParamsF = extractAllOauthParams(headerF)
-    val requiredOauthParamsF = extractSpecificOauthParams(allOauthParamsF, AccessTokenRequiredParams)
-
-    verify(requestF, allOauthParamsF, requiredOauthParamsF)
-
-    val consumerKeyF = requiredOauthParamsF.map(p => p.consumerKey)
-    val consumerSecretF = requiredOauthParamsF.map(p => p.consumerSecret)
-    val tokenF = requiredOauthParamsF.map(p => p.token)
-    val verifierF = requiredOauthParamsF.map(p => p.verifier)
-    val usernameAndRightsF = persistenceService.whoAuthorizedRequestToken(consumerKeyF, tokenF, verifierF)
-    val usernameF = usernameAndRightsF.map(f => f._1)
-    val rightsF = usernameAndRightsF.map(f => f._2)
-
-    val (accessTokenF, accessSecretF) = generateTokenAndSecret
-    persistenceService.persistAccessToken(consumerKeyF, consumerSecretF,
-      accessTokenF, accessSecretF,
-      rightsF, usernameF)
-
-    createAccesTokenResponse(accessTokenF, accessSecretF)
+  def accessToken(request: OauthRequest)
+                 (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
+    val enhancedRequestF = enhanceRequest(request)
+    enhancedRequestF.flatMap(verifyForAccessToken) flatMap {
+      case VerificationFailed => Future(new OauthResponseUnauthorized("Bad sign."))
+      case VerificationUnsupported => Future(new OauthResponseBadRequest("Not supp."))
+      case VerificationOk =>
+        (for {
+          enhancedRequest <- enhanceRequest(request)
+          consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
+          requestToken = enhancedRequest.oauthParamsMap.applyOrElse(tokenName, x => "")
+          user <- persistenceService.whoAuthorizedRequesToken(consumerKey, requestToken)
+        } yield user) flatMap {
+          case None => Future(new OauthResponseUnauthorized("Request Token not authorized"))
+          case Some(username) =>
+            for {
+              enhancedRequest <- enhanceRequest(request)
+              consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
+              (token, secret) <- generateTokenAndSecret
+              accessToken <- persistenceService.persistAccessToken(consumerKey, token, secret, username)
+              response <- createAccesTokenResponse(token, secret)
+            } yield response
+        }
+    }
   }
 
   def oauthenticate(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,

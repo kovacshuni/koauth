@@ -1,7 +1,7 @@
 package com.hunorkovacs.koauth.service
 
 import java.net.URLEncoder
-import com.hunorkovacs.koauth.domain.OauthParams.{verifierName, tokenName}
+import com.hunorkovacs.koauth.domain.OauthParams.{tokenSecretName, verifierName, tokenName}
 
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
@@ -53,7 +53,7 @@ object OauthCombiner {
                                 (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
     Future {
       List((tokenName, token),
-        (OauthParams.tokenSecretName, secret),
+        (tokenSecretName, secret),
         (OauthParams.callbackName, callback))
     }
       .flatMap(combineOauthParams)
@@ -65,14 +65,8 @@ object OauthCombiner {
     combineOauthParams(List((tokenName, token), (verifierName, verifier)))
       .map(paramsString => new OauthResponseOk(paramsString))
 
-  def createAccesTokenResponse(tokenF: Future[String], secretF: Future[String])
-                              (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
-    val paramsF = for {
-      token <- tokenF
-      secret <- secretF
-    } yield {
-      List((tokenName, token), (OauthParams.tokenSecretName, secret))
-    }
-    combineOauthParams(paramsF).map(body => new OauthResponseOk(body))
-  }
+  def createAccesTokenResponse(token: String, secret: String)
+                              (implicit ec: ExecutionContext): Future[OauthResponseOk] =
+    combineOauthParams(List((tokenName, token), (tokenSecretName, secret)))
+      .map(body => new OauthResponseOk(body))
 }

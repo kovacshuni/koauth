@@ -5,7 +5,7 @@ import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
 import java.util.{TimeZone, Calendar, Base64}
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.EnhancedRequest
+import com.hunorkovacs.koauth.domain.{OauthParams, EnhancedRequest}
 import com.hunorkovacs.koauth.service.OauthCombiner._
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
@@ -31,6 +31,18 @@ object OauthVerifier {
     val algorithmF = verifyAlgorithm(enhancedRequest)
     val timestampF = verifyTimestamp(enhancedRequest)
     val nonceF = verifyNonce(enhancedRequest, "")
+    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
+      list.collectFirst({ case nok: VerificationNok => nok })
+        .getOrElse(VerificationOk)
+    }
+  }
+
+  def verifyForAccessToken(enhancedRequest: EnhancedRequest)
+                           (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+    val signatureF = verifySignature(enhancedRequest, enhancedRequest.oauthParamsMap(tokenName))
+    val algorithmF = verifyAlgorithm(enhancedRequest)
+    val timestampF = verifyTimestamp(enhancedRequest)
+    val nonceF = verifyNonce(enhancedRequest, enhancedRequest.oauthParamsMap(tokenName))
     Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
       list.collectFirst({ case nok: VerificationNok => nok })
         .getOrElse(VerificationOk)
