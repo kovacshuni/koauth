@@ -1,37 +1,32 @@
 package com.hunorkovacs.koauth.service
 
-import java.util.Date
-
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.{OauthParams, Rights}
 
 trait OauthPersistence {
 
-
-
-  def getRights(requestTokenF: Future[String])
-               (implicit ec: ExecutionContext): Future[Rights]
-
-  def whoAuthorizedRequestToken(consumerKeyF: Future[String], tokenF: Future[String],
-                               verifierF: Future[String])
-                              (implicit ec: ExecutionContext): Future[(String, Rights)]
-
-  def getToken(consumerKeyF: Future[String], tokenF: Future[String])
-                        (implicit ec: ExecutionContext): Future[(String, String, String, Rights)]
-
-  /// new functions
-
+  /**
+   * Saved nonces can be deleted after a predefined time passes. Preferably longer or equal
+   * to the amount the timestamp verification is tuned to.
+   *
+   * @return true if the nonce already exists for the given Consumer Key and Token
+   */
   def nonceExists(nonce: String,
                   consumerKey: String,
                   token: String)
                  (implicit ec: ExecutionContext): Future[Boolean]
 
+  /**
+   * Save a Request Token without with void verifier username and verifier key.
+   */
   def persistRequestToken(consumerKey: String,
                           requestToken: String,
                           requestTokenSecret: String,
                           callback: String)
                          (implicit ec: ExecutionContext): Future[Unit]
 
+  /**
+   * @return Consumer Secret associated to given Consumer Key
+   */
   def getConsumerSecret(consumerKey: String)
                        (implicit ec: ExecutionContext): Future[Option[String]]
 
@@ -49,51 +44,39 @@ trait OauthPersistence {
                             verifier: String)
                            (implicit ec: ExecutionContext): Future[Unit]
 
+  /**
+   * Simple authentication using directly username and password.
+   *
+   * @return true if this user exists with the respective password, false otherwise
+   */
   def authenticate(username: String, password: String)
                   (implicit ec: ExecutionContext): Future[Boolean]
 
   /**
-   * 
-   * @param consumerKey
-   * @param requestToken
    * @return The associated username to the token in a Some, otherwise a None.
    */
   def whoAuthorizedRequesToken(consumerKey: String,
                                requestToken: String)
                               (implicit ec: ExecutionContext): Future[Option[String]]
 
+  /**
+   * Saves an Access Token with companion attributes.
+   */
   def persistAccessToken(consumerKey: String,
                          accessToken: String,
                          accessTokenSecret: String,
                          username: String)
                         (implicit ec: ExecutionContext): Future[Unit]
 
+  /**
+   * @return the Token Secret in a Some. If not found, a None
+   */
   def getTokenSecret(consumerKey: String, accessToken: String)
                     (implicit ec: ExecutionContext): Future[Option[String]]
 
+  /**
+   * @return the username associated to the token
+   */
   def getUsername(consumerKey: String, accessToken: String)
                  (implicit ec: ExecutionContext): Future[String]
 }
-
-case class Consumer(consumerKey: String,
-                     consumerSecret: String,
-                     appId: Int,
-                     ownerUsername: String,
-                     rights: Rights)
-
-case class RequesToken(consumerKey: String,
-                        requestToken: String,
-                        requestTokenSecret: String,
-                        callback: String,
-                        verifierUsername: String,
-                        verifier: String)
-
-case class AccessToken(consumerKey: String,
-                        accessToken: String,
-                        accessTokenSecret: String,
-                        username: String)
-
-case class Nonce(nonce: String,
-                  time: Date,
-                  consumerKey: String,
-                  token: String)

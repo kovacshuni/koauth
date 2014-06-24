@@ -4,7 +4,6 @@ import com.hunorkovacs.koauth.domain.{EnhancedRequest, OauthRequest, OauthParams
 import OauthParams._
 import java.net.URLDecoder
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.exception.OauthBadRequestException
 
 object OauthExtractor {
 

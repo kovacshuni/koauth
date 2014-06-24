@@ -5,16 +5,10 @@ import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
 import java.util.{TimeZone, Calendar, Base64}
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.{OauthParams, EnhancedRequest}
+import com.hunorkovacs.koauth.domain.EnhancedRequest
 import com.hunorkovacs.koauth.service.OauthCombiner._
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
-
-trait Verification
-case object VerificationOk extends Verification
-trait VerificationNok extends Verification
-case object VerificationUnsupported extends VerificationNok
-case object VerificationFailed extends VerificationNok
 
 object OauthVerifier {
 

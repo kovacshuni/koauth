@@ -1,17 +1,13 @@
 package com.hunorkovacs.koauth.service
 
-import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.OauthExtractor._
 import com.hunorkovacs.koauth.service.OauthVerifier._
 import com.hunorkovacs.koauth.service.TokenGenerator._
 import com.hunorkovacs.koauth.service.OauthCombiner._
-import com.hunorkovacs.koauth.domain.exception.{OauthUnauthorizedException, OauthBadRequestException}
-import com.hunorkovacs.koauth.domain.OauthResponseOk
 import com.hunorkovacs.koauth.domain.OauthRequest
-import scala.util.{Failure, Success}
 import com.hunorkovacs.koauth.domain.OauthParams._
-import scala.concurrent.duration.Duration.Inf
 
 object OauthService {
 
