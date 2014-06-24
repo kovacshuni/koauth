@@ -1,10 +1,23 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.service.OauthExtractor.urlDecode
+import com.hunorkovacs.koauth.domain.{EnhancedRequest, OauthRequest}
+import com.hunorkovacs.koauth.service.OauthExtractor.{enhanceRequest, extractAllOauthParams, urlDecode}
 import com.hunorkovacs.koauth.service.OauthExtractorSpec._
 import org.specs2.mutable._
 
 class OauthExtractorSpec extends Specification {
+
+  val Url = "http://github.com/kovacshuni/koauth"
+  val Method = "http://github.com/kovacshuni/koauth"
+  val HeaderWithSpace = "OAuth oauth_consumer_key=\"xvz1evFS4wEEPTGEFPHBog\", oauth_nonce=\"kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg\", oauth_signature=\"tnnArxj06cWHq44gCs1OSKk%2FjLY%3D\", oauth_signature_method=\"HMAC-SHA1\", oauth_timestamp=\"1318622958\", oauth_token=\"370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb\", oauth_version=\"1.0\""
+  val HeaderWithoutSpace = "OAuth oauth_consumer_key=\"xvz1evFS4wEEPTGEFPHBog\",oauth_nonce=\"kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg\",oauth_signature=\"tnnArxj06cWHq44gCs1OSKk%2FjLY%3D\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"1318622958\",oauth_token=\"370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb\",oauth_version=\"1.0\""
+  val ParamsList = List(("oauth_consumer_key", "xvz1evFS4wEEPTGEFPHBog"),
+    ("oauth_nonce", "kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"),
+    ("oauth_signature", "tnnArxj06cWHq44gCs1OSKk/jLY="),
+    ("oauth_signature_method", "HMAC-SHA1"),
+    ("oauth_timestamp", "1318622958"),
+    ("oauth_token", "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"),
+    ("oauth_version", "1.0"))
 
   "URL decoding" should {
     "convert normal characters" in {
@@ -18,35 +31,40 @@ class OauthExtractorSpec extends Specification {
     }
   }
 
-//   private final val SampleHeader = "OAuth realm=\"http://localhost:9000/authorization/request-token\"," +
-//     "oauth_consumer_key=\"something%20space\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"1402347948\"," +
-//     "oauth_nonce=\"hly1EI\",oauth_version=\"1.0\",oauth_signature=\"aGFG3tBdf5qwqMJgDkoQ0pvo7Mc%3D\""
-//
-//   "Extracting OAuth Parameters" should {
-//     "extract simple" in {
-//       OauthExtractor.extractAllOauthParams("OAuth keyA=\"valA\",keyB=\"valB\"") must
-//         beEqualTo(Array[String]("keyA=valA", "keyB=valB"))
-//     }
-//     "URL unescape" in {
-//       OauthExtractor.extractAllOauthParams("OAuth key%20A=\"val%20A\",keyB=\"%C3%9A\"") must
-//         beEqualTo(Array[String]("key A=val A", "keyB=Ú"))
-//     }
-//   }
-//
-//  "Combining OAuth Response Parameters" should {
-//    "combine simple" in {
-//      OauthExtractor.combineOauthParams(Array[String]("keyA=valA", "keyB=valB")) must
-//        beEqualTo("keyA=valA&keyB=valB")
-//    }
-//    "URL escape" in {
-//      OauthExtractor.combineOauthParams(Array[String]("key A=val A", "keyB=Ú")) must
-//        beEqualTo("key%20A=val%20A&keyB=%C3%9A")
-//    }
-//    "Sort alphabetically" in {
-//      OauthExtractor.combineOauthParams(Array[String]("keyC=valC", "keyC=valB", "keyA=valA")) must
-//        beEqualTo("keyA=valA&keyC=valB&keyC=valC")
-//    }
-//  }
+  "Extracting OAuth params" should {
+    "extract normal parameters separated with commas&spaces" in {
+      val request = OauthRequest(HeaderWithSpace, Url, Method)
+      extractAllOauthParams(request) must equalTo(ParamsList).await
+    }
+    "extract normal parameters sepatated by commas" in {
+      val request = OauthRequest(HeaderWithoutSpace, Url, Method)
+      extractAllOauthParams(request) must equalTo(ParamsList).await
+    }
+    "extract empty values" in {
+      val request = OauthRequest("OAuth oauth_token=\"\"", Url, Method)
+      extractAllOauthParams(request) must equalTo(List(("oauth_token", ""))).await
+    }
+    "extract totally empty header" in {
+      val request = OauthRequest("", Url, Method)
+      extractAllOauthParams(request) must equalTo(List.empty[(String, String)]).await
+    }
+    "discard irregular words" in {
+      val request = OauthRequest("Why is this here,oauth_token=\"123\",And this?", Url, Method)
+      extractAllOauthParams(request) must equalTo(List(("oauth_token", "123"))).await
+    }
+  }
+
+  "Enhancing requests" should {
+    "enhance request with params" in {
+      val request = OauthRequest(HeaderWithSpace, Url, Method)
+      enhanceRequest(request) must equalTo(
+        EnhancedRequest(HeaderWithSpace,
+        Url,
+        Method,
+        ParamsList,
+        ParamsList.toMap)).await
+    }
+  }
 }
 
 object OauthExtractorSpec {

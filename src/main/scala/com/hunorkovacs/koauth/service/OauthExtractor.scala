@@ -29,17 +29,20 @@ object OauthExtractor {
 
   def extractAllOauthParams(request: OauthRequest)
                            (implicit ec: ExecutionContext): Future[List[(String, String)]] = {
+
+    def withoutQuote(s: String) = s.substring(0, s.length - 1)
+
     Future {
       request.authorizationHeader.stripPrefix("OAuth ")
-        .replaceAll("\"", "")
         .split(",")
-        .map(param => urlDecode(param))
+        .filter(s => s.contains("=\""))
+        .map(param => param.trim)
         .map { keyValue: String =>
-        val kv = keyValue.split("=")
-        val k = kv(0)
-        val v = if (kv.size == 2) kv(1) else ""
-        (k, v)
-      }.toList
+          val kv = keyValue.split("=\"")
+          val k = urlDecode(kv(0))
+          val v = urlDecode(withoutQuote(kv(1)))
+          (k, v)
+        }.toList
     }
   }
 
