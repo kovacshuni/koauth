@@ -1,6 +1,8 @@
 package com.hunorkovacs.koauth.service
 
 import java.net.URLEncoder
+import com.hunorkovacs.koauth.domain.OauthParams.{verifierName, tokenName}
+
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.TokenGenerator._
@@ -50,7 +52,7 @@ object OauthCombiner {
   def createRequestTokenResponse(token: String, secret: String,callback: String)
                                 (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
     Future {
-      List((OauthParams.tokenName, token),
+      List((tokenName, token),
         (OauthParams.tokenSecretName, secret),
         (OauthParams.callbackName, callback))
     }
@@ -58,16 +60,10 @@ object OauthCombiner {
       .map(body => new OauthResponseOk(body))
   }
 
-  def createAuthorizeResponse(tokenF: Future[String], verifierF: Future[String])
-                             (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
-    val paramsF = for {
-      token <- tokenF
-      verifier <- verifierF
-    } yield {
-      List((OauthParams.tokenName, token), (OauthParams.verifierName, verifier))
-    }
-    combineOauthParams(paramsF).map(body => new OauthResponseOk(body))
-  }
+  def createAuthorizeResponse(token: String, verifier: String)
+                             (implicit ec: ExecutionContext): Future[OauthResponseOk] =
+    combineOauthParams(List((tokenName, token), (verifierName, verifier)))
+      .map(paramsString => new OauthResponseOk(paramsString))
 
   def createAccesTokenResponse(tokenF: Future[String], secretF: Future[String])
                               (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
@@ -75,7 +71,7 @@ object OauthCombiner {
       token <- tokenF
       secret <- secretF
     } yield {
-      List((OauthParams.tokenName, token), (OauthParams.tokenSecretName, secret))
+      List((tokenName, token), (OauthParams.tokenSecretName, secret))
     }
     combineOauthParams(paramsF).map(body => new OauthResponseOk(body))
   }

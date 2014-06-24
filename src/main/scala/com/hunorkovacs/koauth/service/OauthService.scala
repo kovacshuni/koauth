@@ -10,7 +10,7 @@ import com.hunorkovacs.koauth.domain.exception.{OauthUnauthorizedException, Oaut
 import com.hunorkovacs.koauth.domain.OauthResponseOk
 import com.hunorkovacs.koauth.domain.OauthRequest
 import scala.util.{Failure, Success}
-import com.hunorkovacs.koauth.domain.OauthParams.{callbackName, consumerKeyName, signatureMethodName}
+import com.hunorkovacs.koauth.domain.OauthParams._
 import scala.concurrent.duration.Duration.Inf
 
 object OauthService {
@@ -32,34 +32,26 @@ object OauthService {
     }
   }
 
-  def getRights(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,
-                                                ec: ExecutionContext): Future[Rights] = {
-    val tokenF = requestF map { request =>
-      request.queryString(OauthParams.tokenName) match {
-        case values: Seq[String] => {
-          if (values.size != 1) throw OauthBadRequestException(s"$OauthParams.tokenName has more than one value.")
-          else values.head
-        }
-        case _ => throw OauthBadRequestException(s"$OauthParams.tokenName not specified in request URL")
-      }
+  def authorize(request: OauthRequest)
+               (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
+    (for {
+      enhancedRequest <- enhanceRequest(request)
+      username = enhancedRequest.oauthParamsMap.applyOrElse(usernameName, x => "br")
+      password = enhancedRequest.oauthParamsMap.applyOrElse(passwordName, x => "ab")
+      auth <- persistenceService.authenticate(username, password)
+    } yield auth) flatMap {
+      case true =>
+        for {
+          enhancedRequest <- enhanceRequest(request)
+          consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
+          requestToken = enhancedRequest.oauthParamsMap.applyOrElse(tokenName, x => "")
+          username = enhancedRequest.oauthParamsMap.applyOrElse(usernameName, x => "")
+          verifier <- generateVerifier
+          authorization <- persistenceService.authorizeRequestToken(consumerKey, requestToken, username, verifier)
+          response <- createAuthorizeResponse(requestToken, verifier)
+        } yield response
+      case false => Future(new OauthResponseUnauthorized("Authentication credentials invalid."))
     }
-    persistenceService.getRights(tokenF)
-  }
-
-  def authorize(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,
-                                                ec: ExecutionContext): Future[OauthResponseOk] = {
-    val headerF = requestF.map(oauthRequestF => oauthRequestF.authorizationHeader)
-    val allOauthParamsF = extractAllOauthParams(headerF)
-    val requiredOauthParamsF = extractSpecificOauthParams(allOauthParamsF, AuthorizeRequiredParams)
-
-    val consumerKeyF = requiredOauthParamsF.map(p => p.consumerKey)
-    val tokenF = requiredOauthParamsF.map(p => p.token)
-    val usernameF = requiredOauthParamsF.map(p => p.username)
-    val passwordF = requiredOauthParamsF.map(p => p.password)
-    persistenceService.authenticate(usernameF, passwordF)
-    val verifierF = generateVerifier
-    persistenceService.authorize(consumerKeyF, tokenF, usernameF, verifierF)
-    createAuthorizeResponse(tokenF, verifierF)
   }
 
   def accessToken(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,
