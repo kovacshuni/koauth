@@ -27,36 +27,46 @@ object OauthVerifier {
 
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
-    val signatureF = verifySignature(enhancedRequest, "")
+    Future(enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
+      .flatMap(persistence.getConsumerSecret)
+      .flatMap {
+        case None => Future(VerificationFailed)
+        case Some(secret) => verifySignature(enhancedRequest, secret, "")
+      }
+      .flatMap(v => verifyL(enhancedRequest, v))
+  }
+
+  def verifyWithToken(enhancedRequest: EnhancedRequest)
+                     (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+    val tokenF = Future(enhancedRequest.oauthParamsMap(tokenName))
+    (for {
+      consumerKey <- Future(enhancedRequest.oauthParamsMap(consumerKeyName))
+      token <- tokenF
+      secret <- persistence.getTokenSecret(consumerKey, token)
+    } yield secret) flatMap {
+      case None => Future(VerificationFailed)
+      case Some(secret) =>
+        tokenF.flatMap(token => verifySignature(enhancedRequest, secret, token))
+          .flatMap(v => verifyL(enhancedRequest, v))
+    }
+  }
+
+  def verifyL(enhancedRequest: EnhancedRequest, signatureVerification: Verification)
+             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     val algorithmF = verifyAlgorithm(enhancedRequest)
     val timestampF = verifyTimestamp(enhancedRequest)
     val nonceF = verifyNonce(enhancedRequest, "")
-    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
-      list.collectFirst({ case nok: VerificationNok => nok })
+    Future.sequence(List(algorithmF, timestampF, nonceF)) map { list =>
+      (signatureVerification :: list)
+        .collectFirst({ case nok: VerificationNok => nok })
         .getOrElse(VerificationOk)
     }
   }
 
-  def verifyForAccessToken(enhancedRequest: EnhancedRequest)
-                           (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
-    val signatureF = verifySignature(enhancedRequest, enhancedRequest.oauthParamsMap(tokenName))
-    val algorithmF = verifyAlgorithm(enhancedRequest)
-    val timestampF = verifyTimestamp(enhancedRequest)
-    val nonceF = verifyNonce(enhancedRequest, enhancedRequest.oauthParamsMap(tokenName))
-    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
-      list.collectFirst({ case nok: VerificationNok => nok })
-        .getOrElse(VerificationOk)
-    }
-  }
-
-  def verifySignature(enhancedRequest: EnhancedRequest, tokenSecret: String)
+  def verifySignature(enhancedRequest: EnhancedRequest, consumerSecret: String, tokenSecret: String)
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
-    val consumerSecretF = Future(enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => ""))
-      .flatMap(consumerKey => persistence.getConsumerSecret(consumerKey))
-    val signatureBaseF = concatItemsForSignature(enhancedRequest)
     for {
-      consumerSecret <- consumerSecretF
-      signatureBase <- signatureBaseF
+      signatureBase <- concatItemsForSignature(enhancedRequest)
       expectedSignature <- sign(signatureBase, consumerSecret, tokenSecret)
     } yield {
       val actualSignature = enhancedRequest.oauthParamsMap.applyOrElse(signatureName, x => "")

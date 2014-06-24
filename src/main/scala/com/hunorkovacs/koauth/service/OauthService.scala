@@ -57,12 +57,12 @@ object OauthService {
   def accessToken(request: OauthRequest)
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(verifyForAccessToken) flatMap {
+    enhancedRequestF.flatMap(verifyWithToken) flatMap {
       case VerificationFailed => Future(new OauthResponseUnauthorized("Bad sign."))
       case VerificationUnsupported => Future(new OauthResponseBadRequest("Not supp."))
       case VerificationOk =>
         (for {
-          enhancedRequest <- enhanceRequest(request)
+          enhancedRequest <- enhancedRequestF
           consumerKey = enhancedRequest.oauthParamsMap.applyOrElse(consumerKeyName, x => "")
           requestToken = enhancedRequest.oauthParamsMap.applyOrElse(tokenName, x => "")
           user <- persistenceService.whoAuthorizedRequesToken(consumerKey, requestToken)
@@ -80,34 +80,21 @@ object OauthService {
     }
   }
 
-  def oauthenticate(requestF: Future[OauthRequest])(implicit persistenceService: OauthPersistence,
-                                                    ec: ExecutionContext): (Future[String], Future[Rights]) = {
-    val headerF = requestF.map(oauthRequestF => oauthRequestF.authorizationHeader)
-    val allOauthParamsF = extractAllOauthParams(headerF)
-    val requiredOauthParamsF = extractSpecificOauthParams(allOauthParamsF, OauthenticateRequiredParams)
-
-    val consumerKeyF = requiredOauthParamsF.map(p => p.consumerKey)
-    val tokenF = requiredOauthParamsF.map(p => p.token)
-    val tupleF = persistenceService.getToken(consumerKeyF, tokenF)
-    val consumerSecretF = tupleF.map(t => t._1)
-    val tokenSecretF = tupleF.map(t => t._2)
-    val usernameF = tupleF.map(t => t._3)
-    val rightsF = tupleF.map(t => t._4)
-
-    val completedOauthParamsF = for {
-      consumerSecret <- consumerSecretF
-      tokenSecret <- tokenSecretF
-      requiredOauthParams <- requiredOauthParamsF
-    } yield {
-      new OauthParamsBuilder()
-        .withOauthParams(requiredOauthParams)
-        .withParam(consumerSecretName, consumerSecret)
-        .withParam(OauthParams.tokenSecretName, tokenSecret)
-        .build()
+  def oauthenticate(request: OauthRequest)
+                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[Either[OauthResponse, String]] = {
+    val enhancedRequestF = enhanceRequest(request)
+    (for {
+      enhancedRequest <- enhancedRequestF
+      verification <- verifyWithToken(enhancedRequest)
+    } yield verification) flatMap {
+      case VerificationUnsupported => Future(Left(new OauthResponseBadRequest("Not supp.")))
+      case VerificationFailed => Future(Left(new OauthResponseUnauthorized("Bad sign.")))
+      case VerificationOk =>
+        for {
+          consumerKey <- enhancedRequestF.map(r => r.oauthParamsMap(consumerKeyName))
+          token <- enhancedRequestF.map(r => r.oauthParamsMap(tokenName))
+          username <- persistenceService.getUsername(consumerKey, token)
+        } yield Right(username)
     }
-
-    verify(requestF, allOauthParamsF, completedOauthParamsF)
-
-    (usernameF, rightsF)
   }
 }

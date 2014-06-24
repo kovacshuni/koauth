@@ -33,7 +33,7 @@ trait OauthPersistence {
                          (implicit ec: ExecutionContext): Future[Unit]
 
   def getConsumerSecret(consumerKey: String)
-                       (implicit ec: ExecutionContext): Future[String]
+                       (implicit ec: ExecutionContext): Future[Option[String]]
 
   /**
    * You should be able to find a RequestToken by its Consumer Key and Request Token.
@@ -67,6 +67,12 @@ trait OauthPersistence {
                          accessTokenSecret: String,
                          username: String)
                         (implicit ec: ExecutionContext): Future[Unit]
+
+  def getTokenSecret(consumerKey: String, accessToken: String)
+                    (implicit ec: ExecutionContext): Future[Option[String]]
+
+  def getUsername(consumerKey: String, accessToken: String)
+                 (implicit ec: ExecutionContext): Future[String]
 }
 
 case class Consumer(consumerKey: String,
