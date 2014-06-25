@@ -109,7 +109,7 @@ object OauthVerifier {
 
   private def sign(base: String, consumerSecret: String, tokenSecret: String)
                    (implicit ec: ExecutionContext): Future[String] = {
-    concatEncodedItems(List(consumerSecret, tokenSecret)) map { secrets =>
+    concat(List(consumerSecret, tokenSecret)) map { secrets =>
       new SecretKeySpec(secrets.getBytes(UTF8Charset), HmacSha1Algorithm)
     } map { signingKey: SecretKeySpec =>
       val bytesToSign = base.getBytes(UTF8Charset)

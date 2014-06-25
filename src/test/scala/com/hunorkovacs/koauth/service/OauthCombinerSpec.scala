@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.service.OauthCombiner.{normalizeOauthParamsForSignature, combineOauthParams, urlEncode}
+import com.hunorkovacs.koauth.service.OauthCombiner.{normalizeOauthParamsForSignature, encodePairConcat, urlEncode}
 import com.hunorkovacs.koauth.service.OauthExtractorSpec._
 import org.specs2.mutable._
 
@@ -25,7 +25,7 @@ class OauthCombinerSpec extends Specification {
 
   "Combining OAuth params" should {
     "encode, pair keys with values by equals sign and concatenate params with ampersand" in {
-      combineOauthParams(ResponseParamsList) must equalTo (ResponseBody).await
+      encodePairConcat(ResponseParamsList) must equalTo (ResponseBody).await
     }
   }
 

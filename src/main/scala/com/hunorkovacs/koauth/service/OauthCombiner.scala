@@ -15,27 +15,31 @@ object OauthCombiner {
 
   def concatItemsForSignature(request: EnhancedRequest)
                              (implicit ec: ExecutionContext): Future[String] = {
-    normalizeOauthParamsForSignature(request.oauthParamsList)
-      .flatMap(n => concatEncodedItems(List(request.method, request.urlWithoutParams, n)))
+    for {
+      encodedMethod <- Future(urlEncode(request.method))
+      encodedUrl <- Future(urlEncode(request.urlWithoutParams))
+      params <- normalizeOauthParamsForSignature(request.oauthParamsList)
+      result <- concat(List(encodedMethod, encodedUrl, params))
+    } yield result
   }
 
   def normalizeOauthParamsForSignature(allParamsList: List[(String, String)])
-                                              (implicit ec: ExecutionContext): Future[String] = {
+                                      (implicit ec: ExecutionContext): Future[String] = {
     Future(allParamsList.filterNot(kv => kv._1 == realmName || kv._1 == signatureName))
-      .flatMap(combineOauthParams)
+      .flatMap(encodePairConcat)
   }
 
-  def combineOauthParams(keyValueList: List[(String, String)])
+  def encodePairConcat(keyValueList: List[(String, String)])
                         (implicit ec: ExecutionContext): Future[String] = {
     Future {
       (keyValueList map { keyValue =>
         val (key, value) = keyValue
         urlEncode(key) + "=" + urlEncode(value)
       }).sorted
-    } flatMap concatEncodedItems
+    } flatMap concat
   }
 
-  def concatEncodedItems(itemList: List[String])(implicit ec: ExecutionContext): Future[String] =
+  def concat(itemList: List[String])(implicit ec: ExecutionContext): Future[String] =
     Future(itemList.mkString("&"))
 
   def createRequestTokenResponse(token: String, secret: String,callback: String)
@@ -45,17 +49,17 @@ object OauthCombiner {
         (tokenSecretName, secret),
         (OauthParams.callbackName, callback))
     }
-      .flatMap(combineOauthParams)
+      .flatMap(encodePairConcat)
       .map(body => new OauthResponseOk(body))
   }
 
   def createAuthorizeResponse(token: String, verifier: String)
                              (implicit ec: ExecutionContext): Future[OauthResponseOk] =
-    combineOauthParams(List((tokenName, token), (verifierName, verifier)))
+    encodePairConcat(List((tokenName, token), (verifierName, verifier)))
       .map(paramsString => new OauthResponseOk(paramsString))
 
   def createAccesTokenResponse(token: String, secret: String)
                               (implicit ec: ExecutionContext): Future[OauthResponseOk] =
-    combineOauthParams(List((tokenName, token), (tokenSecretName, secret)))
+    encodePairConcat(List((tokenName, token), (tokenSecretName, secret)))
       .map(body => new OauthResponseOk(body))
 }
