@@ -7,11 +7,6 @@ import org.specs2.mutable._
 
 class OauthExtractorSpec extends Specification {
 
-  val Url = "http://github.com/kovacshuni/koauth"
-  val Method = "http://github.com/kovacshuni/koauth"
-  val HeaderWithSpace = "OAuth oauth_consumer_key=\"xvz1evFS4wEEPTGEFPHBog\", oauth_nonce=\"kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg\", oauth_signature=\"tnnArxj06cWHq44gCs1OSKk%2FjLY%3D\", oauth_signature_method=\"HMAC-SHA1\", oauth_timestamp=\"1318622958\", oauth_token=\"370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb\", oauth_version=\"1.0\""
-  val HeaderWithoutSpace = "OAuth oauth_consumer_key=\"xvz1evFS4wEEPTGEFPHBog\",oauth_nonce=\"kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg\",oauth_signature=\"tnnArxj06cWHq44gCs1OSKk%2FjLY%3D\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"1318622958\",oauth_token=\"370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb\",oauth_version=\"1.0\""
-
   "URL decoding" should {
     "convert normal characters" in {
       urlDecode(NormalCharacters) must equalTo (NormalCharacters)
@@ -67,7 +62,10 @@ object OauthExtractorSpec {
   val IllegalCharactersEncoded = "%20%21%22%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40"
   val DoubleByteCharacters = "áéő"
   val DoubleByteCharactersEncoded = "%C3%A1%C3%A9%C5%91"
-
+  val Url = "http://github.com/kovacshuni/koauth"
+  val Method = "GET"
+  val HeaderWithSpace = "OAuth oauth_consumer_key=\"xvz1evFS4wEEPTGEFPHBog\", oauth_nonce=\"kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg\", oauth_signature=\"tnnArxj06cWHq44gCs1OSKk%2FjLY%3D\", oauth_signature_method=\"HMAC-SHA1\", oauth_timestamp=\"1318622958\", oauth_token=\"370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb\", oauth_version=\"1.0\""
+  val HeaderWithoutSpace = "OAuth oauth_consumer_key=\"xvz1evFS4wEEPTGEFPHBog\",oauth_nonce=\"kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg\",oauth_signature=\"tnnArxj06cWHq44gCs1OSKk%2FjLY%3D\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"1318622958\",oauth_token=\"370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb\",oauth_version=\"1.0\""
   val RequestParamsList = List(("oauth_consumer_key", "xvz1evFS4wEEPTGEFPHBog"),
     ("oauth_nonce", "kYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg"),
     ("oauth_signature", "tnnArxj06cWHq44gCs1OSKk/jLY="),

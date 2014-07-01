@@ -17,7 +17,7 @@ object OauthCombiner {
                              (implicit ec: ExecutionContext): Future[String] = {
     for {
       encodedMethod <- Future(urlEncode(request.method))
-      encodedUrl <- Future(urlEncode(request.urlWithoutParams))
+      encodedUrl <- Future(urlEncode(request.urlWithoutParams.toLowerCase))
       params <- normalizeOauthParamsForSignature(request.oauthParamsList)
       result <- concat(List(encodedMethod, encodedUrl, params))
     } yield result
