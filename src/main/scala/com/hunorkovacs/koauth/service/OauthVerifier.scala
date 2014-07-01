@@ -107,7 +107,7 @@ object OauthVerifier {
     }
   }
 
-  private def sign(base: String, consumerSecret: String, tokenSecret: String)
+  def sign(base: String, consumerSecret: String, tokenSecret: String)
                    (implicit ec: ExecutionContext): Future[String] = {
     concat(List(consumerSecret, tokenSecret)) map { secrets =>
       new SecretKeySpec(secrets.getBytes(UTF8Charset), HmacSha1Algorithm)
@@ -117,8 +117,7 @@ object OauthVerifier {
       mac.init(signingKey)
       val digest = mac.doFinal(bytesToSign)
       val digest64 = Base64Encoder.encode(digest)
-      val digestString = new String(digest64, UTF8Charset)
-      urlEncode(digestString)
+      new String(digest64, UTF8Charset)
     }
   }
 }

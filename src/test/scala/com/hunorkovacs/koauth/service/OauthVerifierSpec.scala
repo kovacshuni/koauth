@@ -4,18 +4,15 @@ import org.specs2.mutable._
 
 class OauthVerifierSpec extends Specification {
 
-//  private final val SampleHeader = "OAuth realm=\"http://localhost:9000/authorization/request-token\"," +
-//    "oauth_consumer_key=\"something%20space\",oauth_signature_method=\"HMAC-SHA1\",oauth_timestamp=\"1402347948\"," +
-//    "oauth_nonce=\"hly1EI\",oauth_version=\"1.0\",oauth_signature=\"aGFG3tBdf5qwqMJgDkoQ0pvo7Mc%3D\""
-//
-//  "Normalizing OAuth Paramteters" should {
-//    "discard prefix separated by whitespace" in {
-//      OauthVerifier.normalizeOauthParamsForSignature("OAuth keyA=\"valA\",keyB=\"valB\"") must
-//        beEqualTo("keyA=valA&keyB=valB")
-//    }
-//    "URL decode encode and sort" in {
-//      OauthVerifier.normalizeOauthParamsForSignature("OAuth keyB=\"val%C3%9B\",key%20A=\"valA\",keyC=") must
-//        beEqualTo("key%20A=valA&keyB=val%C3%9B&keyC=")
-//    }
-//  }
+  val Signature = "tnnArxj06cWHq44gCs1OSKk/jLY="
+  val SignatureBase = "POST&https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json&include_entities%3Dtrue%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog%26oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1318622958%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb%26oauth_version%3D1.0%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521"
+  val ConsumerSecret = "kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw"
+  val TokenSecret = "LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE"
+
+  "Singing" should {
+    "sign simple" in {
+      OauthVerifier.sign(SignatureBase, ConsumerSecret, TokenSecret) must
+        equalTo (Signature).await
+    }
+  }
 }
