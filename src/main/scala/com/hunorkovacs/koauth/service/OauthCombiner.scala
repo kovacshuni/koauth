@@ -26,7 +26,7 @@ object OauthCombiner {
   def normalizeOauthParamsForSignature(allParamsList: List[(String, String)])
                                       (implicit ec: ExecutionContext): Future[String] = {
     Future(allParamsList.filterNot(kv => kv._1 == realmName || kv._1 == signatureName))
-      .flatMap(encodePairConcat)
+      .flatMap(pairEncodeConcat)
   }
 
   def encodePairConcat(keyValueList: List[(String, String)])
@@ -37,6 +37,17 @@ object OauthCombiner {
         urlEncode(key) + "=" + urlEncode(value)
       }).sorted
     } flatMap concat
+  }
+
+  def pairEncodeConcat(keyValueList: List[(String, String)])
+                      (implicit ec: ExecutionContext): Future[String] = {
+    Future {
+      (keyValueList map { keyValue =>
+        val (key, value) = keyValue
+        key + "=" + value
+      }).sorted
+    }.flatMap(concat)
+      .map(urlEncode)
   }
 
   def concat(itemList: List[String])(implicit ec: ExecutionContext): Future[String] =

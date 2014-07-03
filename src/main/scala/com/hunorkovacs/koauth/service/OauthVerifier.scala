@@ -57,8 +57,8 @@ object OauthVerifier {
     }
   }
 
-  private def verifySignature(enhancedRequest: EnhancedRequest, consumerSecret: String, tokenSecret: String)
-                     (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+  def verifySignature(enhancedRequest: EnhancedRequest, consumerSecret: String, tokenSecret: String)
+                     (implicit ec: ExecutionContext): Future[Verification] = {
     for {
       signatureBase <- concatItemsForSignature(enhancedRequest)
       expectedSignature <- sign(signatureBase, consumerSecret, tokenSecret)
