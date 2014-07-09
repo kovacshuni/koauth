@@ -83,7 +83,7 @@ object OauthVerifier {
     }
   }
 
-  private def verifyTimestamp(enhancedRequest: EnhancedRequest)
+  def verifyTimestamp(enhancedRequest: EnhancedRequest)
                               (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
       val timestamp = enhancedRequest.oauthParamsMap(timestampName)

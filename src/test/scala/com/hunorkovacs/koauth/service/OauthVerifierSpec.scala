@@ -1,7 +1,9 @@
 package com.hunorkovacs.koauth.service
 
+import java.util.{TimeZone, Calendar}
+
 import com.hunorkovacs.koauth.domain.EnhancedRequest
-import com.hunorkovacs.koauth.service.OauthVerifier.{verifyAlgorithm, sign, verifySignature}
+import com.hunorkovacs.koauth.service.OauthVerifier.{verifyTimestamp, verifyAlgorithm, sign, verifySignature}
 import org.specs2.mutable._
 
 class OauthVerifierSpec extends Specification {
@@ -53,6 +55,43 @@ class OauthVerifierSpec extends Specification {
         .::(("oauth_signature_method", "MD5"))
       val request = new EnhancedRequest(Header, Url, Method, paramsList, paramsList.toMap)
       verifyAlgorithm(request) must equalTo (VerificationUnsupported).await
+    }
+  }
+
+  "Verifying timestamp" should {
+    "return positive verification if timestamp equals current time." in {
+      val paramsList = RequestParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
+        .::(("oauth_timestamp", Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis.toString))
+      val request = new EnhancedRequest(Header, Url, Method, paramsList, paramsList.toMap)
+      verifyTimestamp(request) must equalTo (VerificationOk).await
+    }
+    "return positive verification if timestamp is 9 minutes late" in {
+      val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 9 * 60 * 1000
+      val paramsList = RequestParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
+        .::(("oauth_timestamp", nineMinutesAgo.toString))
+      val request = new EnhancedRequest(Header, Url, Method, paramsList, paramsList.toMap)
+      verifyTimestamp(request) must equalTo (VerificationOk).await
+    }
+    "return positive verification if timestamp is 9 minutes ahead" in {
+      val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis + 9 * 60 * 1000
+      val paramsList = RequestParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
+        .::(("oauth_timestamp", nineMinutesAgo.toString))
+      val request = new EnhancedRequest(Header, Url, Method, paramsList, paramsList.toMap)
+      verifyTimestamp(request) must equalTo (VerificationOk).await
+    }
+    "return negative verification if timestamp is 11 minutes late" in {
+      val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 11 * 60 * 1000
+      val paramsList = RequestParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
+        .::(("oauth_timestamp", nineMinutesAgo.toString))
+      val request = new EnhancedRequest(Header, Url, Method, paramsList, paramsList.toMap)
+      verifyTimestamp(request) must equalTo (VerificationFailed).await
+    }
+    "return negative verification if timestamp is 11 minutes ahead" in {
+      val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis + 11 * 60 * 1000
+      val paramsList = RequestParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
+        .::(("oauth_timestamp", nineMinutesAgo.toString))
+      val request = new EnhancedRequest(Header, Url, Method, paramsList, paramsList.toMap)
+      verifyTimestamp(request) must equalTo (VerificationFailed).await
     }
   }
 }
