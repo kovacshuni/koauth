@@ -98,8 +98,8 @@ object OauthVerifier {
     }
   }
 
-  private def verifyAlgorithm(enhancedRequest: EnhancedRequest)
-                              (implicit ec: ExecutionContext): Future[Verification] = {
+  def verifyAlgorithm(enhancedRequest: EnhancedRequest)
+                     (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
       val signatureMethod = enhancedRequest.oauthParamsMap(signatureMethodName)
       if (HmacReadable != signatureMethod) VerificationUnsupported

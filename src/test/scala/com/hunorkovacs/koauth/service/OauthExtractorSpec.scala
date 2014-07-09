@@ -63,10 +63,10 @@ class OauthExtractorSpec extends Specification {
       val request = OauthRequest(HeaderWithSpace, Url, Method)
       enhanceRequest(request) must equalTo(
         EnhancedRequest(HeaderWithSpace,
-        Url,
-        Method,
-        RequestParamsList,
-        RequestParamsList.toMap)).await
+          Url,
+          Method,
+          RequestParamsList,
+          RequestParamsList.toMap)).await
     }
   }
 }
