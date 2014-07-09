@@ -25,9 +25,9 @@ object OauthVerifier {
       .flatMap(persistence.getConsumerSecret)
       .flatMap {
         case None => Future(VerificationFailed)
-        case Some(secret) => verifySignature(enhancedRequest, secret, "")
+        case Some(consumerSecret) => verifySignature(enhancedRequest, consumerSecret, tokenSecret = "")
       }
-      .flatMap(v => verifyOther(enhancedRequest, v))
+      .flatMap(v => verifyOtherThanSignature(enhancedRequest, v, token = ""))
   }
 
   def verifyWithToken(enhancedRequest: EnhancedRequest)
@@ -40,16 +40,19 @@ object OauthVerifier {
     } yield secret) flatMap {
       case None => Future(VerificationFailed)
       case Some(secret) =>
-        tokenF.flatMap(token => verifySignature(enhancedRequest, secret, token))
-          .flatMap(v => verifyOther(enhancedRequest, v))
+        for {
+          token <- tokenF
+          signatureVerification <- verifySignature(enhancedRequest, secret, token)
+          allVerification <- verifyOtherThanSignature(enhancedRequest, signatureVerification, token)
+        } yield allVerification
     }
   }
 
-  def verifyOther(enhancedRequest: EnhancedRequest, signatureVerification: Verification)
-                 (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+  def verifyOtherThanSignature(enhancedRequest: EnhancedRequest, signatureVerification: Verification, token: String)
+                              (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     val algorithmF = verifyAlgorithm(enhancedRequest)
     val timestampF = verifyTimestamp(enhancedRequest)
-    val nonceF = verifyNonce(enhancedRequest, "")
+    val nonceF = verifyNonce(enhancedRequest, token)
     Future.sequence(List(algorithmF, timestampF, nonceF)) map { list =>
       (signatureVerification :: list)
         .collectFirst({ case nok: VerificationNok => nok })
@@ -69,7 +72,7 @@ object OauthVerifier {
     }
   }
 
-  private def verifyNonce(enhancedRequest: EnhancedRequest, token: String)
+  def verifyNonce(enhancedRequest: EnhancedRequest, token: String)
                  (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     Future {
       val nonce = enhancedRequest.oauthParamsMap(nonceName)
@@ -78,8 +81,8 @@ object OauthVerifier {
     } flatMap { t =>
       persistence.nonceExists(t._1, t._2, token)
     } map { exists =>
-      if (exists) VerificationOk
-      else VerificationFailed
+      if (exists) VerificationFailed
+      else VerificationOk
     }
   }
 

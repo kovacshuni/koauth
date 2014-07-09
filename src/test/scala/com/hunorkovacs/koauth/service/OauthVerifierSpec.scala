@@ -3,8 +3,12 @@ package com.hunorkovacs.koauth.service
 import java.util.{TimeZone, Calendar}
 
 import com.hunorkovacs.koauth.domain.EnhancedRequest
-import com.hunorkovacs.koauth.service.OauthVerifier.{verifyTimestamp, verifyAlgorithm, sign, verifySignature}
+import com.hunorkovacs.koauth.service.OauthVerifier._
+import org.mockito.Mockito
+import org.mockito.Mockito.mock
 import org.specs2.mutable._
+
+import scala.concurrent.Future
 
 class OauthVerifierSpec extends Specification {
 
@@ -23,6 +27,9 @@ class OauthVerifierSpec extends Specification {
   ("oauth_nonce", "dMdd6X9gO5D"),
   ("oauth_signature_method", "HMAC-SHA1"),
   ("oauth_signature", "b4u3rbcCO5W6N7VuDsO4aSCVN60="))
+  val consumerKey = "xvz1evFS4wEEPTGEFPHBog"
+  val token = "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"
+  val nonce = "dMdd6X9gO5D"
 
   "Singing a signature base with two secrets" should {
     "give the correct signature." in {
@@ -92,6 +99,21 @@ class OauthVerifierSpec extends Specification {
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = new EnhancedRequest(Header, Url, Method, paramsList, paramsList.toMap)
       verifyTimestamp(request) must equalTo (VerificationFailed).await
+    }
+  }
+
+  "Verifying nonce" should {
+    "return positive verification if nonce doesn't exist for same consumer key and token." in {
+      val request = new EnhancedRequest(Header, Url, Method, RequestParamsList, RequestParamsList.toMap)
+      implicit val pers = mock(classOf[OauthPersistence])
+      Mockito.when(pers.nonceExists(nonce, consumerKey, token)).thenReturn(Future(false))
+      verifyNonce(request, token) must equalTo (VerificationOk).await
+    }
+    "return negative verification if nonce exists for same consumer key and token." in {
+      val request = new EnhancedRequest(Header, Url, Method, RequestParamsList, RequestParamsList.toMap)
+      implicit val pers = mock(classOf[OauthPersistence])
+      Mockito.when(pers.nonceExists(nonce, consumerKey, token)).thenReturn(Future(true))
+      verifyNonce(request, token) must equalTo (VerificationFailed).await
     }
   }
 }
