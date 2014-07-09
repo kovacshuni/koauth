@@ -6,6 +6,6 @@ trait VerificationNok extends Verification
 
 case object VerificationOk extends Verification
 
-case object VerificationUnsupported extends VerificationNok
+case class VerificationUnsupported(message: String) extends VerificationNok
 
-case object VerificationFailed extends VerificationNok
+case class VerificationFailed(message: String) extends VerificationNok

@@ -23,8 +23,8 @@ object OauthService {
           persisted <- persistenceService.persistRequestToken(consumerKey, token, secret, callback)
           response <- createRequestTokenResponse(token, secret, callback)
         } yield response
-      case VerificationFailed => Future(new OauthResponseUnauthorized("Bad sign."))
-      case VerificationUnsupported => Future(new OauthResponseBadRequest("Not supp."))
+      case VerificationFailed(message) => Future(new OauthResponseUnauthorized(message))
+      case VerificationUnsupported(message) => Future(new OauthResponseBadRequest(message))
     }
   }
 
@@ -54,8 +54,8 @@ object OauthService {
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
     enhancedRequestF.flatMap(verifyWithToken) flatMap {
-      case VerificationFailed => Future(new OauthResponseUnauthorized("Bad sign."))
-      case VerificationUnsupported => Future(new OauthResponseBadRequest("Not supp."))
+      case VerificationFailed(message) => Future(new OauthResponseUnauthorized(message))
+      case VerificationUnsupported(message) => Future(new OauthResponseBadRequest(message))
       case VerificationOk =>
         (for {
           enhancedRequest <- enhancedRequestF
@@ -83,8 +83,8 @@ object OauthService {
       enhancedRequest <- enhancedRequestF
       verification <- verifyWithToken(enhancedRequest)
     } yield verification) flatMap {
-      case VerificationUnsupported => Future(Left(new OauthResponseBadRequest("Not supp.")))
-      case VerificationFailed => Future(Left(new OauthResponseUnauthorized("Bad sign.")))
+      case VerificationUnsupported(message) => Future(Left(new OauthResponseBadRequest(message)))
+      case VerificationFailed(message) => Future(Left(new OauthResponseUnauthorized(message)))
       case VerificationOk =>
         for {
           consumerKey <- enhancedRequestF.map(r => r.oauthParamsMap(consumerKeyName))
