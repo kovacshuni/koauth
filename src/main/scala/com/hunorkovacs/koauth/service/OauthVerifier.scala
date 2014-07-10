@@ -3,7 +3,10 @@ package com.hunorkovacs.koauth.service
 import javax.crypto.Mac
 import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
-import java.util.{TimeZone, Calendar, Base64}
+import java.util.{Formatter, TimeZone, Calendar, Base64}
+import org.omg.IOP.Encoding
+import sun.misc.BASE64Encoder
+
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain.EnhancedRequest
 import com.hunorkovacs.koauth.service.OauthCombiner._
@@ -17,6 +20,7 @@ object OauthVerifier {
   private val TimePrecisionMillis = 10 * 60 * 1000
   private val UTF8Charset = Charset.forName(UTF8)
   private val Base64Encoder = Base64.getEncoder
+  private val Format = "%02x"
   private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
   val MessageInvalidToken = "Token with Consumer Key does not exist."
@@ -118,15 +122,33 @@ object OauthVerifier {
 
   def sign(base: String, consumerSecret: String, tokenSecret: String)
                    (implicit ec: ExecutionContext): Future[String] = {
-    concat(List(consumerSecret, tokenSecret)) map { secrets =>
-      new SecretKeySpec(secrets.getBytes(UTF8Charset), HmacSha1Algorithm)
-    } map { signingKey: SecretKeySpec =>
-      val bytesToSign = base.getBytes(UTF8Charset)
+    def somasoma(bytes: Array[Byte]) = {
+      val hash = new StringBuffer()
+      for (b <- bytes) {
+        val hex = Integer.toHexString(0xFF & b)
+        if (hex.length() == 1) hash.append('0')
+        hash.append(hex)
+      }
+      hash.toString
+    }
+
+    Future {
+      val key = encodeConcat(List(consumerSecret, tokenSecret))
+      val signingKey = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
       val mac = Mac.getInstance(HmacSha1Algorithm)
       mac.init(signingKey)
+      val bytesToSign = base.getBytes(UTF8Charset)
       val digest = mac.doFinal(bytesToSign)
-      val digest64 = Base64Encoder.encode(digest)
-      new String(digest64, UTF8Charset)
+      val encoder = new BASE64Encoder()
+      val signature = encoder.encode(digest)
+//      digest.head.to
+//      val hexDigest = somasoma(digest)
+//      val digest64 = Base64Encoder.encode()
+//      new String(digest64, UTF8Charset)
+//      digest.toString
+      signature
     }
   }
+
+
 }

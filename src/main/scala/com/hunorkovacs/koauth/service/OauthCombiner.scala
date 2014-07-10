@@ -20,8 +20,7 @@ object OauthCombiner {
       url <- Future(urlEncode(request.urlWithoutParams.toLowerCase))
       params <- normalizeRequestParams(request.urlParams, request.oauthParamsList, request.bodyParams)
         .map(urlEncode)
-      result <- concat(List(method, url, params))
-    } yield result
+    } yield concat(List(method, url, params))
   }
 
   def normalizeRequestParams(urlParams: List[(String, String)],
@@ -37,25 +36,26 @@ object OauthCombiner {
   def encodePairSortConcat(keyValueList: List[(String, String)])
                         (implicit ec: ExecutionContext): Future[String] = {
     Future {
-      (keyValueList map { keyValue =>
+      concat((keyValueList map { keyValue =>
         val (key, value) = keyValue
         urlEncode(key) + "=" + urlEncode(value)
-      }).sorted
-    } flatMap concat
+      }).sorted)
+    }
   }
 
   def pairSortConcat(keyValueList: List[(String, String)])
                       (implicit ec: ExecutionContext): Future[String] = {
     Future {
-      (keyValueList map { keyValue =>
+      concat((keyValueList map { keyValue =>
         val (key, value) = keyValue
         key + "=" + value
-      }).sorted
-    }.flatMap(concat)
+      }).sorted)
+    }
   }
 
-  def concat(itemList: List[String])(implicit ec: ExecutionContext): Future[String] =
-    Future(itemList.mkString("&"))
+  def encodeConcat(itemList: List[String]): String = concat(itemList.map(urlEncode))
+
+  def concat(itemList: List[String]): String = itemList.mkString("&")
 
   def createRequestTokenResponse(token: String, secret: String,callback: String)
                                 (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
