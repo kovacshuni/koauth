@@ -19,15 +19,20 @@ object OauthExtractor {
 
   def enhanceRequest(request: OauthRequest)
                     (implicit ec: ExecutionContext): Future[EnhancedRequest] = {
-    val allParamsListF = extractAllOauthParams(request)
+    val allParamsListF = extractOauthParams(request)
     val allParamsMapF = allParamsListF.map(all => all.toMap)
     for {
-      allParamsList <- allParamsListF
-      allParamsMap <- allParamsMapF
-    } yield EnhancedRequest(request, allParamsList, allParamsMap)
+      oauthParamsList <- allParamsListF
+      oauthParamsMap <- allParamsMapF
+    } yield EnhancedRequest(request.method,
+      request.urlWithoutParams,
+      request.urlParams,
+      request.bodyParams,
+      oauthParamsList,
+      oauthParamsMap)
   }
 
-  def extractAllOauthParams(request: OauthRequest)
+  def extractOauthParams(request: OauthRequest)
                            (implicit ec: ExecutionContext): Future[List[(String, String)]] = {
 
     def withoutQuote(s: String) = s.substring(0, s.length - 1)

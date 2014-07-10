@@ -16,20 +16,25 @@ object OauthCombiner {
   def concatItemsForSignature(request: EnhancedRequest)
                              (implicit ec: ExecutionContext): Future[String] = {
     for {
-      encodedMethod <- Future(urlEncode(request.method))
-      encodedUrl <- Future(urlEncode(request.urlWithoutParams.toLowerCase))
-      params <- normalizeOauthParamsForSignature(request.oauthParamsList)
-      result <- concat(List(encodedMethod, encodedUrl, params))
+      method<- Future(urlEncode(request.method))
+      url <- Future(urlEncode(request.urlWithoutParams.toLowerCase))
+      params <- normalizeRequestParams(request.urlParams, request.oauthParamsList, request.bodyParams)
+        .map(urlEncode)
+      result <- concat(List(method, url, params))
     } yield result
   }
 
-  def normalizeOauthParamsForSignature(allParamsList: List[(String, String)])
-                                      (implicit ec: ExecutionContext): Future[String] = {
-    Future(allParamsList.filterNot(kv => kv._1 == realmName || kv._1 == signatureName))
-      .flatMap(pairEncodeConcat)
+  def normalizeRequestParams(urlParams: List[(String, String)],
+                             oauthParamsList: List[(String, String)],
+                             bodyParams: List[(String, String)])
+                            (implicit ec: ExecutionContext): Future[String] = {
+    Future{
+      val filtered = oauthParamsList.filterNot(kv => kv._1 == realmName || kv._1 == signatureName)
+      urlParams ::: filtered ::: bodyParams
+    }.flatMap(pairSortConcat)
   }
 
-  def encodePairConcat(keyValueList: List[(String, String)])
+  def encodePairSortConcat(keyValueList: List[(String, String)])
                         (implicit ec: ExecutionContext): Future[String] = {
     Future {
       (keyValueList map { keyValue =>
@@ -39,7 +44,7 @@ object OauthCombiner {
     } flatMap concat
   }
 
-  def pairEncodeConcat(keyValueList: List[(String, String)])
+  def pairSortConcat(keyValueList: List[(String, String)])
                       (implicit ec: ExecutionContext): Future[String] = {
     Future {
       (keyValueList map { keyValue =>
@@ -47,7 +52,6 @@ object OauthCombiner {
         key + "=" + value
       }).sorted
     }.flatMap(concat)
-      .map(urlEncode)
   }
 
   def concat(itemList: List[String])(implicit ec: ExecutionContext): Future[String] =
@@ -60,17 +64,17 @@ object OauthCombiner {
         (tokenSecretName, secret),
         (OauthParams.callbackName, callback))
     }
-      .flatMap(encodePairConcat)
+      .flatMap(encodePairSortConcat)
       .map(body => new OauthResponseOk(body))
   }
 
   def createAuthorizeResponse(token: String, verifier: String)
                              (implicit ec: ExecutionContext): Future[OauthResponseOk] =
-    encodePairConcat(List((tokenName, token), (verifierName, verifier)))
+    encodePairSortConcat(List((tokenName, token), (verifierName, verifier)))
       .map(paramsString => new OauthResponseOk(paramsString))
 
   def createAccesTokenResponse(token: String, secret: String)
                               (implicit ec: ExecutionContext): Future[OauthResponseOk] =
-    encodePairConcat(List((tokenName, token), (tokenSecretName, secret)))
+    encodePairSortConcat(List((tokenName, token), (tokenSecretName, secret)))
       .map(body => new OauthResponseOk(body))
 }

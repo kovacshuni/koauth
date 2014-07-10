@@ -1,24 +1,14 @@
 package com.hunorkovacs.koauth.domain
 
-case class OauthRequest(authorizationHeader: String,
+case class OauthRequest(method: String,
                         urlWithoutParams: String,
-                        method: String)
+                        authorizationHeader: String,
+                        urlParams: List[(String, String)],
+                        bodyParams: List[(String, String)])
 
-case class EnhancedRequest(authorizationHeader: String,
+case class EnhancedRequest(method: String,
                            urlWithoutParams: String,
-                           method: String,
+                           urlParams: List[(String, String)],
+                           bodyParams: List[(String, String)],
                            oauthParamsList: List[(String, String)],
                            oauthParamsMap: Map[String, String])
-
-object EnhancedRequest {
-
-  def apply(oauthRequest: OauthRequest,
-            oauthParamsList: List[(String, String)],
-            oauthParamsMap: Map[String, String]): EnhancedRequest = {
-    new EnhancedRequest(oauthRequest.authorizationHeader,
-                        oauthRequest.urlWithoutParams,
-                        oauthRequest.method,
-                        oauthParamsList,
-                        oauthParamsMap)
-  }
-}
