@@ -122,33 +122,15 @@ object OauthVerifier {
 
   def sign(base: String, consumerSecret: String, tokenSecret: String)
                    (implicit ec: ExecutionContext): Future[String] = {
-    def somasoma(bytes: Array[Byte]) = {
-      val hash = new StringBuffer()
-      for (b <- bytes) {
-        val hex = Integer.toHexString(0xFF & b)
-        if (hex.length() == 1) hash.append('0')
-        hash.append(hex)
-      }
-      hash.toString
-    }
-
     Future {
       val key = encodeConcat(List(consumerSecret, tokenSecret))
-      val signingKey = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
+      val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
       val mac = Mac.getInstance(HmacSha1Algorithm)
-      mac.init(signingKey)
+      mac.init(secretkeySpec)
       val bytesToSign = base.getBytes(UTF8Charset)
       val digest = mac.doFinal(bytesToSign)
-      val encoder = new BASE64Encoder()
-      val signature = encoder.encode(digest)
-//      digest.head.to
-//      val hexDigest = somasoma(digest)
-//      val digest64 = Base64Encoder.encode()
-//      new String(digest64, UTF8Charset)
-//      digest.toString
-      signature
+      javax.xml.bind.DatatypeConverter.printHexBinary(digest)
+      
     }
   }
-
-
 }
