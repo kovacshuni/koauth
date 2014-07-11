@@ -4,7 +4,6 @@ import java.util.{TimeZone, Calendar}
 
 import com.hunorkovacs.koauth.domain.EnhancedRequest
 import com.hunorkovacs.koauth.service.OauthVerifier._
-import org.mockito.Mockito
 import org.mockito.Mockito.{when, mock}
 import org.specs2.mutable._
 
@@ -65,7 +64,7 @@ class OauthVerifierSpec extends Specification {
   }
 
   "Verifying signature method" should {
-    "return positive verification if method is HMAC-SHA1" in {
+    "return positive verification if method is HMAC-SHA1." in {
       val request = new EnhancedRequest(Method,
         Url,
         UrlParams,
@@ -74,7 +73,7 @@ class OauthVerifierSpec extends Specification {
         OauthParamsList.toMap)
       verifyAlgorithm(request) must equalTo (VerificationOk).await
     }
-    "return unsupported verification if method is other than HMAC-SHA1" in {
+    "return unsupported verification if method is other than HMAC-SHA1." in {
       val paramsList = OauthParamsList.filterNot(e => "oauth_signature_method".equals(e._1))
         .::(("oauth_signature_method", "MD5"))
       val request = new EnhancedRequest(Method,
@@ -99,7 +98,7 @@ class OauthVerifierSpec extends Specification {
         paramsList.toMap)
       verifyTimestamp(request) must equalTo (VerificationOk).await
     }
-    "return positive verification if timestamp is 9 minutes late" in {
+    "return positive verification if timestamp is 9 minutes late." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 9 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
@@ -111,7 +110,7 @@ class OauthVerifierSpec extends Specification {
         paramsList.toMap)
       verifyTimestamp(request) must equalTo (VerificationOk).await
     }
-    "return positive verification if timestamp is 9 minutes ahead" in {
+    "return positive verification if timestamp is 9 minutes ahead." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis + 9 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
@@ -123,7 +122,7 @@ class OauthVerifierSpec extends Specification {
         paramsList.toMap)
       verifyTimestamp(request) must equalTo (VerificationOk).await
     }
-    "return negative verification if timestamp is 11 minutes late" in {
+    "return negative verification if timestamp is 11 minutes late." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 11 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
@@ -135,7 +134,7 @@ class OauthVerifierSpec extends Specification {
         paramsList.toMap)
       verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
     }
-    "return negative verification if timestamp is 11 minutes ahead" in {
+    "return negative verification if timestamp is 11 minutes ahead." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis + 11 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
@@ -175,18 +174,22 @@ class OauthVerifierSpec extends Specification {
   }
 
   "Verifying the 'Request Token' request" should {
-    "return positive if signature, method, timestamp, nonce all ok" in {
+    "return positive if signature, method, timestamp, nonce all ok." in {
       val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
       val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
-        .replaceFirst("%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb", "%26oauth_token%3D")
+        .replaceFirst("%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb", "")
       implicit val pers = mock(classOf[OauthPersistence])
       when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(Some(ConsumerSecret)))
       when(pers.nonceExists(Nonce, ConsumerKey, "")).thenReturn(Future(false))
       val signatureF = sign(signatureBase, ConsumerSecret, "")
       val verificationF = signatureF flatMap { signature =>
         val encodedSignature = OauthCombiner.urlEncode(signature)
-        val paramsList = OauthParamsList.filterNot(e => "oauth_signature".equals(e._1) || "oauth_token".equals(e._1))
-          .::(("oauth_signature", encodedSignature))
+        val paramsList = (OauthParamsList filterNot { e: (String, String) =>
+          "oauth_signature".equals(e._1) ||
+            "oauth_token".equals(e._1) ||
+            "oauth_timestamp".equals(e._1)
+        }).::(("oauth_signature", encodedSignature))
+          .::(("oauth_timestamp", time.toString))
         val request = new EnhancedRequest(Method,
           Url,
           UrlParams,

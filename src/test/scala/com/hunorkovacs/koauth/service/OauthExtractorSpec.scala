@@ -50,18 +50,18 @@ class OauthExtractorSpec extends Specification {
       val request = OauthRequest(Method, UrlWithoutParams, "OAuth oauth_token=\"\"", UrlParams, BodyParams)
       extractOauthParams(request) must equalTo(List(("oauth_token", ""))).await
     }
-    "extract totally empty header" in {
+    "extract totally empty header." in {
       val request = OauthRequest(Method, UrlWithoutParams, "", UrlParams, BodyParams)
       extractOauthParams(request) must equalTo(List.empty[(String, String)]).await
     }
-    "discard irregular words" in {
+    "discard irregular words." in {
       val request = OauthRequest(Method, UrlWithoutParams, "Why is this here,oauth_token=\"123\",And this?", UrlParams, BodyParams)
       extractOauthParams(request) must equalTo(List(("oauth_token", "123"))).await
     }
   }
 
   "Enhancing requests" should {
-    "enhance request with params" in {
+    "enhance request with parameters." in {
       val request = OauthRequest(Method, UrlWithoutParams, HeaderWithSpace, UrlParams, BodyParams)
       enhanceRequest(request) must equalTo(
         EnhancedRequest(Method,

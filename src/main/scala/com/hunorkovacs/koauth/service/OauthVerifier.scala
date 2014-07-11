@@ -18,7 +18,6 @@ object OauthVerifier {
   private val TimePrecisionMillis = 10 * 60 * 1000
   private val UTF8Charset = Charset.forName(UTF8)
   private val Base64Encoder = Base64.getEncoder
-  private val Format = "%02x"
   private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
   val MessageInvalidToken = "Token with Consumer Key does not exist."
@@ -72,10 +71,10 @@ object OauthVerifier {
                      (implicit ec: ExecutionContext): Future[Verification] = {
     for {
       signatureBase <- concatItemsForSignature(enhancedRequest)
-      expectedSignature <- sign(signatureBase, consumerSecret, tokenSecret)
+      computedSignature <- sign(signatureBase, consumerSecret, tokenSecret)
     } yield {
-      val actualSignature = enhancedRequest.oauthParamsMap(signatureName)
-      if (actualSignature.equals(expectedSignature)) VerificationOk
+      val sentSignature = OauthExtractor.urlDecode(enhancedRequest.oauthParamsMap(signatureName))
+      if (sentSignature.equals(computedSignature)) VerificationOk
       else VerificationFailed(MessageInvalidSignature)
     }
   }
