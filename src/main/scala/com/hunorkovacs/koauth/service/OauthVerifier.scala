@@ -3,9 +3,7 @@ package com.hunorkovacs.koauth.service
 import javax.crypto.Mac
 import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
-import java.util.{Formatter, TimeZone, Calendar, Base64}
-import org.omg.IOP.Encoding
-import sun.misc.BASE64Encoder
+import java.util.{TimeZone, Calendar, Base64}
 
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain.EnhancedRequest
@@ -121,7 +119,7 @@ object OauthVerifier {
   }
 
   def sign(base: String, consumerSecret: String, tokenSecret: String)
-                   (implicit ec: ExecutionContext): Future[String] = {
+          (implicit ec: ExecutionContext): Future[String] = {
     Future {
       val key = encodeConcat(List(consumerSecret, tokenSecret))
       val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
@@ -129,8 +127,9 @@ object OauthVerifier {
       mac.init(secretkeySpec)
       val bytesToSign = base.getBytes(UTF8Charset)
       val digest = mac.doFinal(bytesToSign)
+      val digest64 = Base64Encoder.encode(digest)
       javax.xml.bind.DatatypeConverter.printHexBinary(digest)
-      
+      new String(digest64, UTF8Charset)
     }
   }
 }
