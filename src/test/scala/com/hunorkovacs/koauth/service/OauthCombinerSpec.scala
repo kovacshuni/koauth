@@ -1,7 +1,7 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.EnhancedRequest
-import com.hunorkovacs.koauth.service.OauthCombiner.{concatItemsForSignature, normalizeRequestParams, encodePairSortConcat, pairSortConcat, urlEncode}
+import com.hunorkovacs.koauth.domain.{OauthResponseOk, EnhancedRequest}
+import com.hunorkovacs.koauth.service.OauthCombiner._
 import org.specs2.mutable._
 
 class OauthCombinerSpec extends Specification {
@@ -23,6 +23,10 @@ class OauthCombinerSpec extends Specification {
     ("oauth_token", "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"),
     ("oauth_version", "1.0"))
   val BodyParams = List(("status", "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"))
+
+  val Token = "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"
+  val TokenSecret = "t4958tu459t8u45t98u45t9485ut"
+  val Callback = "true"
 
   val NormalizedRequestParams = "include_entities=true&" +
     "oauth_consumer_key=xvz1evFS4wEEPTGEFPHBog&" +
@@ -55,7 +59,14 @@ class OauthCombinerSpec extends Specification {
     }
   }
 
-  "Combining OAuth response parameters" should {
+  "Issues an unauthorized Request Token" should {
+    "include token, token secret and confirm callback"  in {
+      createRequestTokenResponse(Token, TokenSecret, Callback) must
+        equalTo (OauthResponseOk(s"oauth_callback=$Callback&oauth_token=$Token&oauth_token_secret=$TokenSecret")).await()
+    }
+  }
+
+  "Encoding, pairing, sorting and concatenating" should {
     "encode, pair keys with values by equals sign and concatenate params with ampersand." in {
       encodePairSortConcat(List(("oauth_token", "ab3cd9j4ks73hf7g"),
           ("oauth_token_secret", "xyz4992k83j47x0b"))) must

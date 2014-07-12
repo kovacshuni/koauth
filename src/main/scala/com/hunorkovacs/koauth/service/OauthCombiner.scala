@@ -57,12 +57,12 @@ object OauthCombiner {
 
   def concat(itemList: List[String]): String = itemList.mkString("&")
 
-  def createRequestTokenResponse(token: String, secret: String,callback: String)
+  def createRequestTokenResponse(token: String, secret: String, callback: String)
                                 (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
     Future {
       List((tokenName, token),
         (tokenSecretName, secret),
-        (OauthParams.callbackName, callback))
+        (callbackName, callback))
     }
       .flatMap(encodePairSortConcat)
       .map(body => new OauthResponseOk(body))

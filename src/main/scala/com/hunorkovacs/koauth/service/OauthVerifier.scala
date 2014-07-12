@@ -11,7 +11,15 @@ import com.hunorkovacs.koauth.service.OauthCombiner._
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
 
-object OauthVerifier {
+trait OauthVerifier {
+
+  def verifyForRequestToken(enhancedRequest: EnhancedRequest)
+                           (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
+  def verifyWithToken(enhancedRequest: EnhancedRequest)
+                     (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
+}
+
+object OauthVerifier extends OauthVerifier {
 
   private val HmacSha1Algorithm = "HmacSHA1"
   private val HmacReadable = "HMAC-SHA1"
