@@ -1,15 +1,33 @@
 package com.hunorkovacs.koauth.service
 
+import com.hunorkovacs.koauth.service.OauthVerifierFactory.getDefaultOauthVerifier
+
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.OauthExtractor._
-import com.hunorkovacs.koauth.service.OauthVerifier._
 import com.hunorkovacs.koauth.service.TokenGenerator._
 import com.hunorkovacs.koauth.service.OauthCombiner._
 import com.hunorkovacs.koauth.domain.OauthRequest
 import com.hunorkovacs.koauth.domain.OauthParams._
 
-object OauthService {
+trait OauthService {
+
+  def requestToken(request: OauthRequest)
+                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
+
+  def authorize(request: OauthRequest)
+               (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
+
+  def accessToken(request: OauthRequest)
+                 (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
+
+  def oauthenticate(request: OauthRequest)
+                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[Either[OauthResponse, String]]
+}
+
+protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends OauthService {
+
+  import oauthVerifier._
 
   def requestToken(request: OauthRequest)
                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
@@ -93,4 +111,11 @@ object OauthService {
         } yield Right(username)
     }
   }
+}
+
+object OauthServiceFactory {
+
+  def createDefaultOauthService = new CustomOauthService(getDefaultOauthVerifier)
+
+  def createCustomOauthService(oauthVerifier: OauthVerifier) = new CustomOauthService(oauthVerifier)
 }

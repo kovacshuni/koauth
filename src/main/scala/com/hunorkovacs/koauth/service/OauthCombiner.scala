@@ -62,7 +62,7 @@ object OauthCombiner {
     Future {
       List((tokenName, token),
         (tokenSecretName, secret),
-        (callbackName, callback))
+        (callbackConfirmedName, callback))
     }
       .flatMap(encodePairSortConcat)
       .map(body => new OauthResponseOk(body))

@@ -4,7 +4,7 @@ import java.util.{TimeZone, Calendar}
 
 import com.hunorkovacs.koauth.domain.EnhancedRequest
 import com.hunorkovacs.koauth.service.OauthCombiner.urlEncode
-import com.hunorkovacs.koauth.service.OauthVerifier._
+import com.hunorkovacs.koauth.service.OauthVerifierFactory.getDefaultOauthVerifier
 import org.mockito.Mockito.{when, mock}
 import org.specs2.mutable._
 
@@ -31,6 +31,9 @@ class OauthVerifierSpec extends Specification {
   ("oauth_signature_method", "HMAC-SHA1"),
   ("oauth_signature", Signature),
   ("oauth_version", "1.0"))
+
+  val verifier = getDefaultOauthVerifier
+  import verifier._
 
   "Singing a signature base with two secrets" should {
     "give the correct signature." in {

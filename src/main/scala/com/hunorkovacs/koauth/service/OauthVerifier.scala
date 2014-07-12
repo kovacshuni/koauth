@@ -19,7 +19,7 @@ trait OauthVerifier {
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 }
 
-object OauthVerifier extends OauthVerifier {
+protected object DefaultOauthVerifier extends OauthVerifier {
 
   private val HmacSha1Algorithm = "HmacSHA1"
   private val HmacReadable = "HMAC-SHA1"
@@ -144,4 +144,9 @@ object OauthVerifier extends OauthVerifier {
       new String(digest64, UTF8Charset)
     }
   }
+}
+
+object OauthVerifierFactory {
+
+  def getDefaultOauthVerifier = DefaultOauthVerifier
 }

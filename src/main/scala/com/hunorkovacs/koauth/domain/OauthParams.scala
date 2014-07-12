@@ -1,7 +1,5 @@
 package com.hunorkovacs.koauth.domain
 
-import scala.collection.mutable
-
 case class OauthParams(params: Map[String, String])
 
 object OauthParams {
@@ -15,46 +13,9 @@ object OauthParams {
   final val nonceName = "oauth_nonce"
   final val versionName = "oauth_version"
   final val callbackName = "oauth_callback"
+  final val callbackConfirmedName = "oauth_callback_confirmed"
   final val verifierName = "oauth_verifier"
   final val realmName = "realm"
   final val usernameName = "username"
   final val passwordName = "password"
-  final val AllOauthParamNames = List[String](
-    consumerKeyName,
-    consumerSecretName,
-    tokenName,
-    tokenSecretName,
-    signatureMethodName,
-    signatureName,
-    timestampName,
-    nonceName,
-    versionName,
-    callbackName,
-    verifierName,
-    realmName,
-    usernameName,
-    passwordName)
-}
-
-class OauthParamsBuilder {
-
-  import OauthParams._
-
-  val built = mutable.HashMap.empty[String, String]
-
-  def withOauthParams(oauthParams: OauthParams): OauthParamsBuilder = {
-    built ++= oauthParams.params
-    this
-  }
-
-  def withParam(paramName: String, value: String): OauthParamsBuilder = {
-    if (!AllOauthParamNames.contains(paramName))
-      throw new IllegalArgumentException("Parameter name is not allowed.")
-    built += ((paramName, value))
-    this
-  }
-
-  def build(): OauthParams = {
-    new OauthParams(built.toMap)
-  }
 }
