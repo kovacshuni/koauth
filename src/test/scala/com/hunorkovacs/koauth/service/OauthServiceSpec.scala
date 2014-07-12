@@ -1,11 +1,12 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.{OauthResponseOk, OauthRequest}
+import com.hunorkovacs.koauth.domain._
+import com.hunorkovacs.koauth.service.DefaultOauthVerifier.{MessageUnsupportedMethod, MessageInvalidSignature}
 import com.hunorkovacs.koauth.service.OauthCombiner.urlEncode
 import com.hunorkovacs.koauth.service.OauthExtractor.enhanceRequest
 import org.mockito.Matchers
-import org.specs2.mutable._
 import org.specs2.mock._
+import org.specs2.mutable.{Before, Specification}
 
 import scala.concurrent.{ExecutionContext, Await, Future}
 import scala.concurrent.duration._
@@ -22,12 +23,11 @@ class OauthServiceSpec extends Specification with Mockito {
   val Callback = "https://twitter.com/callback"
 
   "'Request Token' request should" should {
-    "generate token, token secret, save them and return them in the response." in {
+    "generate token, token secret, save them and return them in the response." in new commonMocks {
       val encodedCallback = urlEncode(Callback)
       val header = AuthHeader + ", oauth_callback=\"" + encodedCallback + "\""
       val request = new OauthRequest("", "", header, List.empty, List.empty)
       val enhanced = Await.result(enhanceRequest(request), 1.0 seconds)
-      implicit val pers = mock[OauthPersistence]
       var encodedToken, encodedSecret = ""
       pers.persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) answers { (p, m) =>
         p match {
@@ -37,9 +37,7 @@ class OauthServiceSpec extends Specification with Mockito {
         }
         Future(Unit)
       }
-      val verifier = mock[OauthVerifier]
       verifier.verifyForRequestToken(enhanced) returns Future(VerificationOk)
-      val service = OauthServiceFactory.createCustomOauthService(verifier)
 
       val response = Await.result(service.requestToken(request), 1.0 seconds)
 
@@ -49,5 +47,33 @@ class OauthServiceSpec extends Specification with Mockito {
         s"oauth_token=$encodedToken&" +
         s"oauth_token_secret=$encodedSecret"))
     }
+  }
+  "return Unauthorized and should not touch persistence, if request items' verification is negative." in new commonMocks {
+    val request = new OauthRequest("", "", "", List.empty, List.empty)
+    val enhanced = new EnhancedRequest("", "", List.empty, List.empty, List.empty, Map.empty)
+    verifier.verifyForRequestToken(enhanced) returns Future(VerificationFailed(MessageInvalidSignature))
+
+    val response = Await.result(service.requestToken(request), 1.0 seconds)
+
+    there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
+    response must beEqualTo (OauthResponseUnauthorized(MessageInvalidSignature))
+  }
+  "return Bad Request and should not touch persistence, if request items' verification is unsupported." in new commonMocks {
+    val request = new OauthRequest("", "", "", List.empty, List.empty)
+    val enhanced = new EnhancedRequest("", "", List.empty, List.empty, List.empty, Map.empty)
+    verifier.verifyForRequestToken(enhanced) returns Future(VerificationUnsupported(MessageUnsupportedMethod))
+
+    val response = Await.result(service.requestToken(request), 1.0 seconds)
+
+    there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
+    response must beEqualTo (OauthResponseBadRequest(MessageUnsupportedMethod))
+  }
+
+  private trait commonMocks extends Before with Mockito {
+    implicit lazy val pers = mock[OauthPersistence]
+    lazy val verifier = mock[OauthVerifier]
+    lazy val service = OauthServiceFactory.createCustomOauthService(verifier)
+
+    override def before = Nil
   }
 }
