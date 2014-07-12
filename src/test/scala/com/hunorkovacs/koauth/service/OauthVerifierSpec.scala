@@ -222,5 +222,11 @@ class OauthVerifierSpec extends Specification {
       }
       verificationF must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
     }
+    "return negative if consumer key is not registered." in {
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(None))
+      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      verifyForRequestToken(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
+    }
   }
 }

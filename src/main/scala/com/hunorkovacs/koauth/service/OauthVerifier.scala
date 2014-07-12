@@ -20,6 +20,7 @@ object OauthVerifier {
   private val Base64Encoder = Base64.getEncoder
   private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
+  val MessageInvalidConsumerKey = "Consumer Key does not exist."
   val MessageInvalidToken = "Token with Consumer Key does not exist."
   val MessageInvalidSignature = "Signature does not match."
   val MessageInvalidNonce = "Nonce was already used."
@@ -31,7 +32,7 @@ object OauthVerifier {
     Future(enhancedRequest.oauthParamsMap(consumerKeyName))
       .flatMap(persistence.getConsumerSecret)
       .flatMap {
-        case None => Future(VerificationFailed(MessageInvalidToken))
+        case None => Future(VerificationFailed(MessageInvalidConsumerKey))
         case Some(consumerSecret) =>
           val signatureF = verifySignature(enhancedRequest, consumerSecret, tokenSecret = "")
           val algorithmF = verifyAlgorithm(enhancedRequest)
