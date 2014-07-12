@@ -47,25 +47,30 @@ object OauthVerifier {
 
   def verifyWithToken(enhancedRequest: EnhancedRequest)
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
-    val tokenF = Future(enhancedRequest.oauthParamsMap(tokenName))
-    (for {
+    for {
       consumerKey <- Future(enhancedRequest.oauthParamsMap(consumerKeyName))
-      token <- tokenF
-      secret <- persistence.getTokenSecret(consumerKey, token)
-    } yield secret) flatMap {
-      case None => Future(VerificationFailed(MessageInvalidToken))
-      case Some(secret) =>
-        tokenF flatMap { token =>
-          val signatureF = verifySignature(enhancedRequest, secret, token)
-          val algorithmF = verifyAlgorithm(enhancedRequest)
-          val timestampF = verifyTimestamp(enhancedRequest)
-          val nonceF = verifyNonce(enhancedRequest, "")
-          Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
-            list.collectFirst({ case nok: VerificationNok => nok })
-              .getOrElse(VerificationOk)
-          }
-        }
-    }
+      consumerSecret <- persistence.getConsumerSecret(consumerKey)
+      ver1 <- consumerSecret match {
+        case None => Future(VerificationFailed(MessageInvalidConsumerKey))
+        case Some(someConsumerSecret) =>
+          for {
+            token <- Future(enhancedRequest.oauthParamsMap(tokenName))
+            tokenSecret <- persistence.getTokenSecret(consumerKey, token)
+            ver2 <- tokenSecret match {
+              case None => Future(VerificationFailed(MessageInvalidToken))
+              case Some(someTokenSecret) =>
+                val signatureF = verifySignature(enhancedRequest, someConsumerSecret, someTokenSecret)
+                val algorithmF = verifyAlgorithm(enhancedRequest)
+                val timestampF = verifyTimestamp(enhancedRequest)
+                val nonceF = verifyNonce(enhancedRequest, token)
+                Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
+                  list.collectFirst({ case nok: VerificationNok => nok})
+                    .getOrElse(VerificationOk)
+                }
+            }
+          } yield ver2
+      }
+    } yield ver1
   }
 
   def verifySignature(enhancedRequest: EnhancedRequest, consumerSecret: String, tokenSecret: String)

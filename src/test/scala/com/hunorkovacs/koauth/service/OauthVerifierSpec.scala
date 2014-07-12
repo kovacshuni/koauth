@@ -229,4 +229,119 @@ class OauthVerifierSpec extends Specification {
       verifyForRequestToken(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
     }
   }
+
+  "Verifying the requests with Token" should {
+    "return positive if signature, method, timestamp, nonce all ok." in {
+      val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
+      val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(Some(ConsumerSecret)))
+      when(pers.getTokenSecret(ConsumerKey, Token)).thenReturn(Future(Some(TokenSecret)))
+      when(pers.nonceExists(Nonce, ConsumerKey, Token)).thenReturn(Future(false))
+      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val verificationF = signatureF flatMap { signature =>
+        val encodedSignature = urlEncode(signature)
+        val paramsList = (OauthParamsList filterNot { e: (String, String) =>
+          "oauth_signature".equals(e._1) ||
+            "oauth_timestamp".equals(e._1)
+        }).::(("oauth_signature", encodedSignature))
+          .::(("oauth_timestamp", time.toString))
+        val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
+        verifyWithToken(request)
+      }
+      verificationF must equalTo (VerificationOk).await
+    }
+    "return negative if consumer key doesn't exist." in {
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(None))
+      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      verifyWithToken(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
+    }
+    "return negative if token with consumer key doesn't exist." in {
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(Some(ConsumerSecret)))
+      when(pers.getTokenSecret(ConsumerKey, Token)).thenReturn(Future(None))
+      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      verifyWithToken(request) must equalTo (VerificationFailed(MessageInvalidToken)).await
+    }
+    "return negative if method, timestamp, nonce all ok but signature is invalid." in {
+      val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(Some(ConsumerSecret)))
+      when(pers.getTokenSecret(ConsumerKey, Token)).thenReturn(Future(Some(TokenSecret)))
+      when(pers.nonceExists(Nonce, ConsumerKey, Token)).thenReturn(Future(false))
+      val signature = "abc123"
+      val encodedSignature = urlEncode(signature)
+      val paramsList = (OauthParamsList filterNot { e: (String, String) =>
+        "oauth_signature".equals(e._1) ||
+          "oauth_timestamp".equals(e._1)
+      }).::(("oauth_signature", encodedSignature))
+        .::(("oauth_timestamp", time.toString))
+      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
+      verifyWithToken(request) must equalTo (VerificationFailed(MessageInvalidSignature)).await
+    }
+    "return negative if signature, method, timestamp all ok but nonce already exists." in {
+      val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
+      val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(Some(ConsumerSecret)))
+      when(pers.getTokenSecret(ConsumerKey, Token)).thenReturn(Future(Some(TokenSecret)))
+      when(pers.nonceExists(Nonce, ConsumerKey, Token)).thenReturn(Future(true))
+      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val verificationF = signatureF flatMap { signature =>
+        val encodedSignature = urlEncode(signature)
+        val paramsList = (OauthParamsList filterNot { e: (String, String) =>
+          "oauth_signature".equals(e._1) ||
+            "oauth_timestamp".equals(e._1)
+        }).::(("oauth_signature", encodedSignature))
+          .::(("oauth_timestamp", time.toString))
+        val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
+        verifyWithToken(request)
+      }
+      verificationF must equalTo (VerificationFailed(MessageInvalidNonce)).await
+    }
+    "return negative if signature, method, nonce all ok but timestamp is too late." in {
+      val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 11 * 60 * 1000
+      val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(Some(ConsumerSecret)))
+      when(pers.getTokenSecret(ConsumerKey, Token)).thenReturn(Future(Some(TokenSecret)))
+      when(pers.nonceExists(Nonce, ConsumerKey, Token)).thenReturn(Future(false))
+      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val verificationF = signatureF flatMap { signature =>
+        val encodedSignature = urlEncode(signature)
+        val paramsList = (OauthParamsList filterNot { e: (String, String) =>
+          "oauth_signature".equals(e._1) ||
+            "oauth_timestamp".equals(e._1)
+        }).::(("oauth_signature", encodedSignature))
+          .::(("oauth_timestamp", time.toString))
+        val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
+        verifyWithToken(request)
+      }
+      verificationF must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
+    }
+    "return negative if signature, timestamp, nonce all ok but method is other than hmac-sha1." in {
+      val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
+      val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
+        .replaceFirst("oauth_signature_method%3DHMAC-SHA1%26", "oauth_signature_method%3DMD5%26")
+      implicit val pers = mock(classOf[OauthPersistence])
+      when(pers.getConsumerSecret(ConsumerKey)).thenReturn(Future(Some(ConsumerSecret)))
+      when(pers.getTokenSecret(ConsumerKey, Token)).thenReturn(Future(Some(TokenSecret)))
+      when(pers.nonceExists(Nonce, ConsumerKey, Token)).thenReturn(Future(false))
+      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val verificationF = signatureF flatMap { signature =>
+        val encodedSignature = urlEncode(signature)
+        val paramsList = (OauthParamsList filterNot { e: (String, String) =>
+          "oauth_signature".equals(e._1) ||
+          "oauth_signature_method".equals(e._1) ||
+            "oauth_timestamp".equals(e._1)
+        }).::(("oauth_signature", encodedSignature))
+          .::(("oauth_signature_method", "MD5"))
+          .::(("oauth_timestamp", time.toString))
+        val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
+        verifyWithToken(request)
+      }
+      verificationF must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
+    }
+  }
 }
