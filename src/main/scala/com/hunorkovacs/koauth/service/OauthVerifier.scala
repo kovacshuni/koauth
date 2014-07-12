@@ -133,7 +133,6 @@ object OauthVerifier {
       val bytesToSign = base.getBytes(UTF8Charset)
       val digest = mac.doFinal(bytesToSign)
       val digest64 = Base64Encoder.encode(digest)
-      javax.xml.bind.DatatypeConverter.printHexBinary(digest)
       new String(digest64, UTF8Charset)
     }
   }
