@@ -9,8 +9,6 @@ object OauthExtractor {
 
   final val UTF8 = "UTF-8"
 
-  final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
-    timestampName, nonceName, versionName, callbackName)
   final val AuthorizeRequiredParams = List[String](consumerKeyName, tokenName, usernameName, passwordName)
   final val AccessTokenRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
     signatureName, timestampName, nonceName, versionName, verifierName)

@@ -32,7 +32,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
   def requestToken(request: OauthRequest)
                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(verifyForRequestToken) flatMap {
+    enhancedRequestF.flatMap(r => verify(r, verifyForRequestToken)) flatMap {
       case VerificationOk =>
         for {
           (token, secret) <- generateTokenAndSecret

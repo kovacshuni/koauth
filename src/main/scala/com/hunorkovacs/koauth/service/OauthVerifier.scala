@@ -13,6 +13,9 @@ import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
 
 trait OauthVerifier {
 
+  def verify(enhancedRequest: EnhancedRequest, v: EnhancedRequest => Future[Verification])
+            (implicit persistence: OauthPersistence, ec: ExecutionContext):Future[Verification]
+
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
                            (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
   def verifyWithToken(enhancedRequest: EnhancedRequest)
@@ -28,12 +31,25 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   private val Base64Encoder = Base64.getEncoder
   private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
+  final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
+    timestampName, nonceName, versionName, callbackName)
+
   val MessageInvalidConsumerKey = "Consumer Key does not exist."
   val MessageInvalidToken = "Token with Consumer Key does not exist."
   val MessageInvalidSignature = "Signature does not match."
   val MessageInvalidNonce = "Nonce was already used."
   val MessageInvalidTimestamp = "Timestamp falls outside the tolerated interval."
   val MessageUnsupportedMethod = "Unsupported Signature Method."
+  val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
+
+  def verify(enhancedRequest: EnhancedRequest, v: EnhancedRequest => Future[Verification])
+            (implicit persistence: OauthPersistence, ec: ExecutionContext):Future[Verification] = {
+    verifyRequiredParams(enhancedRequest, RequestTokenRequiredParams)
+      .flatMap {
+        case f: VerificationFailed => Future(f)
+        case VerificationOk => v(enhancedRequest)
+      }
+  }
 
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
@@ -128,6 +144,15 @@ protected object DefaultOauthVerifier extends OauthVerifier {
       val signatureMethod = enhancedRequest.oauthParamsMap(signatureMethodName)
       if (HmacReadable != signatureMethod) VerificationUnsupported(MessageUnsupportedMethod)
       else VerificationOk
+    }
+  }
+
+  def verifyRequiredParams(enhancedRequest: EnhancedRequest, requiredParams: List[String])
+                          (implicit ec: ExecutionContext): Future[Verification] = {
+    Future {
+      val difference = requiredParams.diff(enhancedRequest.oauthParamsList.map(e => e._1))
+      if (difference.length == 0) VerificationOk
+      else VerificationUnsupported(MessageParameterMissing + difference.mkString(", "))
     }
   }
 

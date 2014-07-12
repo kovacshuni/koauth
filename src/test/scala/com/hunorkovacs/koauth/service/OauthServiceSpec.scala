@@ -47,26 +47,29 @@ class OauthServiceSpec extends Specification with Mockito {
         s"oauth_token=$encodedToken&" +
         s"oauth_token_secret=$encodedSecret"))
     }
-  }
-  "return Unauthorized and should not touch persistence, if request items' verification is negative." in new commonMocks {
-    val request = new OauthRequest("", "", "", List.empty, List.empty)
-    val enhanced = new EnhancedRequest("", "", List.empty, List.empty, List.empty, Map.empty)
-    verifier.verifyForRequestToken(enhanced) returns Future(VerificationFailed(MessageInvalidSignature))
+    "return Unauthorized and should not touch persistence, if request items' verification is negative." in new commonMocks {
+      val request = new OauthRequest("", "", "", List.empty, List.empty)
+      val enhanced = new EnhancedRequest("", "", List.empty, List.empty, List.empty, Map.empty)
+      verifier.verifyForRequestToken(enhanced) returns Future(VerificationFailed(MessageInvalidSignature))
 
-    val response = Await.result(service.requestToken(request), 1.0 seconds)
+      val response = Await.result(service.requestToken(request), 1.0 seconds)
 
-    there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
-    response must beEqualTo (OauthResponseUnauthorized(MessageInvalidSignature))
-  }
-  "return Bad Request and should not touch persistence, if request items' verification is unsupported." in new commonMocks {
-    val request = new OauthRequest("", "", "", List.empty, List.empty)
-    val enhanced = new EnhancedRequest("", "", List.empty, List.empty, List.empty, Map.empty)
-    verifier.verifyForRequestToken(enhanced) returns Future(VerificationUnsupported(MessageUnsupportedMethod))
+      there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
+      response must beEqualTo (OauthResponseUnauthorized(MessageInvalidSignature))
+    }
+    "return Bad Request and should not touch persistence, if request items' verification is unsupported." in new commonMocks {
+      val request = new OauthRequest("", "", "", List.empty, List.empty)
+      val enhanced = new EnhancedRequest("", "", List.empty, List.empty, List.empty, Map.empty)
+      verifier.verifyForRequestToken(enhanced) returns Future(VerificationUnsupported(MessageUnsupportedMethod))
 
-    val response = Await.result(service.requestToken(request), 1.0 seconds)
+      val response = Await.result(service.requestToken(request), 1.0 seconds)
 
-    there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
-    response must beEqualTo (OauthResponseBadRequest(MessageUnsupportedMethod))
+      there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
+      response must beEqualTo (OauthResponseBadRequest(MessageUnsupportedMethod))
+    }
+    "return Bad Request and should not touch persistence, if OAuth parameters are missing or duplicated." in new commonMocks {
+
+    }
   }
 
   private trait commonMocks extends Before with Mockito {
