@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.service.DefaultOauthVerifier.{AuthorizeRequiredParams, OauthenticateRequiredParams}
+import com.hunorkovacs.koauth.service.DefaultOauthVerifier.{AccessTokenRequiredParams, AuthorizeRequiredParams, OauthenticateRequiredParams}
 import com.hunorkovacs.koauth.service.OauthVerifierFactory.getDefaultOauthVerifier
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -72,7 +72,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
   def accessToken(request: OauthRequest)
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(r => verifyWithToken(r, AuthorizeRequiredParams) ) flatMap {
+    enhancedRequestF.flatMap(r => verifyWithToken(r, AccessTokenRequiredParams)) flatMap {
       case VerificationFailed(message) => Future(new OauthResponseUnauthorized(message))
       case VerificationUnsupported(message) => Future(new OauthResponseBadRequest(message))
       case VerificationOk =>
