@@ -13,12 +13,10 @@ import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
 
 trait OauthVerifier {
 
-  def verify(enhancedRequest: EnhancedRequest, v: EnhancedRequest => Future[Verification])
-            (implicit persistence: OauthPersistence, ec: ExecutionContext):Future[Verification]
-
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
                            (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
-  def verifyWithToken(enhancedRequest: EnhancedRequest)
+
+  def verifyWithToken(enhancedRequest: EnhancedRequest, requiredParams: List[String])
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 }
 
@@ -32,7 +30,12 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
   final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
-    timestampName, nonceName, versionName, callbackName)
+    timestampName, nonceName, versionName, callbackName).sorted
+  final val AuthorizeRequiredParams = List[String](consumerKeyName, tokenName, usernameName, passwordName).sorted
+  final val AccessTokenRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
+    signatureName, timestampName, nonceName, versionName, verifierName).sorted
+  final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
+    signatureName, timestampName, nonceName, versionName).sorted
 
   val MessageInvalidConsumerKey = "Consumer Key does not exist."
   val MessageInvalidToken = "Token with Consumer Key does not exist."
@@ -42,59 +45,54 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   val MessageUnsupportedMethod = "Unsupported Signature Method."
   val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
 
-  def verify(enhancedRequest: EnhancedRequest, v: EnhancedRequest => Future[Verification])
-            (implicit persistence: OauthPersistence, ec: ExecutionContext):Future[Verification] = {
-    verifyRequiredParams(enhancedRequest, RequestTokenRequiredParams)
-      .flatMap {
-        case f: VerificationFailed => Future(f)
-        case VerificationOk => v(enhancedRequest)
-      }
-  }
-
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
-    Future(enhancedRequest.oauthParamsMap(consumerKeyName))
-      .flatMap(persistence.getConsumerSecret)
-      .flatMap {
-        case None => Future(VerificationFailed(MessageInvalidConsumerKey))
-        case Some(consumerSecret) =>
-          val signatureF = verifySignature(enhancedRequest, consumerSecret, tokenSecret = "")
-          val algorithmF = verifyAlgorithm(enhancedRequest)
-          val timestampF = verifyTimestamp(enhancedRequest)
-          val nonceF = verifyNonce(enhancedRequest, "")
-          Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
-            list.collectFirst({ case nok: VerificationNok => nok })
-              .getOrElse(VerificationOk)
+    verifyRequiredParams(enhancedRequest, RequestTokenRequiredParams) flatMap {
+      case nok: VerificationNok => Future.successful(nok)
+      case VerificationOk =>
+        Future(enhancedRequest.oauthParamsMap(consumerKeyName)).flatMap(persistence.getConsumerSecret) flatMap {
+          case None => Future(VerificationFailed(MessageInvalidConsumerKey))
+          case Some(consumerSecret) =>
+            Future.sequence(List(verifySignature(enhancedRequest, consumerSecret, tokenSecret = ""),
+              verifyAlgorithm(enhancedRequest),
+              verifyTimestamp(enhancedRequest),
+              verifyNonce(enhancedRequest, ""))) map { list =>
+                list.collectFirst({ case nok: VerificationNok => nok }).getOrElse(VerificationOk)
+              }
           }
       }
   }
 
-  def verifyWithToken(enhancedRequest: EnhancedRequest)
+  def verifyWithToken(enhancedRequest: EnhancedRequest, requiredParams: List[String])
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
-    for {
-      consumerKey <- Future(enhancedRequest.oauthParamsMap(consumerKeyName))
-      consumerSecret <- persistence.getConsumerSecret(consumerKey)
-      ver1 <- consumerSecret match {
-        case None => Future(VerificationFailed(MessageInvalidConsumerKey))
-        case Some(someConsumerSecret) =>
-          for {
-            token <- Future(enhancedRequest.oauthParamsMap(tokenName))
-            tokenSecret <- persistence.getTokenSecret(consumerKey, token)
-            ver2 <- tokenSecret match {
-              case None => Future(VerificationFailed(MessageInvalidToken))
-              case Some(someTokenSecret) =>
-                val signatureF = verifySignature(enhancedRequest, someConsumerSecret, someTokenSecret)
-                val algorithmF = verifyAlgorithm(enhancedRequest)
-                val timestampF = verifyTimestamp(enhancedRequest)
-                val nonceF = verifyNonce(enhancedRequest, token)
-                Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
-                  list.collectFirst({ case nok: VerificationNok => nok})
-                    .getOrElse(VerificationOk)
+    verifyRequiredParams(enhancedRequest, requiredParams) flatMap {
+      case f: VerificationFailed => Future.successful(f)
+      case VerificationOk =>
+        for {
+          consumerKey <- Future(enhancedRequest.oauthParamsMap(consumerKeyName))
+          consumerSecret <- persistence.getConsumerSecret(consumerKey)
+          ver1 <- consumerSecret match {
+            case None => Future(VerificationFailed(MessageInvalidConsumerKey))
+            case Some(someConsumerSecret) =>
+              for {
+                token <- Future(enhancedRequest.oauthParamsMap(tokenName))
+                tokenSecret <- persistence.getTokenSecret(consumerKey, token)
+                ver2 <- tokenSecret match {
+                  case None => Future(VerificationFailed(MessageInvalidToken))
+                  case Some(someTokenSecret) =>
+                    val signatureF = verifySignature(enhancedRequest, someConsumerSecret, someTokenSecret)
+                    val algorithmF = verifyAlgorithm(enhancedRequest)
+                    val timestampF = verifyTimestamp(enhancedRequest)
+                    val nonceF = verifyNonce(enhancedRequest, token)
+                    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
+                      list.collectFirst({ case nok: VerificationNok => nok})
+                        .getOrElse(VerificationOk)
+                    }
                 }
-            }
-          } yield ver2
-      }
-    } yield ver1
+              } yield ver2
+          }
+        } yield ver1
+    }
   }
 
   def verifySignature(enhancedRequest: EnhancedRequest, consumerSecret: String, tokenSecret: String)
@@ -150,9 +148,10 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   def verifyRequiredParams(enhancedRequest: EnhancedRequest, requiredParams: List[String])
                           (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
-      val difference = requiredParams.diff(enhancedRequest.oauthParamsList.map(e => e._1))
-      if (difference.length == 0) VerificationOk
-      else VerificationUnsupported(MessageParameterMissing + difference.mkString(", "))
+      val paramsKeys = enhancedRequest.oauthParamsList.map(e => e._1)
+      if (requiredParams.equals(paramsKeys.sorted)) VerificationOk
+      else VerificationUnsupported(MessageParameterMissing +
+        (paramsKeys.diff(requiredParams) ::: requiredParams.diff(paramsKeys)).mkString(", "))
     }
   }
 

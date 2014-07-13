@@ -1,5 +1,6 @@
 package com.hunorkovacs.koauth.service
 
+import com.hunorkovacs.koauth.service.DefaultOauthVerifier.{AuthorizeRequiredParams, OauthenticateRequiredParams}
 import com.hunorkovacs.koauth.service.OauthVerifierFactory.getDefaultOauthVerifier
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,7 +33,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
   def requestToken(request: OauthRequest)
                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(r => verify(r, verifyForRequestToken)) flatMap {
+    enhancedRequestF.flatMap(verifyForRequestToken) flatMap {
       case VerificationOk =>
         for {
           (token, secret) <- generateTokenAndSecret
@@ -71,7 +72,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
   def accessToken(request: OauthRequest)
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(verifyWithToken) flatMap {
+    enhancedRequestF.flatMap(r => verifyWithToken(r, AuthorizeRequiredParams) ) flatMap {
       case VerificationFailed(message) => Future(new OauthResponseUnauthorized(message))
       case VerificationUnsupported(message) => Future(new OauthResponseBadRequest(message))
       case VerificationOk =>
@@ -99,7 +100,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
     val enhancedRequestF = enhanceRequest(request)
     (for {
       enhancedRequest <- enhancedRequestF
-      verification <- verifyWithToken(enhancedRequest)
+      verification <- verifyWithToken(enhancedRequest, OauthenticateRequiredParams)
     } yield verification) flatMap {
       case VerificationUnsupported(message) => Future(Left(new OauthResponseBadRequest(message)))
       case VerificationFailed(message) => Future(Left(new OauthResponseUnauthorized(message)))

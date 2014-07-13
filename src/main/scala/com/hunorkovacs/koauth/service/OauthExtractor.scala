@@ -9,12 +9,6 @@ object OauthExtractor {
 
   final val UTF8 = "UTF-8"
 
-  final val AuthorizeRequiredParams = List[String](consumerKeyName, tokenName, usernameName, passwordName)
-  final val AccessTokenRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
-    signatureName, timestampName, nonceName, versionName, verifierName)
-  final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
-    signatureName, timestampName, nonceName, versionName)
-
   def enhanceRequest(request: OauthRequest)
                     (implicit ec: ExecutionContext): Future[EnhancedRequest] = {
     val allParamsListF = extractOauthParams(request)
