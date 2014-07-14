@@ -44,6 +44,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   val MessageInvalidTimestamp = "Timestamp falls outside the tolerated interval."
   val MessageUnsupportedMethod = "Unsupported Signature Method."
   val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
+  val MessageNotAuthorized = "Request Token not authorized."
 
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {

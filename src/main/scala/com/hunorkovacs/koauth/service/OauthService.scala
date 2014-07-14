@@ -1,6 +1,7 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.service.DefaultOauthVerifier.{AccessTokenRequiredParams, AuthorizeRequiredParams, OauthenticateRequiredParams}
+import com.hunorkovacs.koauth.service.DefaultOauthVerifier.{AccessTokenRequiredParams, AuthorizeRequiredParams,
+  OauthenticateRequiredParams, MessageNotAuthorized}
 import com.hunorkovacs.koauth.service.OauthVerifierFactory.getDefaultOauthVerifier
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -80,12 +81,13 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
           enhancedRequest <- enhancedRequestF
           consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
           requestToken = enhancedRequest.oauthParamsMap(tokenName)
-          user <- persistenceService.whoAuthorizedRequesToken(consumerKey, requestToken)
+          verifier = enhancedRequest.oauthParamsMap(verifierName)
+          user <- persistenceService.whoAuthorizedRequesToken(consumerKey, requestToken, verifier)
         } yield user) flatMap {
-          case None => Future(new OauthResponseUnauthorized("Request Token not authorized"))
+          case None => Future(new OauthResponseUnauthorized(MessageNotAuthorized))
           case Some(username) =>
             for {
-              enhancedRequest <- enhanceRequest(request)
+              enhancedRequest <- enhancedRequestF
               consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
               (token, secret) <- generateTokenAndSecret
               accessToken <- persistenceService.persistAccessToken(consumerKey, token, secret, username)
