@@ -50,15 +50,13 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
 
   def authorize(request: OauthRequest)
                (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
-    (for {
-      enhancedRequest <- enhanceRequest(request)
-      username = enhancedRequest.oauthParamsMap(usernameName)
-      password = enhancedRequest.oauthParamsMap(passwordName)
-      auth <- persistenceService.authenticate(username, password)
-    } yield auth) flatMap {
-      case true =>
+    val enhancedRequestF = enhanceRequest(request)
+    enhancedRequestF.flatMap(verifyForAuthorize) flatMap {
+      case VerificationFailed(message) => Future(new OauthResponseUnauthorized(message))
+      case VerificationUnsupported(message) => Future(new OauthResponseBadRequest(message))
+      case VerificationOk =>
         for {
-          enhancedRequest <- enhanceRequest(request)
+          enhancedRequest <- enhancedRequestF
           consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
           requestToken = enhancedRequest.oauthParamsMap(tokenName)
           username = enhancedRequest.oauthParamsMap(usernameName)
@@ -66,7 +64,6 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
           authorization <- persistenceService.authorizeRequestToken(consumerKey, requestToken, username, verifier)
           response <- createAuthorizeResponse(requestToken, verifier)
         } yield response
-      case false => Future(new OauthResponseUnauthorized("Authentication credentials invalid."))
     }
   }
 

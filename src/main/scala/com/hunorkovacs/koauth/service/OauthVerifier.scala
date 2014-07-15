@@ -18,6 +18,9 @@ trait OauthVerifier {
 
   def verifyWithToken(enhancedRequest: EnhancedRequest, requiredParams: List[String])
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
+
+  def verifyForAuthorize(enhancedRequest: EnhancedRequest)
+                        (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 }
 
 protected object DefaultOauthVerifier extends OauthVerifier {
@@ -45,6 +48,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   val MessageUnsupportedMethod = "Unsupported Signature Method."
   val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
   val MessageNotAuthorized = "Request Token not authorized."
+  val MessageInvalidCredentials = "Invalid user credentials."
 
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
@@ -93,6 +97,20 @@ protected object DefaultOauthVerifier extends OauthVerifier {
               } yield ver2
           }
         } yield ver1
+    }
+  }
+
+  def verifyForAuthorize(enhancedRequest: EnhancedRequest)
+                        (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
+    verifyRequiredParams(enhancedRequest, AuthorizeRequiredParams) flatMap {
+      case nok: VerificationNok => Future.successful(nok)
+      case VerificationOk =>
+        val username = enhancedRequest.oauthParamsMap(usernameName)
+        val password = enhancedRequest.oauthParamsMap(passwordName)
+        persistence.authenticate(username, password) map {
+          case false => VerificationFailed(MessageInvalidCredentials)
+          case true => VerificationOk
+        }
     }
   }
 

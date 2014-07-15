@@ -342,6 +342,13 @@ class OauthVerifierSpec extends Specification {
       verificationF must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
     }
 
+    "Verifying for authorization (authentication part)" should {
+      "Return negative if user credentials are invalid." in {
+        //      pers.authenticate(username, password) returns Future(false)
+        failure("Need to test this. Not implemented yet.")
+      }
+    }
+
     def actualizeParamsList(encodedSignature: String, time: Long) = {
       (OauthParamsList filterNot { e: (String, String) =>
         "oauth_signature".equals(e._1) ||

@@ -25,7 +25,7 @@ class OauthServiceSpec extends Specification with Mockito {
   val Verifier = "hfdp7dh39dks9884"
   val Username = "username12"
 
-  "'Request Token' request should" should {
+  "'Request Token' request" should {
     "generate token, token secret, save them and return them in the response." in new commonMocks {
       val encodedCallback = urlEncode(Callback)
       val header = AuthHeader + ", oauth_callback=\"" + encodedCallback + "\""
@@ -85,7 +85,7 @@ class OauthServiceSpec extends Specification with Mockito {
     }
   }
 
-  "'Access Token' request should" should {
+  "'Access Token' request" should {
     "generate token, token secret, save them and return them in the response if all ok." in new commonMocks {
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
@@ -166,6 +166,26 @@ class OauthServiceSpec extends Specification with Mockito {
         there was no(pers).whoAuthorizedRequesToken(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         response must beEqualTo(OauthResponseBadRequest(MessageParameterMissing))
+      }
+    }
+  }
+
+  "'Authorize Token' request" should {
+    "return Unauthorized and should not authorize token if credentials are invalid." in new commonMocks {
+      val username = "username123"
+      val password = "password!@#"
+      val header = "OAuth oauth_consumer_key=\"" + ConsumerKey + "\"" +
+        ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
+        ", username=\"" + urlEncode(username) + "\"" +
+        ", password=\"" + urlEncode(password) + "\""
+      val request = new OauthRequest("", "", header, List.empty, List.empty)
+      val enhanced = Await.result(enhanceRequest(request), 1.0 seconds)
+      verifier.verifyForAuthorize(enhanced) returns Future(VerificationFailed(MessageInvalidCredentials))
+
+      val response = Await.result(service.authorize(request), 1.0 seconds)
+
+      there was no(pers).authorizeRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        response must beEqualTo(OauthResponseUnauthorized(MessageInvalidCredentials))
       }
     }
   }
