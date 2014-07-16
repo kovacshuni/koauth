@@ -400,3 +400,4 @@ class OauthVerifierSpec extends Specification with Mockito {
     override def before = Nil
   }
 }
+
