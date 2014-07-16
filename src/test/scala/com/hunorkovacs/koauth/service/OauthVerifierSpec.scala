@@ -345,6 +345,18 @@ class OauthVerifierSpec extends Specification with Mockito {
       }
       verificationF must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
     }
+    "return negative if required parameter is missing." in new commonMocks {
+      val params = OauthParamsList2.filterNot(p => p._1 == "oauth_version")
+      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, params, params.toMap)
+      implicit val p = mockedPer
+
+      val verification = Await.result(verifyWithToken(request, OauthenticateRequiredParams, getSecret), 1.0 second)
+      print(verification)
+      val message = verification match {
+        case VerificationUnsupported(m) => m must startingWith(MessageParameterMissing)
+        case _ => failure("result is not of type " + VerificationUnsupported.getClass.getSimpleName)
+      }
+    }
 
     def actualizeParamsList(encodedSignature: String, time: Long) = {
       (OauthParamsList filterNot { e: (String, String) =>
@@ -355,8 +367,7 @@ class OauthVerifierSpec extends Specification with Mockito {
     }
 
     def getSecret(consumerKey: String, token: String) = {
-      if (ConsumerKey == consumerKey &&
-        Token == token) successful(Some(TokenSecret))
+      if (ConsumerKey == consumerKey && Token == token) successful(Some(TokenSecret))
       else successful(None)
     }
   }

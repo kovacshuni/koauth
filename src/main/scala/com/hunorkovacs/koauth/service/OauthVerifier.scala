@@ -84,7 +84,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
                       getSecret: (String, String) => Future[Option[String]])
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     verifyRequiredParams(enhancedRequest, requiredParams) flatMap {
-      case f: VerificationFailed => Future.successful(f)
+      case nok: VerificationNok => Future.successful(nok)
       case VerificationOk =>
         for {
           consumerKey <- Future(enhancedRequest.oauthParamsMap(consumerKeyName))
