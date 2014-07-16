@@ -23,7 +23,8 @@ class OauthServiceSpec extends Specification with Mockito {
   val Callback = "https://twitter.com/callback"
   val RequestToken = "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"
   val Verifier = "hfdp7dh39dks9884"
-  val Username = "username12"
+  val Username = "username123"
+  val Password = "password!@#"
 
   "'Request Token' request" should {
     "generate token, token secret, save them and return them in the response." in new commonMocks {
@@ -171,13 +172,36 @@ class OauthServiceSpec extends Specification with Mockito {
   }
 
   "'Authorize Token' request" should {
-    "return Unauthorized and should not authorize token if credentials are invalid." in new commonMocks {
-      val username = "username123"
-      val password = "password!@#"
-      val header = "OAuth oauth_consumer_key=\"" + ConsumerKey + "\"" +
+    "authorize token by generating verifier for user." in new commonMocks {
+      val header = "OAuth oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"" +
         ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
-        ", username=\"" + urlEncode(username) + "\"" +
-        ", password=\"" + urlEncode(password) + "\""
+        ", username=\"" + urlEncode(Username) + "\"" +
+        ", password=\"" + urlEncode(Password) + "\""
+      val request = new OauthRequest("", "", header, List.empty, List.empty)
+      val enhanced = Await.result(enhanceRequest(request), 1.0 seconds)
+      verifier.verifyForAuthorize(enhanced) returns Future(VerificationOk)
+      var verifierKey = ""
+      pers.authorizeRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
+        Matchers.eq(Username), anyString)(any[ExecutionContext]) answers { (p, m) =>
+        p match {
+          case a: Array[Object] =>
+            a(3) match { case s: String => verifierKey = s }
+        }
+        Future(Unit)
+      }
+
+      val response = Await.result(service.authorize(request), 1.0 seconds)
+
+      there was one(pers).authorizeRequestToken(ConsumerKey, RequestToken, Username, verifierKey) and {
+        response must beEqualTo(OauthResponseOk("oauth_token=" + urlEncode(RequestToken) + "&" +
+          "oauth_verifier=" + urlEncode(verifierKey)))
+      }
+    }
+    "return Unauthorized and should not authorize token if credentials are invalid." in new commonMocks {
+      val header = "OAuth oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"" +
+        ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
+        ", username=\"" + urlEncode(Username) + "\"" +
+        ", password=\"" + urlEncode(Password) + "\""
       val request = new OauthRequest("", "", header, List.empty, List.empty)
       val enhanced = Await.result(enhanceRequest(request), 1.0 seconds)
       verifier.verifyForAuthorize(enhanced) returns Future(VerificationFailed(MessageInvalidCredentials))
@@ -186,6 +210,17 @@ class OauthServiceSpec extends Specification with Mockito {
 
       there was no(pers).authorizeRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
         response must beEqualTo(OauthResponseUnauthorized(MessageInvalidCredentials))
+      }
+    }
+    "return Bad Request and should not authorize, if OAuth parameters are missing or duplicated." in new commonMocks {
+      val request = new OauthRequest("", "", AuthHeader, List.empty, List.empty)
+      val enhanced = Await.result(enhanceRequest(request), 1.0 seconds)
+      verifier.verifyForAuthorize(enhanced) returns Future(VerificationUnsupported(MessageParameterMissing))
+
+      val response = Await.result(service.authorize(request), 1.0 seconds)
+
+      there was no(pers).authorizeRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        response must beEqualTo(OauthResponseBadRequest(MessageParameterMissing))
       }
     }
   }
