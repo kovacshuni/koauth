@@ -16,8 +16,11 @@ trait OauthVerifier {
   def verifyForRequestToken(enhancedRequest: EnhancedRequest)
                            (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 
-  def verifyWithToken(enhancedRequest: EnhancedRequest, requiredParams: List[String])
-                     (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
+  def verifyForAccessToken(enhancedRequest: EnhancedRequest)
+                          (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
+
+  def verifyForOauthenticate(enhancedRequest: EnhancedRequest)
+                            (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 
   def verifyForAuthorize(enhancedRequest: EnhancedRequest)
                         (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
@@ -68,7 +71,17 @@ protected object DefaultOauthVerifier extends OauthVerifier {
       }
   }
 
-  def verifyWithToken(enhancedRequest: EnhancedRequest, requiredParams: List[String])
+  def verifyForAccessToken(enhancedRequest: EnhancedRequest)
+                          (implicit persistence: OauthPersistence, ec: ExecutionContext) =
+    verifyWithToken(enhancedRequest, AccessTokenRequiredParams, persistence.getRequestTokenSecret)
+
+  def verifyForOauthenticate(enhancedRequest: EnhancedRequest)
+                            (implicit persistence: OauthPersistence, ec: ExecutionContext) =
+    verifyWithToken(enhancedRequest, OauthenticateRequiredParams, persistence.getAccessTokenSecret)
+
+  def verifyWithToken(enhancedRequest: EnhancedRequest,
+                      requiredParams: List[String],
+                      getSecret: (String, String) => Future[Option[String]])
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     verifyRequiredParams(enhancedRequest, requiredParams) flatMap {
       case f: VerificationFailed => Future.successful(f)
@@ -81,7 +94,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
             case Some(someConsumerSecret) =>
               for {
                 token <- Future(enhancedRequest.oauthParamsMap(tokenName))
-                tokenSecret <- persistence.getTokenSecret(consumerKey, token)
+                tokenSecret <- getSecret(consumerKey, token)
                 ver2 <- tokenSecret match {
                   case None => Future(VerificationFailed(MessageInvalidToken))
                   case Some(someTokenSecret) =>

@@ -69,11 +69,15 @@ trait OauthPersistence {
                          username: String)
                         (implicit ec: ExecutionContext): Future[Unit]
 
+
+  def getRequestTokenSecret(consumerKey: String, accessToken: String)
+                           (implicit ec: ExecutionContext): Future[Option[String]]
+
   /**
    * @return the Token Secret in a Some. If not found, a None
    */
-  def getTokenSecret(consumerKey: String, accessToken: String)
-                    (implicit ec: ExecutionContext): Future[Option[String]]
+  def getAccessTokenSecret(consumerKey: String, accessToken: String)
+                          (implicit ec: ExecutionContext): Future[Option[String]]
 
   /**
    * @return the username associated to the token
