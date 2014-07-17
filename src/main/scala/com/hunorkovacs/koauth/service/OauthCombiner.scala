@@ -13,6 +13,17 @@ object OauthCombiner {
     .replaceAll("\\*", "%2A")
     .replaceAll("%7E", "~")
 
+  def createAuthorizationHeader(oauthParamsList: List[(String, String)])
+                               (implicit ec: ExecutionContext): Future[String] = {
+    Future {
+      "OAuth " + (oauthParamsList map { p =>
+        val k = urlEncode(p._1)
+        val v = urlEncode(p._2)
+        s"$k=\"$v\""
+      }).mkString(", ")
+    }
+  }
+
   def concatItemsForSignature(request: EnhancedRequest)
                              (implicit ec: ExecutionContext): Future[String] = {
     for {

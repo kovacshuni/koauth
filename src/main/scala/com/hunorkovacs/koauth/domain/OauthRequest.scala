@@ -12,3 +12,15 @@ case class EnhancedRequest(method: String,
                            bodyParams: List[(String, String)],
                            oauthParamsList: List[(String, String)],
                            oauthParamsMap: Map[String, String])
+
+object EnhancedRequest {
+
+  def apply(enhancedRequest: EnhancedRequest, oauthParamsList: List[(String, String)]) = {
+    new EnhancedRequest(enhancedRequest.method,
+      enhancedRequest.urlWithoutParams,
+      enhancedRequest.urlParams,
+      enhancedRequest.bodyParams,
+      oauthParamsList,
+      oauthParamsList.toMap)
+  }
+}
