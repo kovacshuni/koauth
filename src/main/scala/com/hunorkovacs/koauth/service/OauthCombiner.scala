@@ -19,8 +19,9 @@ object OauthCombiner {
       "OAuth " + (oauthParamsList map { p =>
         val k = urlEncode(p._1)
         val v = urlEncode(p._2)
-        s"$k=\"$v\""
-      }).mkString(", ")
+        k + "=\"" + v + "\""
+      }).sorted
+        .mkString(", ")
     }
   }
 
