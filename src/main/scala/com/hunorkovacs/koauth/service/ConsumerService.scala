@@ -7,6 +7,7 @@ import com.hunorkovacs.koauth.service.OauthCombiner.{createAuthorizationHeader, 
 import com.hunorkovacs.koauth.service.OauthExtractor.enhanceRequest
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
+import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
 
 trait ConsumerService {
@@ -28,27 +29,38 @@ trait ConsumerService {
 
 abstract class DefaultConsumerService extends ConsumerService {
 
-  def createGeneralSignedRequest(request: OauthRequest, oauthParamsList: List[(String, String)])
-                                (implicit ec: ExecutionContext): Future[String] = {
+  def createGeneralSignedRequest(request: OauthRequest)
+                                (implicit ec: ExecutionContext): Future[Either[String, String]] = {
     val enhancedRequestF = enhanceRequest(request)
-    val requestWithParamsF = enhancedRequestF.map(r => EnhancedRequest(r, oauthParamsList))
-    val signatureBaseF = requestWithParamsF.flatMap(concatItemsForSignature)
+    enhancedRequestF.flatMap(signRequest) flatMap {
+      case Left(l) => successful(Left(l))
+      case Right(signature) =>
+        enhancedRequestF.map(request => (signatureName, signature) :: request.oauthParamsList)
+          .flatMap(createAuthorizationHeader)
+          .map(header => Right(header))
+    }
+  }
 
-    val consumerSecretF = requestWithParamsF.map(r => r.oauthParamsMap(consumerSecretName))
-    val tokenSecretF = requestWithParamsF.map(r => r.oauthParamsMap(tokenSecretName))
+  def createSignatureBase(request: EnhancedRequest)
+                         (implicit ec: ExecutionContext): Future[String] = concatItemsForSignature(request)
 
-    val signatureF = for {
-      signatureBase <- signatureBaseF
-      consumerSecret <- consumerSecretF
-      tokenSecret <- tokenSecretF
-      signature <- sign(signatureBase, consumerSecret, tokenSecret)
-    } yield signature
-
-    val paramsWithSignatureF = signatureF.map(s => (signatureName, s) :: oauthParamsList)
-
-    val authHeaderF = paramsWithSignatureF.flatMap(createAuthorizationHeader)
-
-    authHeaderF
+  def signRequest(request: EnhancedRequest)
+                 (implicit ec: ExecutionContext): Future[Either[String, String]] = {
+    Future {
+      if (request.oauthParamsMap.contains(consumerSecretName)) Left("Can't sign without Conusmer Secret.")
+      else {
+        val consumerSecret = request.oauthParamsMap(consumerSecretName)
+        val tokenSecret = request.oauthParamsMap.applyOrElse(tokenSecretName, x => "")
+        val signatureBaseF = createSignatureBase(request)
+        Right((consumerSecret, tokenSecret, signatureBaseF))
+      }
+    } flatMap {
+      case Left(l) => successful(Left(l))
+      case Right(r) =>
+        val (consumerSecret, tokenSecret, signatureBaseF) = r
+        signatureBaseF.flatMap(b => sign(b, consumerSecret, tokenSecret))
+          .map(s => Right(s))
+    }
   }
 }
 
