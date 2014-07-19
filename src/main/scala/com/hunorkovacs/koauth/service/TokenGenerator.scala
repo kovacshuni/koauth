@@ -12,6 +12,8 @@ object TokenGenerator {
 
   def generateVerifier(implicit ec: ExecutionContext) = Future(generate)
 
+  def generateNonce = generate
+
   private def generate: String = random.alphanumeric.take(Length).mkString
 }
 

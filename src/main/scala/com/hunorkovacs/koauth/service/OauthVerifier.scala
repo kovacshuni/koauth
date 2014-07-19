@@ -33,7 +33,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   private val TimePrecisionMillis = 10 * 60 * 1000
   private val UTF8Charset = Charset.forName(UTF8)
   private val Base64Encoder = Base64.getEncoder
-  private val Calendar1 = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
+  private val CalendarGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
   final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
     timestampName, nonceName, versionName, callbackName).sorted
@@ -159,7 +159,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
       val timestamp = enhancedRequest.oauthParamsMap(timestampName)
       try {
         val actualStamp = timestamp.toLong
-        val expectedStamp = Calendar1.getTimeInMillis
+        val expectedStamp = CalendarGMT.getTimeInMillis
         if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionMillis) VerificationOk
         else VerificationFailed(MessageInvalidTimestamp)
       } catch {
