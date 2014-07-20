@@ -6,24 +6,22 @@ import com.hunorkovacs.koauth.service.OauthVerifierFactory.getDefaultOauthVerifi
 import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
-import com.hunorkovacs.koauth.service.OauthExtractor._
 import com.hunorkovacs.koauth.service.TokenGenerator._
 import com.hunorkovacs.koauth.service.OauthCombiner._
-import com.hunorkovacs.koauth.domain.OauthRequest
 import com.hunorkovacs.koauth.domain.OauthParams._
 
 trait OauthService {
 
-  def requestToken(request: OauthRequest)
+  def requestToken(request: EnhancedRequest)
                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
 
-  def authorize(request: OauthRequest)
+  def authorize(request: EnhancedRequest)
                (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
 
-  def accessToken(request: OauthRequest)
+  def accessToken(request: EnhancedRequest)
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
 
-  def oauthenticate(request: OauthRequest)
+  def oauthenticate(request: EnhancedRequest)
                    (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[Either[OauthResponse, String]]
 }
 
@@ -31,35 +29,32 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
 
   import oauthVerifier._
 
-  def requestToken(request: OauthRequest)
+  def requestToken(request: EnhancedRequest)
                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
-    val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(verifyForRequestToken) flatMap {
+    verifyForRequestToken(request) flatMap {
       case VerificationFailed(message) => successful(new OauthResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new OauthResponseBadRequest(message))
       case VerificationOk =>
         for {
           (token, secret) <- generateTokenAndSecret
-          consumerKey <- enhancedRequestF.map(r => r.oauthParamsMap(consumerKeyName))
-          callback <- enhancedRequestF.map(r => r.oauthParamsMap(callbackName))
+          consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
+          callback <- Future(request.oauthParamsMap(callbackName))
           persisted <- persistenceService.persistRequestToken(consumerKey, token, secret, callback)
           response <- createRequestTokenResponse(token, secret, callback)
         } yield response
     }
   }
 
-  def authorize(request: OauthRequest)
+  def authorize(request: EnhancedRequest)
                (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
-    val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(verifyForAuthorize) flatMap {
+    verifyForAuthorize(request) flatMap {
       case VerificationFailed(message) => successful(new OauthResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new OauthResponseBadRequest(message))
       case VerificationOk =>
         for {
-          enhancedRequest <- enhancedRequestF
-          consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
-          requestToken = enhancedRequest.oauthParamsMap(tokenName)
-          username = enhancedRequest.oauthParamsMap(usernameName)
+          consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
+          requestToken <- Future(request.oauthParamsMap(tokenName))
+          username <- Future(request.oauthParamsMap(usernameName))
           verifier <- generateVerifier
           authorization <- persistenceService.authorizeRequestToken(consumerKey, requestToken, username, verifier)
           response <- createAuthorizeResponse(requestToken, verifier)
@@ -67,25 +62,22 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
     }
   }
 
-  def accessToken(request: OauthRequest)
+  def accessToken(request: EnhancedRequest)
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
-    val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(verifyForAccessToken) flatMap {
+    verifyForAccessToken(request) flatMap {
       case VerificationFailed(message) => successful(new OauthResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new OauthResponseBadRequest(message))
       case VerificationOk =>
         (for {
-          enhancedRequest <- enhancedRequestF
-          consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
-          requestToken = enhancedRequest.oauthParamsMap(tokenName)
-          verifier = enhancedRequest.oauthParamsMap(verifierName)
+          consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
+          requestToken <- Future(request.oauthParamsMap(tokenName))
+          verifier <- Future(request.oauthParamsMap(verifierName))
           user <- persistenceService.whoAuthorizedRequesToken(consumerKey, requestToken, verifier)
         } yield user) flatMap {
           case None => Future(new OauthResponseUnauthorized(MessageNotAuthorized))
           case Some(username) =>
             for {
-              enhancedRequest <- enhancedRequestF
-              consumerKey = enhancedRequest.oauthParamsMap(consumerKeyName)
+              consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
               (token, secret) <- generateTokenAndSecret
               accessToken <- persistenceService.persistAccessToken(consumerKey, token, secret, username)
               response <- createAccesTokenResponse(token, secret)
@@ -94,16 +86,15 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
     }
   }
 
-  def oauthenticate(request: OauthRequest)
+  def oauthenticate(request: EnhancedRequest)
                    (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[Either[OauthResponse, String]] = {
-    val enhancedRequestF = enhanceRequest(request)
-    enhancedRequestF.flatMap(verifyForOauthenticate) flatMap {
+    verifyForOauthenticate(request) flatMap {
       case VerificationUnsupported(message) => successful(Left(new OauthResponseBadRequest(message)))
       case VerificationFailed(message) => successful(Left(new OauthResponseUnauthorized(message)))
       case VerificationOk =>
         for {
-          consumerKey <- enhancedRequestF.map(r => r.oauthParamsMap(consumerKeyName))
-          token <- enhancedRequestF.map(r => r.oauthParamsMap(tokenName))
+          consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
+          token <- Future(request.oauthParamsMap(tokenName))
           username <- persistenceService.getUsername(consumerKey, token)
         } yield Right(username)
     }

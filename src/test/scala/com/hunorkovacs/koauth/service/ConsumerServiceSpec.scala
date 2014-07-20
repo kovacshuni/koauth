@@ -1,7 +1,7 @@
 package com.hunorkovacs.koauth.service
 
 import com.hunorkovacs.koauth.domain.OauthParams.{tokenSecretName, consumerSecretName}
-import com.hunorkovacs.koauth.domain.{OauthRequest, OauthParams, EnhancedRequest}
+import com.hunorkovacs.koauth.domain.{Request, EnhancedRequest}
 import com.hunorkovacs.koauth.service.DefaultConsumerService._
 import com.hunorkovacs.koauth.service.OauthCombiner.urlEncode
 import org.specs2.mutable.Specification
@@ -45,7 +45,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Request Token' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = new OauthRequest(Method, Url, "", UrlParams, BodyParams)
+      val request = Request(Method, Url, "", List.empty, List.empty)
 
       val header = Await.result(createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback), 1.0 seconds)
 
@@ -67,7 +67,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Authorize' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = new OauthRequest(Method, Url, "", UrlParams, BodyParams)
+      val request = Request(Method, Url, "", List.empty, List.empty)
 
       val header = Await.result(createAuthorizeRequest(request, ConsumerKey, Token, Username, Password), 1.0 seconds)
 
@@ -83,7 +83,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Access Token' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = new OauthRequest(Method, Url, "", UrlParams, BodyParams)
+      val request = Request(Method, Url, "", List.empty, List.empty)
 
       val header = Await.result(createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier), 1.0 seconds)
 
@@ -107,7 +107,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Oauthenticate' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = new OauthRequest(Method, Url, "", UrlParams, BodyParams)
+      val request = Request(Method, Url, "", List.empty, List.empty)
 
       val header = Await.result(createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret), 1.0 seconds)
 

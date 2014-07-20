@@ -1,7 +1,7 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.{EnhancedRequest, OauthRequest}
-import com.hunorkovacs.koauth.service.OauthExtractor.{enhanceRequest, extractOauthParams, urlDecode}
+import com.hunorkovacs.koauth.domain.Request.extractOauthParams
+import com.hunorkovacs.koauth.service.OauthExtractor.urlDecode
 import org.specs2.mutable._
 
 class OauthExtractorSpec extends Specification {
@@ -39,37 +39,20 @@ class OauthExtractorSpec extends Specification {
 
   "Extracting OAuth params" should {
     "extract normal parameters separated with commas&spaces." in {
-      val request = OauthRequest(Method, UrlWithoutParams, HeaderWithSpace, UrlParams, BodyParams)
-      extractOauthParams(request) must equalTo(OauthParamsList).await
+      extractOauthParams(HeaderWithSpace) must equalTo(OauthParamsList)
     }
     "extract normal parameters sepatated by commas." in {
-      val request = OauthRequest(Method, UrlWithoutParams, HeaderWithSpace.replaceAll(", ", ","), UrlParams, BodyParams)
-      extractOauthParams(request) must equalTo(OauthParamsList).await
+      extractOauthParams(HeaderWithSpace.replaceAll(", ", ",")) must equalTo(OauthParamsList)
     }
     "extract empty values." in {
-      val request = OauthRequest(Method, UrlWithoutParams, "OAuth oauth_token=\"\"", UrlParams, BodyParams)
-      extractOauthParams(request) must equalTo(List(("oauth_token", ""))).await
+      extractOauthParams("OAuth oauth_token=\"\"") must equalTo(List(("oauth_token", "")))
     }
     "extract totally empty header." in {
-      val request = OauthRequest(Method, UrlWithoutParams, "", UrlParams, BodyParams)
-      extractOauthParams(request) must equalTo(List.empty[(String, String)]).await
+      extractOauthParams("") must equalTo(List.empty[(String, String)])
     }
     "discard irregular words." in {
-      val request = OauthRequest(Method, UrlWithoutParams, "Why is this here,oauth_token=\"123\",And this?", UrlParams, BodyParams)
-      extractOauthParams(request) must equalTo(List(("oauth_token", "123"))).await
-    }
-  }
-
-  "Enhancing requests" should {
-    "enhance request with parameters." in {
-      val request = OauthRequest(Method, UrlWithoutParams, HeaderWithSpace, UrlParams, BodyParams)
-      enhanceRequest(request) must equalTo(
-        EnhancedRequest(Method,
-          UrlWithoutParams,
-          UrlParams,
-          BodyParams,
-          OauthParamsList,
-          OauthParamsList.toMap)).await
+      extractOauthParams("Why is this here,oauth_token=\"123\",And this?") must
+        equalTo(List(("oauth_token", "123")))
     }
   }
 }
