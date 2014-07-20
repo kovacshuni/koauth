@@ -53,12 +53,12 @@ object DefaultConsumerService extends ConsumerService {
                                          consumerSecret: String,
                                          callback: String)
                                         (implicit ec: ExecutionContext): Future[String] = {
-    val paramsList = createBasicParamList().::((consumerKeyName, consumerKey))
-      .::((consumerSecretName, consumerSecret))
-      .::((callbackName, callback))
-    val enhanced = Request(request, paramsList)
-
-    createGeneralSignedRequest(enhanced)
+    Future {
+      val paramsList = createBasicParamList().::((consumerKeyName, consumerKey))
+        .::((consumerSecretName, consumerSecret))
+        .::((callbackName, callback))
+      Request(request, paramsList)
+    }.flatMap(createGeneralSignedRequest)
   }
 
   override def createAuthorizeRequest(request: Request,
@@ -68,11 +68,12 @@ object DefaultConsumerService extends ConsumerService {
                                       password: String)
                                      (implicit ec: ExecutionContext): Future[String] = {
     Future {
-      createBasicParamList().::((consumerKeyName, consumerKey))
+      val paramsList = createBasicParamList().::((consumerKeyName, consumerKey))
         .::((tokenName, requestToken))
         .::((usernameName, username))
         .::((passwordName, password))
-    }.flatMap(createAuthorizationHeader)
+      createAuthorizationHeader(paramsList)
+    }
   }
 
   override def createAccessTokenRequest(request: Request,
@@ -82,14 +83,14 @@ object DefaultConsumerService extends ConsumerService {
                                         requestTokenSecret: String,
                                         verifier: String)
                                        (implicit ec: ExecutionContext): Future[String] = {
-    val paramsList = createBasicParamList().::((consumerKeyName, consumerKey))
+    Future {
+      val paramsList = createBasicParamList().::((consumerKeyName, consumerKey))
       .::((consumerSecretName, consumerSecret))
       .::((tokenName, requestToken))
       .::((tokenSecretName, requestTokenSecret))
       .::((verifierName, verifier))
-    val enhanced = Request(request, paramsList)
-
-    createGeneralSignedRequest(enhanced)
+      Request(request, paramsList)
+    }.flatMap(createGeneralSignedRequest)
   }
 
   override def createOauthenticatedRequest(request: Request,
@@ -98,13 +99,13 @@ object DefaultConsumerService extends ConsumerService {
                                            requestToken: String,
                                            requestTokenSecret: String)
                                           (implicit ec: ExecutionContext): Future[String] = {
-    val paramsList = createBasicParamList().::((consumerKeyName, consumerKey))
-      .::((consumerSecretName, consumerSecret))
-      .::((tokenName, requestToken))
-      .::((tokenSecretName, requestTokenSecret))
-    val enhanced = Request(request, paramsList)
-
-    createGeneralSignedRequest(enhanced)
+    Future {
+      val paramsList = createBasicParamList().::((consumerKeyName, consumerKey))
+        .::((consumerSecretName, consumerSecret))
+        .::((tokenName, requestToken))
+        .::((tokenSecretName, requestTokenSecret))
+      Request(request, paramsList)
+    }.flatMap(createGeneralSignedRequest)
   }
 
   private def createBasicParamList(): List[(String, String)] = {
@@ -116,35 +117,30 @@ object DefaultConsumerService extends ConsumerService {
 
   def createGeneralSignedRequest(request: Request)
                                 (implicit ec: ExecutionContext): Future[String] = {
-    signRequest(request) flatMap { signature =>
-      Future(request.oauthParamsList
-          .filterNot(param => consumerSecretName == param._1 || tokenSecretName == param._1)
-          .::((signatureName, signature)))
-        .flatMap(createAuthorizationHeader)
+    Future {
+      val signature = signRequest(request)
+      val list = request.oauthParamsList
+        .filterNot(param => consumerSecretName == param._1 || tokenSecretName == param._1)
+        .::((signatureName, signature))
+      createAuthorizationHeader(list)
     }
   }
 
-  def createSignatureBase(request: Request)
-                         (implicit ec: ExecutionContext): Future[String] = {
-    Future {
-      val filteredList = request.oauthParamsList
-        .filterNot(param => consumerSecretName == param._1 || tokenSecretName == param._1)
-      new Request(request.method,
-        request.urlWithoutParams,
-        request.urlParams,
-        request.bodyParams,
-        filteredList,
-        filteredList.toMap)
-    }.flatMap(concatItemsForSignature)
+  def createSignatureBase(request: Request): String = {
+    val filteredList = request.oauthParamsList
+      .filterNot(param => consumerSecretName == param._1 || tokenSecretName == param._1)
+    concatItemsForSignature(new Request(request.method,
+      request.urlWithoutParams,
+      request.urlParams,
+      request.bodyParams,
+      filteredList,
+      filteredList.toMap))
   }
 
-  def signRequest(request: Request)
-                 (implicit ec: ExecutionContext): Future[String] = {
-    for {
-      base <- createSignatureBase(request)
-      consumerSecret = request.oauthParamsMap(consumerSecretName)
-      tokenSecret = request.oauthParamsMap.applyOrElse(tokenSecretName, (s: String) => "")
-      signature <- sign(base, consumerSecret, tokenSecret)
-    } yield signature
+  def signRequest(request: Request): String = {
+    val base = createSignatureBase(request)
+    val consumerSecret = request.oauthParamsMap.applyOrElse(consumerSecretName, (s: String) => "")
+    val tokenSecret = request.oauthParamsMap.applyOrElse(tokenSecretName, (s: String) => "")
+    sign(base, consumerSecret, tokenSecret)
   }
 }

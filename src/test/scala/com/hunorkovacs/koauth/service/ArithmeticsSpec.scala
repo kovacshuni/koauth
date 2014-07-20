@@ -74,7 +74,7 @@ class ArithmeticsSpec extends Specification {
   "Issues an unauthorized Request Token" should {
     "include token, token secret and confirm callback"  in {
       createRequestTokenResponse(Token, TokenSecret, Callback) must
-        equalTo (ResponseOk(s"oauth_callback_confirmed=$Callback&oauth_token=$Token&oauth_token_secret=$TokenSecret")).await()
+        equalTo (ResponseOk(s"oauth_callback_confirmed=$Callback&oauth_token=$Token&oauth_token_secret=$TokenSecret"))
     }
   }
 
@@ -83,30 +83,30 @@ class ArithmeticsSpec extends Specification {
       encodePairSortConcat(List(("oauth_token", "ab3cd9j4ks73hf7g"),
           ("oauth_token_secret", "xyz4992k83j47x0b"))) must
         equalTo ("oauth_token=ab3cd9j4ks73hf7g&" +
-          "oauth_token_secret=xyz4992k83j47x0b").await
+          "oauth_token_secret=xyz4992k83j47x0b")
     }
     "sort by key then value." in {
       encodePairSortConcat(List(("c", "3"), ("c", "2"), ("b", "2"), ("a", "1"))) must
-        equalTo ("a=1&b=2&c=2&c=3").await
+        equalTo ("a=1&b=2&c=2&c=3")
     }
   }
 
   "Normalizing request parameters" should {
     "contain OAuth parameters, parameters in the HTTP POST request body, HTTP GET parameters." in {
       normalizeRequestParams(UrlParams, OauthParamsList, BodyParams) must
-        equalTo (NormalizedRequestParams).await
+        equalTo (NormalizedRequestParams)
     }
     "sort parameters." in {
       normalizeRequestParams(List(("a", "1")), List(("b", "3"), ("a", "2")), List.empty) must
-        equalTo ("a=1&a=2&b=3").await
+        equalTo ("a=1&a=2&b=3")
     }
     "exclude realm and signature." in {
       normalizeRequestParams(List.empty, List(("realm", "3"), ("oauth_signature", "2")), List.empty) must
-        equalTo ("").await
+        equalTo ("")
     }
     "write keys with empty values anyways." in {
       normalizeRequestParams(List.empty, List(("a", ""), ("b", "2")), List.empty) must
-        equalTo ("a=&b=2").await
+        equalTo ("a=&b=2")
     }
   }
 
@@ -118,7 +118,7 @@ class ArithmeticsSpec extends Specification {
         BodyParams,
         OauthParamsList,
         OauthParamsList.toMap)
-      concatItemsForSignature(request) must equalTo (SignatureBase).await
+      concatItemsForSignature(request) must equalTo (SignatureBase)
     }
     "use lowercase URL." in {
       val request = new Request(Method,
@@ -127,7 +127,7 @@ class ArithmeticsSpec extends Specification {
         BodyParams,
         OauthParamsList,
         OauthParamsList.toMap)
-      concatItemsForSignature(request) must equalTo (SignatureBase).await
+      concatItemsForSignature(request) must equalTo (SignatureBase)
     }
     "include specific port." in {
       val request = new Request(Method,
@@ -137,7 +137,7 @@ class ArithmeticsSpec extends Specification {
         OauthParamsList,
         OauthParamsList.toMap)
       concatItemsForSignature(request) must
-        equalTo(SignatureBase.replaceAll("api.twitter.com", "api.twitter.com%3A9000")).await
+        equalTo(SignatureBase.replaceAll("api.twitter.com", "api.twitter.com%3A9000"))
     }
   }
 }

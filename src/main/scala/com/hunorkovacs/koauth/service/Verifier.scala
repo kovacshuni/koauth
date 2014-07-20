@@ -5,6 +5,7 @@ import java.nio.charset.Charset
 import javax.crypto.spec.SecretKeySpec
 import java.util.{TimeZone, Calendar, Base64}
 
+import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain.Request
 import com.hunorkovacs.koauth.service.Arithmetics._
@@ -54,20 +55,22 @@ protected object DefaultVerifier extends Verifier {
 
   def verifyForRequestToken(request: Request)
             (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    verifyRequiredParams(request, RequestTokenRequiredParams) flatMap {
-      case nok: VerificationNok => Future.successful(nok)
+    verifyRequiredParams(request, RequestTokenRequiredParams) match {
+      case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        Future(request.oauthParamsMap(consumerKeyName)).flatMap(persistence.getConsumerSecret) flatMap {
-          case None => Future(VerificationFailed(MessageInvalidConsumerKey))
+        persistence.getConsumerSecret(request.oauthParamsMap(consumerKeyName)) flatMap {
+          case None => successful(VerificationFailed(MessageInvalidConsumerKey))
           case Some(consumerSecret) =>
-            Future.sequence(List(verifySignature(request, consumerSecret, tokenSecret = ""),
-              verifyAlgorithm(request),
-              verifyTimestamp(request),
-              verifyNonce(request, ""))) map { list =>
-                list.collectFirst({ case nok: VerificationNok => nok }).getOrElse(VerificationOk)
-              }
-          }
-      }
+            verifyNonce(request, "") map { nonceVerification =>
+              List(verifySignature(request, consumerSecret, tokenSecret = ""),
+                verifyAlgorithm(request),
+                verifyTimestamp(request),
+                nonceVerification)
+                .collectFirst({ case nok: VerificationNok => nok })
+                .getOrElse(VerificationOk)
+            }
+        }
+    }
   }
 
   def verifyForAccessToken(request: Request)
@@ -82,40 +85,34 @@ protected object DefaultVerifier extends Verifier {
                       requiredParams: List[String],
                       getSecret: (String, String) => Future[Option[String]])
                      (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    verifyRequiredParams(request, requiredParams) flatMap {
-      case nok: VerificationNok => Future.successful(nok)
+    verifyRequiredParams(request, requiredParams) match {
+      case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        for {
-          consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
-          consumerSecret <- persistence.getConsumerSecret(consumerKey)
-          ver1 <- consumerSecret match {
-            case None => Future(VerificationFailed(MessageInvalidConsumerKey))
-            case Some(someConsumerSecret) =>
-              for {
-                token <- Future(request.oauthParamsMap(tokenName))
-                tokenSecret <- getSecret(consumerKey, token)
-                ver2 <- tokenSecret match {
-                  case None => Future(VerificationFailed(MessageInvalidToken))
-                  case Some(someTokenSecret) =>
-                    val signatureF = verifySignature(request, someConsumerSecret, someTokenSecret)
-                    val algorithmF = verifyAlgorithm(request)
-                    val timestampF = verifyTimestamp(request)
-                    val nonceF = verifyNonce(request, token)
-                    Future.sequence(List(signatureF, algorithmF, timestampF, nonceF)) map { list =>
-                      list.collectFirst({ case nok: VerificationNok => nok})
-                        .getOrElse(VerificationOk)
-                    }
+        val consumerKey = request.oauthParamsMap(consumerKeyName)
+        persistence.getConsumerSecret(consumerKey) flatMap {
+          case None => successful(VerificationFailed(MessageInvalidConsumerKey))
+          case Some(someConsumerSecret) =>
+            val token = request.oauthParamsMap(tokenName)
+            getSecret(consumerKey, token) flatMap {
+              case None => successful(VerificationFailed(MessageInvalidToken))
+              case Some(someTokenSecret) =>
+                val signatureF = verifySignature(request, someConsumerSecret, someTokenSecret)
+                val algorithmF = verifyAlgorithm(request)
+                val timestampF = verifyTimestamp(request)
+                verifyNonce(request, token) map { nonceVerification =>
+                  List(signatureF, algorithmF, timestampF, nonceVerification)
+                    .collectFirst({ case nok: VerificationNok => nok})
+                    .getOrElse(VerificationOk)
                 }
-              } yield ver2
-          }
-        } yield ver1
+            }
+        }
     }
   }
 
   def verifyForAuthorize(request: Request)
                         (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    verifyRequiredParams(request, AuthorizeRequiredParams) flatMap {
-      case nok: VerificationNok => Future.successful(nok)
+    verifyRequiredParams(request, AuthorizeRequiredParams) match {
+      case nok: VerificationNok => successful(nok)
       case VerificationOk =>
         val username = request.oauthParamsMap(usernameName)
         val password = request.oauthParamsMap(passwordName)
@@ -126,78 +123,58 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifySignature(request: Request, consumerSecret: String, tokenSecret: String)
-                     (implicit ec: ExecutionContext): Future[Verification] = {
-    for {
-      signatureBase <- concatItemsForSignature(request)
-      computedSignature <- sign(signatureBase, consumerSecret, tokenSecret)
-    } yield {
-      val sentSignature = urlDecode(request.oauthParamsMap(signatureName))
-      if (sentSignature.equals(computedSignature)) VerificationOk
-      else VerificationFailed(MessageInvalidSignature)
-    }
+  def verifySignature(request: Request, consumerSecret: String, tokenSecret: String): Verification = {
+    val signatureBase = concatItemsForSignature(request)
+    val computedSignature = sign(signatureBase, consumerSecret, tokenSecret)
+    val sentSignature = urlDecode(request.oauthParamsMap(signatureName))
+    if (sentSignature.equals(computedSignature)) VerificationOk
+    else VerificationFailed(MessageInvalidSignature)
   }
 
   def verifyNonce(request: Request, token: String)
                  (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    Future {
-      val nonce = request.oauthParamsMap(nonceName)
-      val consumerKey = request.oauthParamsMap(consumerKeyName)
-      (nonce, consumerKey)
-    } flatMap { t =>
-      persistence.nonceExists(t._1, t._2, token)
-    } map { exists =>
+    val nonce = request.oauthParamsMap(nonceName)
+    val consumerKey = request.oauthParamsMap(consumerKeyName)
+    persistence.nonceExists(nonce, consumerKey, token) map { exists =>
       if (exists) VerificationFailed(MessageInvalidNonce)
       else VerificationOk
     }
   }
 
-  def verifyTimestamp(request: Request)
-                              (implicit ec: ExecutionContext): Future[Verification] = {
-    Future {
-      val timestamp = request.oauthParamsMap(timestampName)
-      try {
-        val actualStamp = timestamp.toLong
-        val expectedStamp = CalendarGMT.getTimeInMillis
-        if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionMillis) VerificationOk
-        else VerificationFailed(MessageInvalidTimestamp)
-      } catch {
-        case nfEx: NumberFormatException => VerificationUnsupported("Invalid timestamp format.")
-      }
+  def verifyTimestamp(request: Request): Verification = {
+    val timestamp = request.oauthParamsMap(timestampName)
+    try {
+      val actualStamp = timestamp.toLong
+      val expectedStamp = CalendarGMT.getTimeInMillis
+      if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionMillis) VerificationOk
+      else VerificationFailed(MessageInvalidTimestamp)
+    } catch {
+      case nfEx: NumberFormatException => VerificationUnsupported("Invalid timestamp format.")
     }
   }
 
-  def verifyAlgorithm(request: Request)
-                     (implicit ec: ExecutionContext): Future[Verification] = {
-    Future {
-      val signatureMethod = request.oauthParamsMap(signatureMethodName)
-      if (HmacReadable != signatureMethod) VerificationUnsupported(MessageUnsupportedMethod)
-      else VerificationOk
-    }
+  def verifyAlgorithm(request: Request): Verification = {
+    val signatureMethod = request.oauthParamsMap(signatureMethodName)
+    if (HmacReadable != signatureMethod) VerificationUnsupported(MessageUnsupportedMethod)
+    else VerificationOk
   }
 
-  def verifyRequiredParams(request: Request, requiredParams: List[String])
-                          (implicit ec: ExecutionContext): Future[Verification] = {
-    Future {
-      val paramsKeys = request.oauthParamsList.map(e => e._1)
-      if (requiredParams.equals(paramsKeys.sorted)) VerificationOk
-      else VerificationUnsupported(MessageParameterMissing +
-        (paramsKeys.diff(requiredParams) ::: requiredParams.diff(paramsKeys)).mkString(", "))
-    }
+  def verifyRequiredParams(request: Request, requiredParams: List[String]): Verification = {
+    val paramsKeys = request.oauthParamsList.map(e => e._1)
+    if (requiredParams.equals(paramsKeys.sorted)) VerificationOk
+    else VerificationUnsupported(MessageParameterMissing +
+      (paramsKeys.diff(requiredParams) ::: requiredParams.diff(paramsKeys)).mkString(", "))
   }
 
-  def sign(base: String, consumerSecret: String, tokenSecret: String)
-          (implicit ec: ExecutionContext): Future[String] = {
-    Future {
-      val key = encodeConcat(List(consumerSecret, tokenSecret))
-      val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
-      val mac = Mac.getInstance(HmacSha1Algorithm)
-      mac.init(secretkeySpec)
-      val bytesToSign = base.getBytes(UTF8Charset)
-      val digest = mac.doFinal(bytesToSign)
-      val digest64 = Base64Encoder.encode(digest)
-      new String(digest64, UTF8Charset)
-    }
+  def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
+    val key = encodeConcat(List(consumerSecret, tokenSecret))
+    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
+    val mac = Mac.getInstance(HmacSha1Algorithm)
+    mac.init(secretkeySpec)
+    val bytesToSign = base.getBytes(UTF8Charset)
+    val digest = mac.doFinal(bytesToSign)
+    val digest64 = Base64Encoder.encode(digest)
+    new String(digest64, UTF8Charset)
   }
 }
 

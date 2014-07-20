@@ -55,7 +55,7 @@ class VerifierSpec extends Specification with Mockito {
   "Singing a signature base with two secrets" should {
     "give the correct signature." in {
       sign(SignatureBase, ConsumerSecret, TokenSecret) must
-        equalTo (Signature).await
+        equalTo (Signature)
     }
   }
 
@@ -63,27 +63,27 @@ class VerifierSpec extends Specification with Mockito {
     "return positive verification if signature matches." in {
       val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
       verifySignature(request, ConsumerSecret, TokenSecret) must
-        equalTo (VerificationOk).await
+        equalTo (VerificationOk)
     }
     "return negative verification if signature doesn't match." in {
       val paramsList = OauthParamsList.filterNot(e => "oauth_signature".equals(e._1))
         .::(("oauth_signature", "123456"))
       val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
       verifySignature(request, ConsumerSecret, TokenSecret) must
-        equalTo (VerificationFailed(MessageInvalidSignature)).await
+        equalTo (VerificationFailed(MessageInvalidSignature))
     }
   }
 
   "Verifying signature method" should {
     "return positive verification if method is HMAC-SHA1." in {
       val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
-      verifyAlgorithm(request) must equalTo (VerificationOk).await
+      verifyAlgorithm(request) must equalTo (VerificationOk)
     }
     "return unsupported verification if method is other than HMAC-SHA1." in {
       val paramsList = OauthParamsList.filterNot(e => "oauth_signature_method".equals(e._1))
         .::(("oauth_signature_method", "MD5"))
       val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-      verifyAlgorithm(request) must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
+      verifyAlgorithm(request) must equalTo (VerificationUnsupported(MessageUnsupportedMethod))
     }
   }
 
@@ -92,35 +92,35 @@ class VerifierSpec extends Specification with Mockito {
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis.toString))
       val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-      verifyTimestamp(request) must equalTo (VerificationOk).await
+      verifyTimestamp(request) must equalTo (VerificationOk)
     }
     "return positive verification if timestamp is 9 minutes late." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 9 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-      verifyTimestamp(request) must equalTo (VerificationOk).await
+      verifyTimestamp(request) must equalTo (VerificationOk)
     }
     "return positive verification if timestamp is 9 minutes ahead." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis + 9 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-      verifyTimestamp(request) must equalTo (VerificationOk).await
+      verifyTimestamp(request) must equalTo (VerificationOk)
     }
     "return negative verification if timestamp is 11 minutes late." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 11 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-      verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
+      verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp))
     }
     "return negative verification if timestamp is 11 minutes ahead." in {
       val nineMinutesAgo = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis + 11 * 60 * 1000
       val paramsList = OauthParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-      verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
+      verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp))
     }
   }
 
@@ -142,22 +142,22 @@ class VerifierSpec extends Specification with Mockito {
   "Verifying required parameters" should {
     "return positive if lists are the same but shuffled." in {
       val request = createRequest(List(("b", "2"), ("a", "1")))
-      verifyRequiredParams(request, List("a", "b")) must beEqualTo (VerificationOk).await
+      verifyRequiredParams(request, List("a", "b")) must beEqualTo (VerificationOk)
     }
     "return negative if parameter is missing and state which." in {
       val request = createRequest(List(("a", "1")))
       verifyRequiredParams(request, List("a", "b")) must
-        beEqualTo (VerificationUnsupported(MessageParameterMissing + "b")).await
+        beEqualTo (VerificationUnsupported(MessageParameterMissing + "b"))
     }
     "return negative if duplicate parameter and state which." in {
       val request = createRequest(List(("a", "1"), ("b", "2"), ("b", "3")))
       verifyRequiredParams(request, List("a", "b")) must
-        beEqualTo (VerificationUnsupported(MessageParameterMissing + "b")).await
+        beEqualTo (VerificationUnsupported(MessageParameterMissing + "b"))
     }
     "return negative if additional parameter and state which." in {
       val request = createRequest(List(("a", "1"), ("b", "2"), ("c", "3")))
       verifyRequiredParams(request, List("a", "b")) must
-        beEqualTo (VerificationUnsupported(MessageParameterMissing + "c")).await
+        beEqualTo (VerificationUnsupported(MessageParameterMissing + "c"))
     }
     def createRequest(paramsList: List[(String, String)]) = new Request("", "", List.empty, List.empty, paramsList, Map.empty)
   }
@@ -168,14 +168,11 @@ class VerifierSpec extends Specification with Mockito {
       val signatureBase = actualizeSignatureBase(time)
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, "") returns successful(false)
-      val signatureF = sign(signatureBase, ConsumerSecret, "")
+      val signature = sign(signatureBase, ConsumerSecret, "")
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
 
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyForRequestToken(request)
-      }
-      verificationF must equalTo (VerificationOk).await
+      verifyForRequestToken(request) must equalTo (VerificationOk).await
     }
     "return negative if method, timestamp, nonce all ok but signature is invalid." in new commonMocks {
       val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
@@ -193,28 +190,22 @@ class VerifierSpec extends Specification with Mockito {
       val signatureBase = actualizeSignatureBase(time)
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, "") returns successful(false)
-      val signatureF = sign(signatureBase, ConsumerSecret, "")
+      val signature = sign(signatureBase, ConsumerSecret, "")
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
 
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyForRequestToken(request)
-      }
-      verificationF must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
+      verifyForRequestToken(request) must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
     }
     "return negative if signature, method, timestamp all ok but nonce exists" in new commonMocks {
       val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
       val signatureBase = actualizeSignatureBase(time)
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, "") returns successful(true)
-      val signatureF = sign(signatureBase, ConsumerSecret, "")
+      val signature = sign(signatureBase, ConsumerSecret, "")
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
 
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyForRequestToken(request)
-      }
-      verificationF must equalTo (VerificationFailed(MessageInvalidNonce)).await
+      verifyForRequestToken(request) must equalTo (VerificationFailed(MessageInvalidNonce)).await
     }
     "return unsupported if signature, timestamp, nonce all ok but method is different from hmac-sha1." in new commonMocks {
       val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
@@ -222,16 +213,13 @@ class VerifierSpec extends Specification with Mockito {
         .replaceFirst("%26oauth_signature_method%3DHMAC-SHA1", "%26oauth_signature_method%3DMD5")
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, "") returns successful(false)
-      val signatureF = sign(signatureBase, ConsumerSecret, "")
+      val signature = sign(signatureBase, ConsumerSecret, "")
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+        .filterNot(e => "oauth_signature_method".equals(e._1))
+        .::(("oauth_signature_method", "MD5"))
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
 
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-          .filterNot(e => "oauth_signature_method".equals(e._1))
-          .::(("oauth_signature_method", "MD5"))
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyForRequestToken(request)
-      }
-      verificationF must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
+      verifyForRequestToken(request) must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
     }
     "return negative if consumer key is not registered." in new commonMocks {
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(None)
@@ -268,14 +256,11 @@ class VerifierSpec extends Specification with Mockito {
       val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
-      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val signature = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
 
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyWithToken(request, OauthenticateRequiredParams, getSecret)
-      }
-      verificationF must equalTo (VerificationOk).await
+      verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationOk).await
     }
     "return negative if consumer key doesn't exist." in new commonMocks {
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(None)
@@ -305,28 +290,21 @@ class VerifierSpec extends Specification with Mockito {
       val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(true)
-      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val signature = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
 
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyWithToken(request, OauthenticateRequiredParams, getSecret)
-      }
-      verificationF must equalTo (VerificationFailed(MessageInvalidNonce)).await
+      verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationFailed(MessageInvalidNonce)).await
     }
     "return negative if signature, method, nonce all ok but timestamp is too late." in new commonMocks {
       val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis - 11 * 60 * 1000
       val signatureBase = SignatureBase.replaceFirst("oauth_timestamp%3D1318622958%26", s"oauth_timestamp%3D$time%26")
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
-      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
-
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyWithToken(request, OauthenticateRequiredParams, getSecret)
-      }
-      verificationF must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
+      val signature = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
+      verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationFailed(MessageInvalidTimestamp)).await
     }
     "return negative if signature, timestamp, nonce all ok but method is other than hmac-sha1." in new commonMocks {
       val time = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTimeInMillis
@@ -334,16 +312,13 @@ class VerifierSpec extends Specification with Mockito {
         .replaceFirst("oauth_signature_method%3DHMAC-SHA1%26", "oauth_signature_method%3DMD5%26")
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
-      val signatureF = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val signature = sign(signatureBase, ConsumerSecret, TokenSecret)
+      val paramsList = actualizeParamsList(urlEncode(signature), time)
+        .filterNot(e => "oauth_signature_method".equals(e._1))
+        .::(("oauth_signature_method", "MD5"))
+      val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
 
-      val verificationF = signatureF flatMap { signature =>
-        val paramsList = actualizeParamsList(urlEncode(signature), time)
-          .filterNot(e => "oauth_signature_method".equals(e._1))
-          .::(("oauth_signature_method", "MD5"))
-        val request = new Request(Method, Url, UrlParams, BodyParams, paramsList, paramsList.toMap)
-        verifyWithToken(request, OauthenticateRequiredParams, getSecret)
-      }
-      verificationF must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
+      verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
     }
     "return negative if required parameter is missing." in new commonMocks {
       val params = OauthParamsList2.filterNot(p => p._1 == "oauth_version")

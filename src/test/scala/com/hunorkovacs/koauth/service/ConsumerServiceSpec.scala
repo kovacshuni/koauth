@@ -139,7 +139,7 @@ class ConsumerServiceSpec extends Specification {
     "exclude secrets, encode, sort, concat correctly every parameter." in {
       val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
 
-      createSignatureBase(request) must beEqualTo(SignatureBase).await
+      createSignatureBase(request) must beEqualTo(SignatureBase)
     }
   }
 
@@ -147,13 +147,13 @@ class ConsumerServiceSpec extends Specification {
     "give the correct signature." in {
       val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
 
-      signRequest(request) must beEqualTo(Signature).await
+      signRequest(request) must beEqualTo(Signature)
     }
     "give the correct signature when no Token Secret is present." in {
       val params = OauthParamsList.filterNot(p => tokenSecretName == p._1)
       val request = new Request(Method, Url, UrlParams, BodyParams, params, params.toMap)
 
-      signRequest(request) must beEqualTo("KaRibr4jurQUGNDvM5Kp+qd4AHw=").await
+      signRequest(request) must beEqualTo("KaRibr4jurQUGNDvM5Kp+qd4AHw=")
     }
   }
 
