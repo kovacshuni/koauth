@@ -6,23 +6,23 @@ import javax.crypto.spec.SecretKeySpec
 import java.util.{TimeZone, Calendar, Base64}
 
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.EnhancedRequest
+import com.hunorkovacs.koauth.domain.Request
 import com.hunorkovacs.koauth.service.OauthCombiner._
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.service.OauthExtractor.UTF8
 
 trait OauthVerifier {
 
-  def verifyForRequestToken(enhancedRequest: EnhancedRequest)
+  def verifyForRequestToken(enhancedRequest: Request)
                            (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 
-  def verifyForAccessToken(enhancedRequest: EnhancedRequest)
+  def verifyForAccessToken(enhancedRequest: Request)
                           (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 
-  def verifyForOauthenticate(enhancedRequest: EnhancedRequest)
+  def verifyForOauthenticate(enhancedRequest: Request)
                             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 
-  def verifyForAuthorize(enhancedRequest: EnhancedRequest)
+  def verifyForAuthorize(enhancedRequest: Request)
                         (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification]
 }
 
@@ -53,7 +53,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
   val MessageNotAuthorized = "Request Token not authorized."
   val MessageInvalidCredentials = "Invalid user credentials."
 
-  def verifyForRequestToken(enhancedRequest: EnhancedRequest)
+  def verifyForRequestToken(enhancedRequest: Request)
             (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     verifyRequiredParams(enhancedRequest, RequestTokenRequiredParams) flatMap {
       case nok: VerificationNok => Future.successful(nok)
@@ -71,15 +71,15 @@ protected object DefaultOauthVerifier extends OauthVerifier {
       }
   }
 
-  def verifyForAccessToken(enhancedRequest: EnhancedRequest)
+  def verifyForAccessToken(enhancedRequest: Request)
                           (implicit persistence: OauthPersistence, ec: ExecutionContext) =
     verifyWithToken(enhancedRequest, AccessTokenRequiredParams, persistence.getRequestTokenSecret)
 
-  def verifyForOauthenticate(enhancedRequest: EnhancedRequest)
+  def verifyForOauthenticate(enhancedRequest: Request)
                             (implicit persistence: OauthPersistence, ec: ExecutionContext) =
     verifyWithToken(enhancedRequest, OauthenticateRequiredParams, persistence.getAccessTokenSecret)
 
-  def verifyWithToken(enhancedRequest: EnhancedRequest,
+  def verifyWithToken(enhancedRequest: Request,
                       requiredParams: List[String],
                       getSecret: (String, String) => Future[Option[String]])
                      (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
@@ -113,7 +113,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
     }
   }
 
-  def verifyForAuthorize(enhancedRequest: EnhancedRequest)
+  def verifyForAuthorize(enhancedRequest: Request)
                         (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     verifyRequiredParams(enhancedRequest, AuthorizeRequiredParams) flatMap {
       case nok: VerificationNok => Future.successful(nok)
@@ -127,7 +127,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
     }
   }
 
-  def verifySignature(enhancedRequest: EnhancedRequest, consumerSecret: String, tokenSecret: String)
+  def verifySignature(enhancedRequest: Request, consumerSecret: String, tokenSecret: String)
                      (implicit ec: ExecutionContext): Future[Verification] = {
     for {
       signatureBase <- concatItemsForSignature(enhancedRequest)
@@ -139,7 +139,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
     }
   }
 
-  def verifyNonce(enhancedRequest: EnhancedRequest, token: String)
+  def verifyNonce(enhancedRequest: Request, token: String)
                  (implicit persistence: OauthPersistence, ec: ExecutionContext): Future[Verification] = {
     Future {
       val nonce = enhancedRequest.oauthParamsMap(nonceName)
@@ -153,7 +153,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
     }
   }
 
-  def verifyTimestamp(enhancedRequest: EnhancedRequest)
+  def verifyTimestamp(enhancedRequest: Request)
                               (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
       val timestamp = enhancedRequest.oauthParamsMap(timestampName)
@@ -168,7 +168,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
     }
   }
 
-  def verifyAlgorithm(enhancedRequest: EnhancedRequest)
+  def verifyAlgorithm(enhancedRequest: Request)
                      (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
       val signatureMethod = enhancedRequest.oauthParamsMap(signatureMethodName)
@@ -177,7 +177,7 @@ protected object DefaultOauthVerifier extends OauthVerifier {
     }
   }
 
-  def verifyRequiredParams(enhancedRequest: EnhancedRequest, requiredParams: List[String])
+  def verifyRequiredParams(enhancedRequest: Request, requiredParams: List[String])
                           (implicit ec: ExecutionContext): Future[Verification] = {
     Future {
       val paramsKeys = enhancedRequest.oauthParamsList.map(e => e._1)

@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.{OauthResponseOk, EnhancedRequest}
+import com.hunorkovacs.koauth.domain.{OauthResponseOk, Request}
 import com.hunorkovacs.koauth.service.OauthCombiner._
 import org.specs2.mutable._
 
@@ -100,7 +100,7 @@ class OauthCombinerSpec extends Specification {
 
   "Concatenating Request Elements For Signature" should {
     "contian HTTP request method, request URL, and normalized request parameters separated by '&'." in {
-      val request = new EnhancedRequest(Method,
+      val request = new Request(Method,
         UrlWithoutParams,
         UrlParams,
         BodyParams,
@@ -109,7 +109,7 @@ class OauthCombinerSpec extends Specification {
       concatItemsForSignature(request) must equalTo (SignatureBase).await
     }
     "use lowercase URL." in {
-      val request = new EnhancedRequest(Method,
+      val request = new Request(Method,
         "HTTpS://Api.Twitter.com/1/Statuses/Update.JSON",
         UrlParams,
         BodyParams,
@@ -118,7 +118,7 @@ class OauthCombinerSpec extends Specification {
       concatItemsForSignature(request) must equalTo (SignatureBase).await
     }
     "include specific port." in {
-      val request = new EnhancedRequest(Method,
+      val request = new Request(Method,
         "HTTpS://Api.Twitter.com:9000/1/Statuses/Update.JSON",
         UrlParams,
         BodyParams,

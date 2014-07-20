@@ -1,7 +1,7 @@
 package com.hunorkovacs.koauth.service
 
 import com.hunorkovacs.koauth.domain.OauthParams.{tokenSecretName, consumerSecretName}
-import com.hunorkovacs.koauth.domain.{Request, EnhancedRequest}
+import com.hunorkovacs.koauth.domain.Request
 import com.hunorkovacs.koauth.service.DefaultConsumerService._
 import com.hunorkovacs.koauth.service.OauthCombiner.urlEncode
 import org.specs2.mutable.Specification
@@ -129,7 +129,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a general signed request" should {
     "sign correctly and include signature in Authorization header together with the rest of the parameters." in {
-      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
 
       createGeneralSignedRequest(request) must beEqualTo(AuthHeader).await
     }
@@ -137,7 +137,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a signature base" should {
     "exclude secrets, encode, sort, concat correctly every parameter." in {
-      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
 
       createSignatureBase(request) must beEqualTo(SignatureBase).await
     }
@@ -145,13 +145,13 @@ class ConsumerServiceSpec extends Specification {
 
   "Signing a request " should {
     "give the correct signature." in {
-      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
 
       signRequest(request) must beEqualTo(Signature).await
     }
     "give the correct signature when no Token Secret is present." in {
       val params = OauthParamsList.filterNot(p => tokenSecretName == p._1)
-      val request = new EnhancedRequest(Method, Url, UrlParams, BodyParams, params, params.toMap)
+      val request = new Request(Method, Url, UrlParams, BodyParams, params, params.toMap)
 
       signRequest(request) must beEqualTo("KaRibr4jurQUGNDvM5Kp+qd4AHw=").await
     }

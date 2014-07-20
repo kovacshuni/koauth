@@ -12,16 +12,16 @@ import com.hunorkovacs.koauth.domain.OauthParams._
 
 trait OauthService {
 
-  def requestToken(request: EnhancedRequest)
+  def requestToken(request: Request)
                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
 
-  def authorize(request: EnhancedRequest)
+  def authorize(request: Request)
                (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
 
-  def accessToken(request: EnhancedRequest)
+  def accessToken(request: Request)
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse]
 
-  def oauthenticate(request: EnhancedRequest)
+  def oauthenticate(request: Request)
                    (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[Either[OauthResponse, String]]
 }
 
@@ -29,7 +29,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
 
   import oauthVerifier._
 
-  def requestToken(request: EnhancedRequest)
+  def requestToken(request: Request)
                   (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     verifyForRequestToken(request) flatMap {
       case VerificationFailed(message) => successful(new OauthResponseUnauthorized(message))
@@ -45,7 +45,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
     }
   }
 
-  def authorize(request: EnhancedRequest)
+  def authorize(request: Request)
                (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     verifyForAuthorize(request) flatMap {
       case VerificationFailed(message) => successful(new OauthResponseUnauthorized(message))
@@ -62,7 +62,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
     }
   }
 
-  def accessToken(request: EnhancedRequest)
+  def accessToken(request: Request)
                  (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[OauthResponse] = {
     verifyForAccessToken(request) flatMap {
       case VerificationFailed(message) => successful(new OauthResponseUnauthorized(message))
@@ -86,7 +86,7 @@ protected class CustomOauthService(val oauthVerifier: OauthVerifier) extends Oau
     }
   }
 
-  def oauthenticate(request: EnhancedRequest)
+  def oauthenticate(request: Request)
                    (implicit persistenceService: OauthPersistence, ec: ExecutionContext): Future[Either[OauthResponse, String]] = {
     verifyForOauthenticate(request) flatMap {
       case VerificationUnsupported(message) => successful(Left(new OauthResponseBadRequest(message)))

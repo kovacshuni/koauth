@@ -2,12 +2,12 @@ package com.hunorkovacs.koauth.domain
 
 import com.hunorkovacs.koauth.service.OauthExtractor.urlDecode
 
-case class EnhancedRequest(method: String,
-                           urlWithoutParams: String,
-                           urlParams: List[(String, String)],
-                           bodyParams: List[(String, String)],
-                           oauthParamsList: List[(String, String)],
-                           oauthParamsMap: Map[String, String])
+case class Request(method: String,
+                   urlWithoutParams: String,
+                   urlParams: List[(String, String)],
+                   bodyParams: List[(String, String)],
+                   oauthParamsList: List[(String, String)],
+                   oauthParamsMap: Map[String, String])
 
 object Request {
 
@@ -17,7 +17,7 @@ object Request {
             urlParams: List[(String, String)],
             bodyParams: List[(String, String)]) = {
     val params = extractOauthParams(authorizationHeader)
-    EnhancedRequest(method,
+    new Request(method,
       urlWithoutParams,
       urlParams,
       bodyParams,
@@ -40,8 +40,8 @@ object Request {
       }.toList
   }
 
-  def apply(request: EnhancedRequest, paramList: List[(String, String)]) = {
-    EnhancedRequest(request.method,
+  def apply(request: Request, paramList: List[(String, String)]) = {
+    new Request(request.method,
       request.urlWithoutParams,
       request.urlParams,
       request.bodyParams,

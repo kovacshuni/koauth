@@ -3,7 +3,7 @@ package com.hunorkovacs.koauth.service
 import java.util.{TimeZone, Calendar}
 
 import com.hunorkovacs.koauth.domain.OauthParams._
-import com.hunorkovacs.koauth.domain.{Request, EnhancedRequest}
+import com.hunorkovacs.koauth.domain.Request
 import com.hunorkovacs.koauth.service.DefaultOauthVerifier.sign
 import com.hunorkovacs.koauth.service.OauthCombiner.{createAuthorizationHeader, concatItemsForSignature}
 import com.hunorkovacs.koauth.service.TokenGenerator.generateNonce
@@ -12,20 +12,20 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait ConsumerService {
 
-  def createRequestTokenRequest(request: EnhancedRequest,
+  def createRequestTokenRequest(request: Request,
                                 consumerKey: String,
                                 consumerSecret: String,
                                 callback: String)
                                (implicit ec: ExecutionContext): Future[String]
 
-  def createAuthorizeRequest(request: EnhancedRequest,
+  def createAuthorizeRequest(request: Request,
                              consumerKey: String,
                              requestToken: String,
                              username: String,
                              password: String)
                             (implicit ec: ExecutionContext): Future[String]
 
-  def createAccessTokenRequest(request: EnhancedRequest,
+  def createAccessTokenRequest(request: Request,
                                consumerKey: String,
                                consumerSecret: String,
                                requestToken: String,
@@ -33,14 +33,14 @@ trait ConsumerService {
                                verifier: String)
                               (implicit ec: ExecutionContext): Future[String]
 
-  def createOauthenticatedRequest(request: EnhancedRequest,
+  def createOauthenticatedRequest(request: Request,
                                   consumerKey: String,
                                   consumerSecret: String,
                                   requestToken: String,
                                   requestTokenSecret: String)
                                  (implicit ec: ExecutionContext): Future[String]
 
-  def createGeneralSignedRequest(request: EnhancedRequest)
+  def createGeneralSignedRequest(request: Request)
                                 (implicit ec: ExecutionContext): Future[String]
 }
 
@@ -48,7 +48,7 @@ object DefaultConsumerService extends ConsumerService {
 
   private val CalendarGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
-  override def createRequestTokenRequest(request: EnhancedRequest,
+  override def createRequestTokenRequest(request: Request,
                                          consumerKey: String,
                                          consumerSecret: String,
                                          callback: String)
@@ -61,7 +61,7 @@ object DefaultConsumerService extends ConsumerService {
     createGeneralSignedRequest(enhanced)
   }
 
-  override def createAuthorizeRequest(request: EnhancedRequest,
+  override def createAuthorizeRequest(request: Request,
                                       consumerKey: String,
                                       requestToken: String,
                                       username: String,
@@ -75,7 +75,7 @@ object DefaultConsumerService extends ConsumerService {
     }.flatMap(createAuthorizationHeader)
   }
 
-  override def createAccessTokenRequest(request: EnhancedRequest,
+  override def createAccessTokenRequest(request: Request,
                                         consumerKey: String,
                                         consumerSecret: String,
                                         requestToken: String,
@@ -92,7 +92,7 @@ object DefaultConsumerService extends ConsumerService {
     createGeneralSignedRequest(enhanced)
   }
 
-  override def createOauthenticatedRequest(request: EnhancedRequest,
+  override def createOauthenticatedRequest(request: Request,
                                            consumerKey: String,
                                            consumerSecret: String,
                                            requestToken: String,
@@ -114,7 +114,7 @@ object DefaultConsumerService extends ConsumerService {
       (timestampName, CalendarGMT.getTimeInMillis.toString))
   }
 
-  def createGeneralSignedRequest(request: EnhancedRequest)
+  def createGeneralSignedRequest(request: Request)
                                 (implicit ec: ExecutionContext): Future[String] = {
     signRequest(request) flatMap { signature =>
       Future(request.oauthParamsList
@@ -124,12 +124,12 @@ object DefaultConsumerService extends ConsumerService {
     }
   }
 
-  def createSignatureBase(request: EnhancedRequest)
+  def createSignatureBase(request: Request)
                          (implicit ec: ExecutionContext): Future[String] = {
     Future {
       val filteredList = request.oauthParamsList
         .filterNot(param => consumerSecretName == param._1 || tokenSecretName == param._1)
-      new EnhancedRequest(request.method,
+      new Request(request.method,
         request.urlWithoutParams,
         request.urlParams,
         request.bodyParams,
@@ -138,7 +138,7 @@ object DefaultConsumerService extends ConsumerService {
     }.flatMap(concatItemsForSignature)
   }
 
-  def signRequest(request: EnhancedRequest)
+  def signRequest(request: Request)
                  (implicit ec: ExecutionContext): Future[String] = {
     for {
       base <- createSignatureBase(request)

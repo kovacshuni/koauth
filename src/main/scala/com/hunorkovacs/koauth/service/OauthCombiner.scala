@@ -25,7 +25,7 @@ object OauthCombiner {
     }
   }
 
-  def concatItemsForSignature(request: EnhancedRequest)
+  def concatItemsForSignature(request: Request)
                              (implicit ec: ExecutionContext): Future[String] = {
     for {
       method<- Future(urlEncode(request.method))
