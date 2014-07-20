@@ -1,19 +1,20 @@
 package com.hunorkovacs.koauth.service
 
 import scala.util.Random
-import scala.concurrent.{ExecutionContext, Future}
 
 object Generator {
 
-  private final val Length = 32
+  private final val LengthToken = 32
+  private final val LengthSecret = 32
+  private final val LengthVerifier = 16
+  private final val LengthNonce = 8
   private val random = new Random(System.currentTimeMillis)
 
-  def generateTokenAndSecret(implicit ec: ExecutionContext) = Future((generate, generate))
+  def generateTokenAndSecret = (generate(LengthToken), generate(LengthSecret))
 
-  def generateVerifier(implicit ec: ExecutionContext) = Future(generate)
+  def generateVerifier = generate(LengthVerifier)
 
-  def generateNonce = generate
+  def generateNonce = generate(LengthNonce)
 
-  private def generate: String = random.alphanumeric.take(Length).mkString
+  private def generate(length: Int): String = random.alphanumeric.take(length).mkString
 }
-

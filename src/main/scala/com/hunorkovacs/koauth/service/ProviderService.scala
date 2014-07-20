@@ -36,9 +36,9 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
       case VerificationOk =>
         for {
-          (token, secret) <- generateTokenAndSecret
           consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
           callback <- Future(request.oauthParamsMap(callbackName))
+          (token, secret) = generateTokenAndSecret
           persisted <- persistenceService.persistRequestToken(consumerKey, token, secret, callback)
           response <- createRequestTokenResponse(token, secret, callback)
         } yield response
@@ -55,7 +55,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
           consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
           requestToken <- Future(request.oauthParamsMap(tokenName))
           username <- Future(request.oauthParamsMap(usernameName))
-          verifier <- generateVerifier
+          verifier = generateVerifier
           authorization <- persistenceService.authorizeRequestToken(consumerKey, requestToken, username, verifier)
           response <- createAuthorizeResponse(requestToken, verifier)
         } yield response
@@ -78,7 +78,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
           case Some(username) =>
             for {
               consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
-              (token, secret) <- generateTokenAndSecret
+              (token, secret) = generateTokenAndSecret
               accessToken <- persistenceService.persistAccessToken(consumerKey, token, secret, username)
               response <- createAccesTokenResponse(token, secret)
             } yield response
