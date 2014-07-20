@@ -3,7 +3,6 @@ package com.hunorkovacs.koauth.service
 import java.net.{URLDecoder, URLEncoder}
 import com.hunorkovacs.koauth.domain.OauthParams._
 
-import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
 
 object Arithmetics {
