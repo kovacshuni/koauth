@@ -25,6 +25,15 @@ object Request {
       params.toMap)
   }
 
+  def apply(request: Request, paramList: List[(String, String)]) = {
+    new Request(request.method,
+      request.urlWithoutParams,
+      request.urlParams,
+      request.bodyParams,
+      paramList,
+      paramList.toMap)
+  }
+
   def extractOauthParams(authorizationHeader: String): List[(String, String)] = {
     def withoutQuote(s: String) = s.substring(0, s.length - 1)
 
@@ -33,19 +42,10 @@ object Request {
       .filter(s => s.contains("=\""))
       .map(param => param.trim)
       .map { keyValue: String =>
-        val kv = keyValue.split("=\"")
-        val k = urlDecode(kv(0))
-        val v = urlDecode(withoutQuote(kv(1)))
-        (k, v)
-      }.toList
-  }
-
-  def apply(request: Request, paramList: List[(String, String)]) = {
-    new Request(request.method,
-      request.urlWithoutParams,
-      request.urlParams,
-      request.bodyParams,
-      paramList,
-      paramList.toMap)
+      val kv = keyValue.split("=\"")
+      val k = urlDecode(kv(0))
+      val v = urlDecode(withoutQuote(kv(1)))
+      (k, v)
+    }.toList
   }
 }
