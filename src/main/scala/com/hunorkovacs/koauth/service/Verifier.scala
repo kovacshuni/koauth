@@ -60,17 +60,7 @@ protected object DefaultVerifier extends Verifier {
       case VerificationOk =>
         persistence.getConsumerSecret(request.oauthParamsMap(consumerKeyName)) flatMap {
           case None => successful(VerificationFailed(MessageInvalidConsumerKey))
-          case Some(consumerSecret) =>
-            verifyNonce(request, "") flatMap { nonceVerification =>
-              Future {
-                List(verifySignature(request, consumerSecret, tokenSecret = ""),
-                  verifyAlgorithm(request),
-                  verifyTimestamp(request))
-                  .::(nonceVerification)
-                  .collectFirst({ case nok: VerificationNok => nok })
-                  .getOrElse(VerificationOk)
-              }
-            }
+          case Some(consumerSecret) => fourVerifications(request, consumerSecret, "", "")
         }
     }
   }
@@ -98,17 +88,7 @@ protected object DefaultVerifier extends Verifier {
               Future(request.oauthParamsMap(tokenName)) flatMap { token =>
                 getSecret(consumerKey, token) flatMap {
                   case None => successful(VerificationFailed(MessageInvalidToken))
-                  case Some(someTokenSecret) =>
-                    verifyNonce(request, token) flatMap { nonceVerification =>
-                      Future {
-                        List(verifySignature(request, someConsumerSecret, someTokenSecret),
-                          verifyAlgorithm(request),
-                          verifyTimestamp(request))
-                          .::(nonceVerification)
-                          .collectFirst({ case nok: VerificationNok => nok})
-                          .getOrElse(VerificationOk)
-                      }
-                    }
+                  case Some(someTokenSecret) => fourVerifications(request, someConsumerSecret, token, someTokenSecret)
                 }
               }
           }
@@ -130,6 +110,20 @@ protected object DefaultVerifier extends Verifier {
           case false => VerificationFailed(MessageInvalidCredentials)
           case true => VerificationOk
         }
+    }
+  }
+
+  private def fourVerifications(request: Request, consumerSecret: String, token: String, tokenSecret: String)
+                               (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
+    verifyNonce(request, token) flatMap { nonceVerification =>
+      Future {
+        List(verifySignature(request, consumerSecret, tokenSecret),
+          verifyAlgorithm(request),
+          verifyTimestamp(request))
+          .::(nonceVerification)
+          .collectFirst({ case nok: VerificationNok => nok})
+          .getOrElse(VerificationOk)
+      }
     }
   }
 
