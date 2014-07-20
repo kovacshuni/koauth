@@ -1,10 +1,10 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.{OauthResponseOk, Request}
-import com.hunorkovacs.koauth.service.OauthCombiner._
+import com.hunorkovacs.koauth.domain.{ResponseOk, Request}
+import com.hunorkovacs.koauth.service.Arithmetics._
 import org.specs2.mutable._
 
-class OauthCombinerSpec extends Specification {
+class ArithmeticsSpec extends Specification {
 
   val NormalCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~"
   val IllegalCharacters = " !\"#$%&\'()*+,/:;<=>?@"
@@ -47,6 +47,18 @@ class OauthCombinerSpec extends Specification {
     "oauth_version%3D1.0%26" +
     "status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521"
 
+  "URL decoding" should {
+    "convert normal characters." in {
+      urlDecode(NormalCharacters) must equalTo (NormalCharacters)
+    }
+    "convert illegal characters." in {
+      urlDecode(IllegalCharactersEncoded) must equalTo (IllegalCharacters)
+    }
+    "convert characters on two bytes." in {
+      urlDecode(DoubleByteCharactersEncoded) must equalTo (DoubleByteCharacters)
+    }
+  }
+
   "URL encoding" should {
     "convert normal characters." in {
       urlEncode(NormalCharacters) must equalTo (NormalCharacters)
@@ -62,7 +74,7 @@ class OauthCombinerSpec extends Specification {
   "Issues an unauthorized Request Token" should {
     "include token, token secret and confirm callback"  in {
       createRequestTokenResponse(Token, TokenSecret, Callback) must
-        equalTo (OauthResponseOk(s"oauth_callback_confirmed=$Callback&oauth_token=$Token&oauth_token_secret=$TokenSecret")).await()
+        equalTo (ResponseOk(s"oauth_callback_confirmed=$Callback&oauth_token=$Token&oauth_token_secret=$TokenSecret")).await()
     }
   }
 

@@ -3,7 +3,7 @@ package com.hunorkovacs.koauth.service
 import com.hunorkovacs.koauth.domain.OauthParams.{tokenSecretName, consumerSecretName}
 import com.hunorkovacs.koauth.domain.Request
 import com.hunorkovacs.koauth.service.DefaultConsumerService._
-import com.hunorkovacs.koauth.service.OauthCombiner.urlEncode
+import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
 import org.specs2.mutable.Specification
 
 import scala.concurrent.Await

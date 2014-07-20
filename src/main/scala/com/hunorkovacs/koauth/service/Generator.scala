@@ -3,7 +3,7 @@ package com.hunorkovacs.koauth.service
 import scala.util.Random
 import scala.concurrent.{ExecutionContext, Future}
 
-object TokenGenerator {
+object Generator {
 
   private final val Length = 32
   private val random = new Random(System.currentTimeMillis)

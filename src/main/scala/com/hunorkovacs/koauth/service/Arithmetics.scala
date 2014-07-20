@@ -1,14 +1,18 @@
 package com.hunorkovacs.koauth.service
 
-import java.net.URLEncoder
+import java.net.{URLDecoder, URLEncoder}
 import com.hunorkovacs.koauth.domain.OauthParams._
 
 import scala.concurrent.{ExecutionContext, Future}
 import com.hunorkovacs.koauth.domain._
 
-object OauthCombiner {
+object Arithmetics {
 
-  def urlEncode(s: String) = URLEncoder.encode(s, OauthExtractor.UTF8)
+  final val UTF8 = "UTF-8"
+
+  def urlDecode(s: String) = URLDecoder.decode(s, UTF8)
+
+  def urlEncode(s: String) = URLEncoder.encode(s, UTF8)
     .replaceAll("\\+", "%20")
     .replaceAll("\\*", "%2A")
     .replaceAll("%7E", "~")
@@ -70,23 +74,23 @@ object OauthCombiner {
   def concat(itemList: List[String]): String = itemList.mkString("&")
 
   def createRequestTokenResponse(token: String, secret: String, callback: String)
-                                (implicit ec: ExecutionContext): Future[OauthResponseOk] = {
+                                (implicit ec: ExecutionContext): Future[ResponseOk] = {
     Future {
       List((tokenName, token),
         (tokenSecretName, secret),
         (callbackConfirmedName, callback))
     }
       .flatMap(encodePairSortConcat)
-      .map(body => new OauthResponseOk(body))
+      .map(body => new ResponseOk(body))
   }
 
   def createAuthorizeResponse(token: String, verifier: String)
-                             (implicit ec: ExecutionContext): Future[OauthResponseOk] =
+                             (implicit ec: ExecutionContext): Future[ResponseOk] =
     encodePairSortConcat(List((tokenName, token), (verifierName, verifier)))
-      .map(paramsString => new OauthResponseOk(paramsString))
+      .map(paramsString => new ResponseOk(paramsString))
 
   def createAccesTokenResponse(token: String, secret: String)
-                              (implicit ec: ExecutionContext): Future[OauthResponseOk] =
+                              (implicit ec: ExecutionContext): Future[ResponseOk] =
     encodePairSortConcat(List((tokenName, token), (tokenSecretName, secret)))
-      .map(body => new OauthResponseOk(body))
+      .map(body => new ResponseOk(body))
 }

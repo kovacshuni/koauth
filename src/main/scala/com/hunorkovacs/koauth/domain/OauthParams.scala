@@ -1,7 +1,5 @@
 package com.hunorkovacs.koauth.domain
 
-case class OauthParams(params: Map[String, String])
-
 object OauthParams {
   final val consumerKeyName = "oauth_consumer_key"
   final val consumerSecretName = "oauth_consumer_secret"

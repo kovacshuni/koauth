@@ -6,7 +6,6 @@ case class Consumer(consumerKey: String,
                     consumerSecret: String,
                     appId: Int,
                     ownerUsername: String)
-//                    rights: Rights)
 
 case class RequesToken(consumerKey: String,
                        requestToken: String,

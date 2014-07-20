@@ -2,7 +2,7 @@ package com.hunorkovacs.koauth.service
 
 import scala.concurrent.{ExecutionContext, Future}
 
-trait OauthPersistence {
+trait Persistence {
 
   /**
    * Saved nonces can be deleted after a predefined time passes. Preferably longer or equal

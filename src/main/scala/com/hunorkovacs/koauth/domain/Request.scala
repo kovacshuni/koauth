@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.domain
 
-import com.hunorkovacs.koauth.service.OauthExtractor.urlDecode
+import com.hunorkovacs.koauth.service.Arithmetics.urlDecode
 
 case class Request(method: String,
                    urlWithoutParams: String,

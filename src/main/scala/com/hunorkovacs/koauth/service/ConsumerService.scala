@@ -4,9 +4,9 @@ import java.util.{TimeZone, Calendar}
 
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain.Request
-import com.hunorkovacs.koauth.service.DefaultOauthVerifier.sign
-import com.hunorkovacs.koauth.service.OauthCombiner.{createAuthorizationHeader, concatItemsForSignature}
-import com.hunorkovacs.koauth.service.TokenGenerator.generateNonce
+import com.hunorkovacs.koauth.service.DefaultVerifier.sign
+import com.hunorkovacs.koauth.service.Arithmetics.{createAuthorizationHeader, concatItemsForSignature}
+import com.hunorkovacs.koauth.service.Generator.generateNonce
 
 import scala.concurrent.{ExecutionContext, Future}
 
