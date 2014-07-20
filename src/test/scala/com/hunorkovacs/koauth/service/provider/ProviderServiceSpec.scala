@@ -1,15 +1,15 @@
-package com.hunorkovacs.koauth.service
+package com.hunorkovacs.koauth.service.provider
 
 import com.hunorkovacs.koauth.domain._
-import com.hunorkovacs.koauth.service.DefaultVerifier._
 import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
+import com.hunorkovacs.koauth.service.provider.DefaultVerifier._
 import org.mockito.Matchers
 import org.specs2.mock._
 import org.specs2.mutable.{Before, Specification}
 
 import scala.concurrent.Future.successful
-import scala.concurrent.{ExecutionContext, Await}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 
 class ProviderServiceSpec extends Specification with Mockito {
 

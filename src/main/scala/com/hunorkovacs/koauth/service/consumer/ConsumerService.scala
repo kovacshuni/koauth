@@ -1,11 +1,10 @@
-package com.hunorkovacs.koauth.service
+package com.hunorkovacs.koauth.service.consumer
 
-import java.util.{TimeZone, Calendar}
+import java.util.{Calendar, TimeZone}
 
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain.Request
-import com.hunorkovacs.koauth.service.DefaultVerifier.sign
-import com.hunorkovacs.koauth.service.Arithmetics.{createAuthorizationHeader, concatItemsForSignature}
+import com.hunorkovacs.koauth.service.Arithmetics.{sign, concatItemsForSignature, createAuthorizationHeader}
 import com.hunorkovacs.koauth.service.Generator.generateNonce
 
 import scala.concurrent.{ExecutionContext, Future}

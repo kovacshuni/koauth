@@ -1,14 +1,14 @@
-package com.hunorkovacs.koauth.service
+package com.hunorkovacs.koauth.service.provider
 
-import com.hunorkovacs.koauth.service.DefaultVerifier.MessageNotAuthorized
-import com.hunorkovacs.koauth.service.VerifierFactory.getDefaultOauthVerifier
+import com.hunorkovacs.koauth.domain.OauthParams._
+import com.hunorkovacs.koauth.domain._
+import com.hunorkovacs.koauth.service.Arithmetics._
+import DefaultVerifier.MessageNotAuthorized
+import com.hunorkovacs.koauth.service.Generator._
+import VerifierFactory.getDefaultOauthVerifier
 
 import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain._
-import com.hunorkovacs.koauth.service.Generator._
-import com.hunorkovacs.koauth.service.Arithmetics._
-import com.hunorkovacs.koauth.domain.OauthParams._
 
 trait ProviderService {
 

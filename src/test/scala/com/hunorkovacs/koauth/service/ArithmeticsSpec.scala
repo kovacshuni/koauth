@@ -27,6 +27,9 @@ class ArithmeticsSpec extends Specification {
   val Token = "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"
   val TokenSecret = "t4958tu459t8u45t98u45t9485ut"
   val Callback = "true"
+  val ConsumerSecret = "kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw"
+  val Signature = "tnnArxj06cWHq44gCs1OSKk/jLY="
+  val TokenSecret2 = "LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE"
 
   val NormalizedRequestParams = "include_entities=true&" +
     "oauth_consumer_key=xvz1evFS4wEEPTGEFPHBog&" +
@@ -138,6 +141,13 @@ class ArithmeticsSpec extends Specification {
         OauthParamsList.toMap)
       concatItemsForSignature(request) must
         equalTo(SignatureBase.replaceAll("api.twitter.com", "api.twitter.com%3A9000"))
+    }
+  }
+
+  "Singing a signature base with two secrets" should {
+    "give the correct signature." in {
+      sign(SignatureBase, ConsumerSecret, TokenSecret2) must
+        equalTo (Signature)
     }
   }
 }

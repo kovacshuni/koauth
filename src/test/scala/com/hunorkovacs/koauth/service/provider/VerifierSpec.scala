@@ -1,15 +1,15 @@
-package com.hunorkovacs.koauth.service
+package com.hunorkovacs.koauth.service.provider
 
-import java.util.{TimeZone, Calendar}
+import java.util.{Calendar, TimeZone}
 
-import com.hunorkovacs.koauth.domain.Request
-import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
-import com.hunorkovacs.koauth.service.VerifierFactory.getDefaultOauthVerifier
+import com.hunorkovacs.koauth.domain.{Request, VerificationFailed, VerificationOk, VerificationUnsupported}
+import com.hunorkovacs.koauth.service.Arithmetics.{sign, urlEncode}
+import com.hunorkovacs.koauth.service.provider.VerifierFactory.getDefaultOauthVerifier
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 
-import scala.concurrent.Future.successful
 import scala.concurrent.Await
+import scala.concurrent.Future.successful
 import scala.concurrent.duration._
 
 class VerifierSpec extends Specification with Mockito {
@@ -51,13 +51,6 @@ class VerifierSpec extends Specification with Mockito {
 
   val verifier = getDefaultOauthVerifier
   import verifier._
-
-  "Singing a signature base with two secrets" should {
-    "give the correct signature." in {
-      sign(SignatureBase, ConsumerSecret, TokenSecret) must
-        equalTo (Signature)
-    }
-  }
 
   "Verifying signature" should {
     "return positive verification if signature matches." in {

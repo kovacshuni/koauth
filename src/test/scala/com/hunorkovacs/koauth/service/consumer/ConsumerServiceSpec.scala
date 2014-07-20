@@ -1,9 +1,9 @@
-package com.hunorkovacs.koauth.service
+package com.hunorkovacs.koauth.service.consumer
 
-import com.hunorkovacs.koauth.domain.OauthParams.{tokenSecretName, consumerSecretName}
+import com.hunorkovacs.koauth.domain.OauthParams.{consumerSecretName, tokenSecretName}
 import com.hunorkovacs.koauth.domain.Request
-import com.hunorkovacs.koauth.service.DefaultConsumerService._
 import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
+import com.hunorkovacs.koauth.service.consumer.DefaultConsumerService._
 import org.specs2.mutable.Specification
 
 import scala.concurrent.Await

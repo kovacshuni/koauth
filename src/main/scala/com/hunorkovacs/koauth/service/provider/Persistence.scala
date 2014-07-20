@@ -1,4 +1,4 @@
-package com.hunorkovacs.koauth.service
+package com.hunorkovacs.koauth.service.provider
 
 import scala.concurrent.{ExecutionContext, Future}
 

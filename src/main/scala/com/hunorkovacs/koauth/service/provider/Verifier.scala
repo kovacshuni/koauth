@@ -1,15 +1,13 @@
-package com.hunorkovacs.koauth.service
+package com.hunorkovacs.koauth.service.provider
 
-import javax.crypto.Mac
-import java.nio.charset.Charset
-import javax.crypto.spec.SecretKeySpec
-import java.util.{TimeZone, Calendar, Base64}
+import java.util.{Calendar, TimeZone}
+
+import com.hunorkovacs.koauth.domain.OauthParams._
+import com.hunorkovacs.koauth.domain._
+import com.hunorkovacs.koauth.service.Arithmetics._
 
 import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
-import com.hunorkovacs.koauth.domain.Request
-import com.hunorkovacs.koauth.service.Arithmetics._
-import com.hunorkovacs.koauth.domain.OauthParams._
 
 trait Verifier {
 
@@ -28,11 +26,8 @@ trait Verifier {
 
 protected object DefaultVerifier extends Verifier {
 
-  private val HmacSha1Algorithm = "HmacSHA1"
   private val HmacReadable = "HMAC-SHA1"
   private val TimePrecisionMillis = 10 * 60 * 1000
-  private val UTF8Charset = Charset.forName(UTF8)
-  private val Base64Encoder = Base64.getEncoder
   private val CalendarGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
   final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
@@ -173,17 +168,6 @@ protected object DefaultVerifier extends Verifier {
     if (requiredParams.equals(paramsKeys.sorted)) VerificationOk
     else VerificationUnsupported(MessageParameterMissing +
       (paramsKeys.diff(requiredParams) ::: requiredParams.diff(paramsKeys)).mkString(", "))
-  }
-
-  def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
-    val key = encodeConcat(List(consumerSecret, tokenSecret))
-    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
-    val mac = Mac.getInstance(HmacSha1Algorithm)
-    mac.init(secretkeySpec)
-    val bytesToSign = base.getBytes(UTF8Charset)
-    val digest = mac.doFinal(bytesToSign)
-    val digest64 = Base64Encoder.encode(digest)
-    new String(digest64, UTF8Charset)
   }
 }
 

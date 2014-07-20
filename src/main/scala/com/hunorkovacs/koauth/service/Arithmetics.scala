@@ -1,6 +1,10 @@
 package com.hunorkovacs.koauth.service
 
 import java.net.{URLDecoder, URLEncoder}
+import java.nio.charset.Charset
+import java.util.Base64
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import com.hunorkovacs.koauth.domain.OauthParams._
 
 import com.hunorkovacs.koauth.domain._
@@ -8,6 +12,9 @@ import com.hunorkovacs.koauth.domain._
 object Arithmetics {
 
   final val UTF8 = "UTF-8"
+  private val HmacSha1Algorithm = "HmacSHA1"
+  private val UTF8Charset = Charset.forName(UTF8)
+  private val Base64Encoder = Base64.getEncoder
 
   def urlDecode(s: String) = URLDecoder.decode(s, UTF8)
 
@@ -72,5 +79,16 @@ object Arithmetics {
   def createAccesTokenResponse(token: String, secret: String): ResponseOk = {
     val list = List((tokenName, token), (tokenSecretName, secret))
     new ResponseOk(encodePairSortConcat(list))
+  }
+
+  def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
+    val key = encodeConcat(List(consumerSecret, tokenSecret))
+    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
+    val mac = Mac.getInstance(HmacSha1Algorithm)
+    mac.init(secretkeySpec)
+    val bytesToSign = base.getBytes(UTF8Charset)
+    val digest = mac.doFinal(bytesToSign)
+    val digest64 = Base64Encoder.encode(digest)
+    new String(digest64, UTF8Charset)
   }
 }
