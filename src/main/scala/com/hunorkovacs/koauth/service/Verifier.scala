@@ -55,19 +55,21 @@ protected object DefaultVerifier extends Verifier {
 
   def verifyForRequestToken(request: Request)
             (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    verifyRequiredParams(request, RequestTokenRequiredParams) match {
+    Future(verifyRequiredParams(request, RequestTokenRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
         persistence.getConsumerSecret(request.oauthParamsMap(consumerKeyName)) flatMap {
           case None => successful(VerificationFailed(MessageInvalidConsumerKey))
           case Some(consumerSecret) =>
-            verifyNonce(request, "") map { nonceVerification =>
-              List(verifySignature(request, consumerSecret, tokenSecret = ""),
-                verifyAlgorithm(request),
-                verifyTimestamp(request),
-                nonceVerification)
-                .collectFirst({ case nok: VerificationNok => nok })
-                .getOrElse(VerificationOk)
+            verifyNonce(request, "") flatMap { nonceVerification =>
+              Future {
+                List(verifySignature(request, consumerSecret, tokenSecret = ""),
+                  verifyAlgorithm(request),
+                  verifyTimestamp(request))
+                  .::(nonceVerification)
+                  .collectFirst({ case nok: VerificationNok => nok })
+                  .getOrElse(VerificationOk)
+              }
             }
         }
     }
@@ -85,38 +87,46 @@ protected object DefaultVerifier extends Verifier {
                       requiredParams: List[String],
                       getSecret: (String, String) => Future[Option[String]])
                      (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    verifyRequiredParams(request, requiredParams) match {
+    Future(verifyRequiredParams(request, requiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(consumerKeyName)
-        persistence.getConsumerSecret(consumerKey) flatMap {
-          case None => successful(VerificationFailed(MessageInvalidConsumerKey))
-          case Some(someConsumerSecret) =>
-            val token = request.oauthParamsMap(tokenName)
-            getSecret(consumerKey, token) flatMap {
-              case None => successful(VerificationFailed(MessageInvalidToken))
-              case Some(someTokenSecret) =>
-                val signatureF = verifySignature(request, someConsumerSecret, someTokenSecret)
-                val algorithmF = verifyAlgorithm(request)
-                val timestampF = verifyTimestamp(request)
-                verifyNonce(request, token) map { nonceVerification =>
-                  List(signatureF, algorithmF, timestampF, nonceVerification)
-                    .collectFirst({ case nok: VerificationNok => nok})
-                    .getOrElse(VerificationOk)
+        val consumerKeyF = Future(request.oauthParamsMap(consumerKeyName))
+        consumerKeyF flatMap { consumerKey =>
+          persistence.getConsumerSecret(consumerKey) flatMap {
+            case None => successful(VerificationFailed(MessageInvalidConsumerKey))
+            case Some(someConsumerSecret) =>
+              Future(request.oauthParamsMap(tokenName)) flatMap { token =>
+                getSecret(consumerKey, token) flatMap {
+                  case None => successful(VerificationFailed(MessageInvalidToken))
+                  case Some(someTokenSecret) =>
+                    verifyNonce(request, token) flatMap { nonceVerification =>
+                      Future {
+                        List(verifySignature(request, someConsumerSecret, someTokenSecret),
+                          verifyAlgorithm(request),
+                          verifyTimestamp(request))
+                          .::(nonceVerification)
+                          .collectFirst({ case nok: VerificationNok => nok})
+                          .getOrElse(VerificationOk)
+                      }
+                    }
                 }
-            }
+              }
+          }
         }
     }
   }
 
   def verifyForAuthorize(request: Request)
                         (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    verifyRequiredParams(request, AuthorizeRequiredParams) match {
+    Future(verifyRequiredParams(request, AuthorizeRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        val username = request.oauthParamsMap(usernameName)
-        val password = request.oauthParamsMap(passwordName)
-        persistence.authenticate(username, password) map {
+        Future {
+          (request.oauthParamsMap(usernameName), request.oauthParamsMap(passwordName))
+        } flatMap { args =>
+          val (username, password) = args
+          persistence.authenticate(username, password)
+        } map {
           case false => VerificationFailed(MessageInvalidCredentials)
           case true => VerificationOk
         }
@@ -133,11 +143,16 @@ protected object DefaultVerifier extends Verifier {
 
   def verifyNonce(request: Request, token: String)
                  (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
-    val nonce = request.oauthParamsMap(nonceName)
-    val consumerKey = request.oauthParamsMap(consumerKeyName)
-    persistence.nonceExists(nonce, consumerKey, token) map { exists =>
-      if (exists) VerificationFailed(MessageInvalidNonce)
-      else VerificationOk
+    Future {
+      val nonce = request.oauthParamsMap(nonceName)
+      val consumerKey = request.oauthParamsMap(consumerKeyName)
+      (nonce, consumerKey)
+    } flatMap { args =>
+      val (nonce, consumerKey) = args
+      persistence.nonceExists(nonce, consumerKey, token) map { exists =>
+        if (exists) VerificationFailed(MessageInvalidNonce)
+        else VerificationOk
+      }
     }
   }
 
