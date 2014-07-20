@@ -116,7 +116,7 @@ class ProviderServiceSpec extends Specification with Mockito {
     "return Unauthorized and should not give Access Token, if Request Token was not authorized." in new commonMocks {
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
-      val request = emptyRequest
+      val request = Request("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
       pers.whoAuthorizedRequesToken(ConsumerKey, RequestToken, Verifier) returns successful(None)
 
@@ -218,7 +218,7 @@ class ProviderServiceSpec extends Specification with Mockito {
   }
 
   "'Accessing Protected Resources' request" should {
-    "authenticate by by Consumer Secret and Access Token, return corresponding user" in new commonMocks {
+    "authenticate by by Consumer Secret and Access Token, return corresponding user." in new commonMocks {
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\""
       val request = Request("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
