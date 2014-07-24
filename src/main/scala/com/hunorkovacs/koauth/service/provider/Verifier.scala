@@ -149,7 +149,7 @@ protected object DefaultVerifier extends Verifier {
     val timestamp = request.oauthParamsMap(timestampName)
     try {
       val actualStamp = timestamp.toLong
-      val expectedStamp = CalendarGMT.getTimeInMillis
+      val expectedStamp = CalendarGMT.getTimeInMillis / 1000
       if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionMillis) VerificationOk
       else VerificationFailed(MessageInvalidTimestamp)
     } catch {

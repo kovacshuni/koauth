@@ -2,12 +2,14 @@ package com.hunorkovacs.koauth.domain
 
 import com.hunorkovacs.koauth.service.Arithmetics.urlDecode
 
-case class Request(method: String,
-                   urlWithoutParams: String,
-                   urlParams: List[(String, String)],
-                   bodyParams: List[(String, String)],
-                   oauthParamsList: List[(String, String)],
-                   oauthParamsMap: Map[String, String])
+class Request(val method: String,
+              val urlWithoutParams: String,
+              val urlParams: List[(String, String)],
+              val bodyParams: List[(String, String)],
+              val oauthParamsList: List[(String, String)]) {
+
+  val oauthParamsMap: Map[String, String] = oauthParamsList.toMap
+}
 
 object Request {
 
@@ -21,8 +23,7 @@ object Request {
       urlWithoutParams,
       urlParams,
       bodyParams,
-      params,
-      params.toMap)
+      params)
   }
 
   def apply(request: Request, paramList: List[(String, String)]) = {
@@ -30,8 +31,7 @@ object Request {
       request.urlWithoutParams,
       request.urlParams,
       request.bodyParams,
-      paramList,
-      paramList.toMap)
+      paramList)
   }
 
   def extractOauthParams(authorizationHeader: String): List[(String, String)] = {
