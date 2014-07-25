@@ -11,16 +11,16 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait Verifier {
 
-  def verifyForRequestToken(request: Request)
+  def verifyForRequestToken(request: KoauthRequest)
                            (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
 
-  def verifyForAccessToken(request: Request)
+  def verifyForAccessToken(request: KoauthRequest)
                           (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
 
-  def verifyForOauthenticate(request: Request)
+  def verifyForOauthenticate(request: KoauthRequest)
                             (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
 
-  def verifyForAuthorize(request: Request)
+  def verifyForAuthorize(request: KoauthRequest)
                         (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
 }
 
@@ -28,7 +28,6 @@ protected object DefaultVerifier extends Verifier {
 
   private val HmacReadable = "HMAC-SHA1"
   private val TimePrecisionMillis = 10 * 60 * 1000
-  private val CalendarGMT = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
 
   final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
     timestampName, nonceName, versionName, callbackName).sorted
@@ -48,7 +47,7 @@ protected object DefaultVerifier extends Verifier {
   val MessageNotAuthorized = "Request Token not authorized."
   val MessageInvalidCredentials = "Invalid user credentials."
 
-  def verifyForRequestToken(request: Request)
+  def verifyForRequestToken(request: KoauthRequest)
             (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
     Future(verifyRequiredParams(request, RequestTokenRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
@@ -60,15 +59,15 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifyForAccessToken(request: Request)
+  def verifyForAccessToken(request: KoauthRequest)
                           (implicit persistence: Persistence, ec: ExecutionContext) =
     verifyWithToken(request, AccessTokenRequiredParams, persistence.getRequestTokenSecret)
 
-  def verifyForOauthenticate(request: Request)
+  def verifyForOauthenticate(request: KoauthRequest)
                             (implicit persistence: Persistence, ec: ExecutionContext) =
     verifyWithToken(request, OauthenticateRequiredParams, persistence.getAccessTokenSecret)
 
-  def verifyWithToken(request: Request,
+  def verifyWithToken(request: KoauthRequest,
                       requiredParams: List[String],
                       getSecret: (String, String) => Future[Option[String]])
                      (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
@@ -91,7 +90,7 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifyForAuthorize(request: Request)
+  def verifyForAuthorize(request: KoauthRequest)
                         (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
     Future(verifyRequiredParams(request, AuthorizeRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
@@ -108,7 +107,7 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  private def fourVerifications(request: Request, consumerSecret: String, token: String, tokenSecret: String)
+  private def fourVerifications(request: KoauthRequest, consumerSecret: String, token: String, tokenSecret: String)
                                (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
     verifyNonce(request, token) flatMap { nonceVerification =>
       Future {
@@ -122,7 +121,7 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifySignature(request: Request, consumerSecret: String, tokenSecret: String): Verification = {
+  def verifySignature(request: KoauthRequest, consumerSecret: String, tokenSecret: String): Verification = {
     val signatureBase = concatItemsForSignature(request)
     val computedSignature = sign(signatureBase, consumerSecret, tokenSecret)
     val sentSignature = urlDecode(request.oauthParamsMap(signatureName))
@@ -130,7 +129,7 @@ protected object DefaultVerifier extends Verifier {
     else VerificationFailed(MessageInvalidSignature)
   }
 
-  def verifyNonce(request: Request, token: String)
+  def verifyNonce(request: KoauthRequest, token: String)
                  (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
     Future {
       val nonce = request.oauthParamsMap(nonceName)
@@ -145,11 +144,11 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifyTimestamp(request: Request): Verification = {
+  def verifyTimestamp(request: KoauthRequest): Verification = {
     val timestamp = request.oauthParamsMap(timestampName)
     try {
       val actualStamp = timestamp.toLong
-      val expectedStamp = CalendarGMT.getTimeInMillis / 1000
+      val expectedStamp = System.currentTimeMillis() / 1000
       if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionMillis) VerificationOk
       else VerificationFailed(MessageInvalidTimestamp)
     } catch {
@@ -157,13 +156,13 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifyAlgorithm(request: Request): Verification = {
+  def verifyAlgorithm(request: KoauthRequest): Verification = {
     val signatureMethod = request.oauthParamsMap(signatureMethodName)
     if (HmacReadable != signatureMethod) VerificationUnsupported(MessageUnsupportedMethod)
     else VerificationOk
   }
 
-  def verifyRequiredParams(request: Request, requiredParams: List[String]): Verification = {
+  def verifyRequiredParams(request: KoauthRequest, requiredParams: List[String]): Verification = {
     val paramsKeys = request.oauthParamsList.map(e => e._1)
     if (requiredParams.equals(paramsKeys.sorted)) VerificationOk
     else VerificationUnsupported(MessageParameterMissing +

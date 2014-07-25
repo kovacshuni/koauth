@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.{ResponseOk, Request}
+import com.hunorkovacs.koauth.domain.{ResponseOk, KoauthRequest}
 import com.hunorkovacs.koauth.service.Arithmetics._
 import org.specs2.mutable._
 
@@ -115,11 +115,11 @@ class ArithmeticsSpec extends Specification {
 
   "Concatenating Request Elements For Signature" should {
     "contian HTTP request method, request URL, and normalized request parameters separated by '&'." in {
-      val request = new Request(Method, UrlWithoutParams, UrlParams, BodyParams, OauthParamsList)
+      val request = new KoauthRequest(Method, UrlWithoutParams, UrlParams, BodyParams, OauthParamsList)
       concatItemsForSignature(request) must equalTo (SignatureBase)
     }
     "use lowercase URL." in {
-      val request = new Request(Method,
+      val request = new KoauthRequest(Method,
         "HTTpS://Api.Twitter.com/1/Statuses/Update.JSON",
         UrlParams,
         BodyParams,
@@ -127,7 +127,7 @@ class ArithmeticsSpec extends Specification {
       concatItemsForSignature(request) must equalTo (SignatureBase)
     }
     "include specific port." in {
-      val request = new Request(Method,
+      val request = new KoauthRequest(Method,
         "HTTpS://Api.Twitter.com:9000/1/Statuses/Update.JSON",
         UrlParams,
         BodyParams,

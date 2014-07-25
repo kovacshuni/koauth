@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.domain
 
-import com.hunorkovacs.koauth.domain.Request.extractOauthParams
+import com.hunorkovacs.koauth.domain.KoauthRequest.extractOauthParams
 import org.specs2.mutable.Specification
 
 class RequestSpec extends Specification {

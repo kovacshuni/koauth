@@ -1,7 +1,7 @@
 package com.hunorkovacs.koauth.service.consumer
 
 import com.hunorkovacs.koauth.domain.OauthParams.{consumerSecretName, tokenSecretName}
-import com.hunorkovacs.koauth.domain.Request
+import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
 import com.hunorkovacs.koauth.service.consumer.DefaultConsumerService._
 import org.specs2.mutable.Specification
@@ -45,7 +45,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Request Token' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = Request(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
 
       val requestAndInfoF = createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -68,7 +68,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Authorize' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = Request(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
 
       val requestAndInfoF = createAuthorizeRequest(request, ConsumerKey, Token, Username, Password)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -85,7 +85,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Access Token' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = Request(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
 
       val requestAndInfoF = createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -110,7 +110,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Oauthenticate' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = Request(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
 
       val requestAndInfoF = createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -133,7 +133,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a general signed request" should {
     "sign correctly and include signature in Authorization header together with the rest of the parameters." in {
-      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList)
+      val request = new KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
       val requestAndInfoF = createGeneralSignedRequest(request)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -144,7 +144,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a signature base" should {
     "exclude secrets, encode, sort, concat correctly every parameter." in {
-      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList)
+      val request = new KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
       createSignatureBase(request) must beEqualTo(SignatureBase)
     }

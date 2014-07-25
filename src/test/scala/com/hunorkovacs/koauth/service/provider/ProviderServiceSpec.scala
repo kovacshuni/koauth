@@ -30,7 +30,7 @@ class ProviderServiceSpec extends Specification with Mockito {
     "generate token, token secret, save them and return them in the response." in new commonMocks {
       val encodedCallback = urlEncode(Callback)
       val header = AuthHeader + ", oauth_callback=\"" + encodedCallback + "\""
-      val request = Request("", "", header, List.empty, List.empty)
+      val request = KoauthRequest("", "", header, List.empty, List.empty)
       var encodedToken, encodedSecret = ""
       pers.persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) answers { (p, m) =>
         p match {
@@ -87,7 +87,7 @@ class ProviderServiceSpec extends Specification with Mockito {
     "generate token, token secret, save them and return them in the response if all ok." in new commonMocks {
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
-      val request = Request("", "", header, List.empty, List.empty)
+      val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
       pers.whoAuthorizedRequesToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
         Matchers.eq(Verifier))(any[ExecutionContext]) returns successful(Some(Username))
@@ -114,7 +114,7 @@ class ProviderServiceSpec extends Specification with Mockito {
     "return Unauthorized and should not give Access Token, if Request Token was not authorized." in new commonMocks {
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
-      val request = Request("", "", header, List.empty, List.empty)
+      val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
       pers.whoAuthorizedRequesToken(ConsumerKey, RequestToken, Verifier) returns successful(None)
 
@@ -170,7 +170,7 @@ class ProviderServiceSpec extends Specification with Mockito {
         ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", username=\"" + urlEncode(Username) + "\"" +
         ", password=\"" + urlEncode(Password) + "\""
-      val request = Request("", "", header, List.empty, List.empty)
+      val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAuthorize(request) returns successful(VerificationOk)
       var verifierKey = ""
       pers.authorizeRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
@@ -194,7 +194,7 @@ class ProviderServiceSpec extends Specification with Mockito {
         ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", username=\"" + urlEncode(Username) + "\"" +
         ", password=\"" + urlEncode(Password) + "\""
-      val request = Request("", "", header, List.empty, List.empty)
+      val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAuthorize(request) returns successful(VerificationFailed(MessageInvalidCredentials))
 
       val response = Await.result(service.authorize(request), 1.0 seconds)
@@ -218,7 +218,7 @@ class ProviderServiceSpec extends Specification with Mockito {
   "'Accessing Protected Resources' request" should {
     "authenticate by by Consumer Secret and Access Token, return corresponding user." in new commonMocks {
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\""
-      val request = Request("", "", header, List.empty, List.empty)
+      val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
       pers.getUsername(ConsumerKey, RequestToken) returns successful(Username)
 
@@ -258,7 +258,7 @@ class ProviderServiceSpec extends Specification with Mockito {
     }
   }
 
-  private def emptyRequest = Request("", "", "", List.empty, List.empty)
+  private def emptyRequest = KoauthRequest("", "", "", List.empty, List.empty)
 
   private trait commonMocks extends Before with Mockito {
     implicit lazy val pers = mock[Persistence]

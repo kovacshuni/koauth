@@ -32,7 +32,7 @@ object Arithmetics {
       .mkString(", ")
   }
 
-  def concatItemsForSignature(request: Request): String = {
+  def concatItemsForSignature(request: KoauthRequest): String = {
     val method = urlEncode(request.method)
     val url = urlEncode(request.urlWithoutParams.toLowerCase)
     val params =  urlEncode(normalizeRequestParams(request.urlParams, request.oauthParamsList, request.bodyParams))
