@@ -47,7 +47,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = Request(Method, Url, "", List.empty, List.empty)
 
-      val header = Await.result(createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback), 1.0 seconds)
+      val requestAndInfoF = createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback)
+      val header = Await.result(requestAndInfoF, 1.0 seconds).header
 
       header must contain("oauth_callback=\"" + urlEncode(Callback) + "\"") and {
         header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"")
@@ -69,7 +70,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = Request(Method, Url, "", List.empty, List.empty)
 
-      val header = Await.result(createAuthorizeRequest(request, ConsumerKey, Token, Username, Password), 1.0 seconds)
+      val requestAndInfoF = createAuthorizeRequest(request, ConsumerKey, Token, Username, Password)
+      val header = Await.result(requestAndInfoF, 1.0 seconds).header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
         header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
@@ -85,7 +87,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = Request(Method, Url, "", List.empty, List.empty)
 
-      val header = Await.result(createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier), 1.0 seconds)
+      val requestAndInfoF = createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier)
+      val header = Await.result(requestAndInfoF, 1.0 seconds).header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
         header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
@@ -109,7 +112,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = Request(Method, Url, "", List.empty, List.empty)
 
-      val header = Await.result(createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret), 1.0 seconds)
+      val requestAndInfoF = createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret)
+      val header = Await.result(requestAndInfoF, 1.0 seconds).header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
         header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
@@ -129,32 +133,20 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a general signed request" should {
     "sign correctly and include signature in Authorization header together with the rest of the parameters." in {
-      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
-      createGeneralSignedRequest(request) must beEqualTo(AuthHeader).await
+      val requestAndInfoF = createGeneralSignedRequest(request)
+      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+
+      header must beEqualTo(AuthHeader)
     }
   }
 
   "Creating a signature base" should {
     "exclude secrets, encode, sort, concat correctly every parameter." in {
-      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
+      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
       createSignatureBase(request) must beEqualTo(SignatureBase)
     }
   }
-
-  "Signing a request " should {
-    "give the correct signature." in {
-      val request = new Request(Method, Url, UrlParams, BodyParams, OauthParamsList, OauthParamsList.toMap)
-
-      signRequest(request) must beEqualTo(Signature)
-    }
-    "give the correct signature when no Token Secret is present." in {
-      val params = OauthParamsList.filterNot(p => tokenSecretName == p._1)
-      val request = new Request(Method, Url, UrlParams, BodyParams, params, params.toMap)
-
-      signRequest(request) must beEqualTo("KaRibr4jurQUGNDvM5Kp+qd4AHw=")
-    }
-  }
-
 }

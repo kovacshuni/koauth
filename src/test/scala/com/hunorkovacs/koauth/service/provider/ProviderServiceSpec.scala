@@ -55,13 +55,12 @@ class ProviderServiceSpec extends Specification with Mockito {
       val request = emptyRequest
       verifier.verifyForRequestToken(request) returns successful(VerificationFailed(MessageInvalidSignature))
 
-      val response = Await.result(service.requestToken(emptyRequest), 1.0 seconds)
+      val response = Await.result(service.requestToken(request), 1.0 seconds)
 
       there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
         response must beEqualTo(ResponseUnauthorized(MessageInvalidSignature))
       }
     }
-
     "return Bad Request and should not touch persistence, if request items' verification is unsupported." in new commonMocks {
       val request = emptyRequest
       verifier.verifyForRequestToken(request) returns successful(VerificationUnsupported(MessageUnsupportedMethod))
@@ -72,7 +71,6 @@ class ProviderServiceSpec extends Specification with Mockito {
         response must beEqualTo(ResponseBadRequest(MessageUnsupportedMethod))
       }
     }
-
     "return Bad Request and should not touch persistence, if OAuth parameters are missing or duplicated." in new commonMocks {
       val request = emptyRequest
       verifier.verifyForRequestToken(request) returns successful(VerificationUnsupported(MessageParameterMissing))

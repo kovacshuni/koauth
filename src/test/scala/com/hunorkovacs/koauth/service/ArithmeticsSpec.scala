@@ -115,12 +115,7 @@ class ArithmeticsSpec extends Specification {
 
   "Concatenating Request Elements For Signature" should {
     "contian HTTP request method, request URL, and normalized request parameters separated by '&'." in {
-      val request = new Request(Method,
-        UrlWithoutParams,
-        UrlParams,
-        BodyParams,
-        OauthParamsList,
-        OauthParamsList.toMap)
+      val request = new Request(Method, UrlWithoutParams, UrlParams, BodyParams, OauthParamsList)
       concatItemsForSignature(request) must equalTo (SignatureBase)
     }
     "use lowercase URL." in {
@@ -128,8 +123,7 @@ class ArithmeticsSpec extends Specification {
         "HTTpS://Api.Twitter.com/1/Statuses/Update.JSON",
         UrlParams,
         BodyParams,
-        OauthParamsList,
-        OauthParamsList.toMap)
+        OauthParamsList)
       concatItemsForSignature(request) must equalTo (SignatureBase)
     }
     "include specific port." in {
@@ -137,8 +131,7 @@ class ArithmeticsSpec extends Specification {
         "HTTpS://Api.Twitter.com:9000/1/Statuses/Update.JSON",
         UrlParams,
         BodyParams,
-        OauthParamsList,
-        OauthParamsList.toMap)
+        OauthParamsList)
       concatItemsForSignature(request) must
         equalTo(SignatureBase.replaceAll("api.twitter.com", "api.twitter.com%3A9000"))
     }
