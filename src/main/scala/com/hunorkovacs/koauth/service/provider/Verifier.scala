@@ -27,14 +27,14 @@ protected object DefaultVerifier extends Verifier {
   private val HmacReadable = "HMAC-SHA1"
   private val TimePrecisionMillis = 10 * 60 * 1000
 
-  final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
-    timestampName, nonceName, versionName, callbackName).sorted
-  final val AuthorizeRequiredParams = List[String](consumerKeyName, tokenName, usernameName, passwordName,
-    signatureMethodName, signatureName, timestampName, nonceName, versionName).sorted
-  final val AccessTokenRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
-    signatureName, timestampName, nonceName, versionName, verifierName).sorted
-  final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
-    signatureName, timestampName, nonceName, versionName).sorted
+  final val RequestTokenRequiredParams = List[String](ConsumerKeyName, SignatureMethodName, SignatureName,
+    TimestampName, NonceName, VersionName, CallbackName).sorted
+  final val AuthorizeRequiredParams = List[String](ConsumerKeyName, TokenName, UsernameName, PasswordName,
+    SignatureMethodName, SignatureName, TimestampName, NonceName, VersionName).sorted
+  final val AccessTokenRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
+    SignatureName, TimestampName, NonceName, VersionName, VerifierName).sorted
+  final val OauthenticateRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
+    SignatureName, TimestampName, NonceName, VersionName).sorted
 
   val MessageInvalidConsumerKey = "Consumer Key does not exist."
   val MessageInvalidToken = "Token with Consumer Key does not exist."
@@ -51,7 +51,7 @@ protected object DefaultVerifier extends Verifier {
     Future(verifyRequiredParams(request, RequestTokenRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        persistence.getConsumerSecret(request.oauthParamsMap(consumerKeyName)) flatMap {
+        persistence.getConsumerSecret(request.oauthParamsMap(ConsumerKeyName)) flatMap {
           case None => successful(VerificationFailed(MessageInvalidConsumerKey))
           case Some(consumerSecret) => fourVerifications(request, consumerSecret, "", "")
         }
@@ -73,12 +73,12 @@ protected object DefaultVerifier extends Verifier {
     Future(verifyRequiredParams(request, requiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        val consumerKeyF = Future(request.oauthParamsMap(consumerKeyName))
+        val consumerKeyF = Future(request.oauthParamsMap(ConsumerKeyName))
         consumerKeyF flatMap { consumerKey =>
           persistence.getConsumerSecret(consumerKey) flatMap {
             case None => successful(VerificationFailed(MessageInvalidConsumerKey))
             case Some(someConsumerSecret) =>
-              Future(request.oauthParamsMap(tokenName)) flatMap { token =>
+              Future(request.oauthParamsMap(TokenName)) flatMap { token =>
                 getSecret(consumerKey, token) flatMap {
                   case None => successful(VerificationFailed(MessageInvalidToken))
                   case Some(someTokenSecret) => fourVerifications(request, someConsumerSecret, token, someTokenSecret)
@@ -94,16 +94,16 @@ protected object DefaultVerifier extends Verifier {
     Future(verifyRequiredParams(request, AuthorizeRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(consumerKeyName)
+        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
         persistence.getConsumerSecret(consumerKey) flatMap {
           case None => successful(VerificationFailed(MessageInvalidConsumerKey))
           case Some(someConsumerSecret) =>
-            val token = request.oauthParamsMap(tokenName)
+            val token = request.oauthParamsMap(TokenName)
             persistence.getRequestTokenSecret(consumerKey, token) flatMap {
               case None => successful(VerificationFailed(MessageInvalidToken))
               case Some(someTokenSecret) =>
-                val username = request.oauthParamsMap(usernameName)
-                val password = request.oauthParamsMap(passwordName)
+                val username = request.oauthParamsMap(UsernameName)
+                val password = request.oauthParamsMap(PasswordName)
                 persistence.authenticate(username, password) flatMap {
                   case false => successful(VerificationFailed(MessageInvalidCredentials))
                   case true => fourVerifications(request, someConsumerSecret, token, someTokenSecret)
@@ -130,7 +130,7 @@ protected object DefaultVerifier extends Verifier {
   def verifySignature(request: KoauthRequest, consumerSecret: String, tokenSecret: String): Verification = {
     val signatureBase = concatItemsForSignature(request)
     val computedSignature = sign(signatureBase, consumerSecret, tokenSecret)
-    val sentSignature = urlDecode(request.oauthParamsMap(signatureName))
+    val sentSignature = urlDecode(request.oauthParamsMap(SignatureName))
     if (sentSignature.equals(computedSignature)) VerificationOk
     else VerificationFailed(MessageInvalidSignature)
   }
@@ -138,8 +138,8 @@ protected object DefaultVerifier extends Verifier {
   def verifyNonce(request: KoauthRequest, token: String)
                  (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
     Future {
-      val nonce = request.oauthParamsMap(nonceName)
-      val consumerKey = request.oauthParamsMap(consumerKeyName)
+      val nonce = request.oauthParamsMap(NonceName)
+      val consumerKey = request.oauthParamsMap(ConsumerKeyName)
       (nonce, consumerKey)
     } flatMap { args =>
       val (nonce, consumerKey) = args
@@ -151,7 +151,7 @@ protected object DefaultVerifier extends Verifier {
   }
 
   def verifyTimestamp(request: KoauthRequest): Verification = {
-    val timestamp = request.oauthParamsMap(timestampName)
+    val timestamp = request.oauthParamsMap(TimestampName)
     try {
       val actualStamp = timestamp.toLong
       val expectedStamp = System.currentTimeMillis() / 1000
@@ -163,7 +163,7 @@ protected object DefaultVerifier extends Verifier {
   }
 
   def verifyAlgorithm(request: KoauthRequest): Verification = {
-    val signatureMethod = request.oauthParamsMap(signatureMethodName)
+    val signatureMethod = request.oauthParamsMap(SignatureMethodName)
     if (HmacReadable != signatureMethod) VerificationUnsupported(MessageUnsupportedMethod)
     else VerificationOk
   }

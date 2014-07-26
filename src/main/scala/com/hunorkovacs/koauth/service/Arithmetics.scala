@@ -42,7 +42,7 @@ object Arithmetics {
   def normalizeRequestParams(urlParams: List[(String, String)],
                              oauthParamsList: List[(String, String)],
                              bodyParams: List[(String, String)]): String = {
-    val filtered = oauthParamsList.filterNot(kv => kv._1 == realmName || kv._1 == signatureName)
+    val filtered = oauthParamsList.filterNot(kv => kv._1 == RealmName || kv._1 == SignatureName)
     pairSortConcat(urlParams ::: filtered ::: bodyParams)
   }
 
@@ -65,19 +65,19 @@ object Arithmetics {
   def concat(itemList: List[String]): String = itemList.mkString("&")
 
   def createRequestTokenResponse(token: String, secret: String, callback: String): ResponseOk = {
-    val list = List((tokenName, token),
-      (tokenSecretName, secret),
-      (callbackConfirmedName, callback))
+    val list = List((TokenName, token),
+      (TokenSecretName, secret),
+      (CallbackConfirmedName, callback))
     new ResponseOk(encodePairSortConcat(list))
   }
 
   def createAuthorizeResponse(token: String, verifier: String): ResponseOk = {
-    val list = List((tokenName, token), (verifierName, verifier))
+    val list = List((TokenName, token), (VerifierName, verifier))
     new ResponseOk(encodePairSortConcat(list))
   }
 
   def createAccesTokenResponse(token: String, secret: String): ResponseOk = {
-    val list = List((tokenName, token), (tokenSecretName, secret))
+    val list = List((TokenName, token), (TokenSecretName, secret))
     new ResponseOk(encodePairSortConcat(list))
   }
 

@@ -36,8 +36,8 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
       case VerificationOk =>
         val argsF = Future {
-          val consumerKey = request.oauthParamsMap(consumerKeyName)
-          val callback = request.oauthParamsMap(callbackName)
+          val consumerKey = request.oauthParamsMap(ConsumerKeyName)
+          val callback = request.oauthParamsMap(CallbackName)
           val (token, secret) = generateTokenAndSecret
           (consumerKey, token, secret, callback)
         }
@@ -59,9 +59,9 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
       case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(consumerKeyName)
-        val requestToken = request.oauthParamsMap(tokenName)
-        val username = request.oauthParamsMap(usernameName)
+        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
+        val requestToken = request.oauthParamsMap(TokenName)
+        val username = request.oauthParamsMap(UsernameName)
         val verifier = generateVerifier
         persistenceService.authorizeRequestToken(consumerKey, requestToken, username, verifier) map { u =>
             createAuthorizeResponse(requestToken, verifier)
@@ -76,9 +76,9 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
       case VerificationOk =>
         val argsF = Future {
-          val consumerKey = request.oauthParamsMap(consumerKeyName)
-          val requestToken = request.oauthParamsMap(tokenName)
-          val verifier = request.oauthParamsMap(verifierName)
+          val consumerKey = request.oauthParamsMap(ConsumerKeyName)
+          val requestToken = request.oauthParamsMap(TokenName)
+          val verifier = request.oauthParamsMap(VerifierName)
           (consumerKey, requestToken, verifier)
         }
         argsF flatMap { args =>
@@ -103,8 +103,8 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
       case VerificationFailed(message) => successful(Left(new ResponseUnauthorized(message)))
       case VerificationOk =>
         for {
-          consumerKey <- Future(request.oauthParamsMap(consumerKeyName))
-          token <- Future(request.oauthParamsMap(tokenName))
+          consumerKey <- Future(request.oauthParamsMap(ConsumerKeyName))
+          token <- Future(request.oauthParamsMap(TokenName))
           username <- persistenceService.getUsername(consumerKey, token)
         } yield Right(username)
     }

@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service.consumer
 
-import com.hunorkovacs.koauth.domain.OauthParams.{consumerSecretName, tokenSecretName}
+import com.hunorkovacs.koauth.domain.OauthParams.{ConsumerSecretName, TokenSecretName}
 import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
 import com.hunorkovacs.koauth.service.consumer.DefaultConsumerService._
@@ -27,7 +27,7 @@ class ConsumerServiceSpec extends Specification {
   val Password = "password!@#"
   val Verifier = "9f38h8hf83h22#$%@!"
   val OauthParamsList = List(("oauth_consumer_key", ConsumerKey),
-    (consumerSecretName, ConsumerSecret),
+    (ConsumerSecretName, ConsumerSecret),
     ("oauth_token", Token),
     ("oauth_token_secret", TokenSecret),
     ("oauth_timestamp", Timestamp),
