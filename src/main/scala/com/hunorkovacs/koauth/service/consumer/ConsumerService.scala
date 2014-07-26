@@ -71,8 +71,10 @@ object DefaultConsumerService extends ConsumerService {
         .::((tokenName, requestToken))
         .::((usernameName, username))
         .::((passwordName, password))
-      KoauthRequest(request, paramsList)
-    }.flatMap(createGeneralSignedRequest)
+      val header = createAuthorizationHeader(paramsList)
+      val complementedRequest = KoauthRequest(request, paramsList)
+      RequestWithInfo(complementedRequest, "", header)
+    }
   }
 
   override def createAccessTokenRequest(request: KoauthRequest,
