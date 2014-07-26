@@ -17,7 +17,9 @@ trait ConsumerService {
 
   def createAuthorizeRequest(request: KoauthRequest,
                              consumerKey: String,
+                             consumerSecret: String,
                              requestToken: String,
+                             tokenSecret: String,
                              username: String,
                              password: String)
                             (implicit ec: ExecutionContext): Future[RequestWithInfo]
@@ -60,19 +62,21 @@ object DefaultConsumerService extends ConsumerService {
 
   override def createAuthorizeRequest(request: KoauthRequest,
                                       consumerKey: String,
+                                      consumerSecret: String,
                                       requestToken: String,
+                                      tokenSecret: String,
                                       username: String,
                                       password: String)
                                      (implicit ec: ExecutionContext): Future[RequestWithInfo] = {
     Future {
       val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
+        .::((ConsumerSecretName, consumerSecret))
         .::((TokenName, requestToken))
+        .::((TokenSecretName, tokenSecret))
         .::((UsernameName, username))
         .::((PasswordName, password))
-      val header = createAuthorizationHeader(paramsList)
-      val complementedRequest = KoauthRequest(request, paramsList)
-      RequestWithInfo(complementedRequest, "", header)
-    }
+      KoauthRequest(request, paramsList)
+    }.flatMap(createGeneralSignedRequest)
   }
 
   override def createAccessTokenRequest(request: KoauthRequest,

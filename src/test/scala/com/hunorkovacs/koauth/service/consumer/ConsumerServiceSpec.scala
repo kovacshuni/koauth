@@ -70,7 +70,7 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
 
-      val requestAndInfoF = createAuthorizeRequest(request, ConsumerKey, Token, Username, Password)
+      val requestAndInfoF = createAuthorizeRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Username, Password)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
@@ -79,6 +79,16 @@ class ConsumerServiceSpec extends Specification {
         header must contain("username=\"" + urlEncode(Username) + "\"")
       } and {
         header must contain("password=\"" + urlEncode(Password) + "\"")
+      } and {
+        header must contain(", oauth_nonce=\"")
+      } and {
+        header must contain(", oauth_signature=\"")
+      } and {
+        header must contain(", oauth_signature_method=\"HMAC-SHA1\"")
+      } and {
+        header must contain(", oauth_timestamp=\"")
+      } and {
+        header must contain(", oauth_version=\"1.0\"")
       }
     }
   }
