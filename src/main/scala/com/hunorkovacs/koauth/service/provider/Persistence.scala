@@ -70,7 +70,7 @@ trait Persistence {
                         (implicit ec: ExecutionContext): Future[Unit]
 
 
-  def getRequestTokenSecret(consumerKey: String, accessToken: String)
+  def getRequestTokenSecret(consumerKey: String, requestToken: String)
                            (implicit ec: ExecutionContext): Future[Option[String]]
 
   /**

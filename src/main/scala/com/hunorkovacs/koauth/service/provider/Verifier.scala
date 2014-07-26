@@ -4,7 +4,7 @@ import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics._
 
-import scala.concurrent.Future.successful
+import scala.concurrent.Future.{sequence, successful}
 import scala.concurrent.{ExecutionContext, Future}
 
 trait Verifier {
@@ -29,7 +29,8 @@ protected object DefaultVerifier extends Verifier {
 
   final val RequestTokenRequiredParams = List[String](consumerKeyName, signatureMethodName, signatureName,
     timestampName, nonceName, versionName, callbackName).sorted
-  final val AuthorizeRequiredParams = List[String](consumerKeyName, tokenName, usernameName, passwordName).sorted
+  final val AuthorizeRequiredParams = List[String](consumerKeyName, tokenName, usernameName, passwordName,
+    signatureMethodName, signatureName, timestampName, nonceName, versionName).sorted
   final val AccessTokenRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
     signatureName, timestampName, nonceName, versionName, verifierName).sorted
   final val OauthenticateRequiredParams = List[String](consumerKeyName, tokenName, signatureMethodName,
@@ -93,19 +94,26 @@ protected object DefaultVerifier extends Verifier {
     Future(verifyRequiredParams(request, AuthorizeRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        Future {
-          (request.oauthParamsMap(usernameName), request.oauthParamsMap(passwordName))
-        } flatMap { args =>
-          val (username, password) = args
-          persistence.authenticate(username, password)
-        } map {
-          case false => VerificationFailed(MessageInvalidCredentials)
-          case true => VerificationOk
+        val consumerKey = request.oauthParamsMap(consumerKeyName)
+        persistence.getConsumerSecret(consumerKey) flatMap {
+          case None => successful(VerificationFailed(MessageInvalidConsumerKey))
+          case Some(someConsumerSecret) =>
+            val token = request.oauthParamsMap(tokenName)
+            persistence.getRequestTokenSecret(consumerKey, token) flatMap {
+              case None => successful(VerificationFailed(MessageInvalidToken))
+              case Some(someTokenSecret) =>
+                val username = request.oauthParamsMap(usernameName)
+                val password = request.oauthParamsMap(passwordName)
+                persistence.authenticate(username, password) flatMap {
+                  case false => successful(VerificationFailed(MessageInvalidCredentials))
+                  case true => fourVerifications(request, someConsumerSecret, username, password)
+                }
+            }
         }
     }
   }
 
-  private def fourVerifications(request: KoauthRequest, consumerSecret: String, token: String, tokenSecret: String)
+  def fourVerifications(request: KoauthRequest, consumerSecret: String, token: String, tokenSecret: String)
                                (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
     verifyNonce(request, token) flatMap { nonceVerification =>
       Future {

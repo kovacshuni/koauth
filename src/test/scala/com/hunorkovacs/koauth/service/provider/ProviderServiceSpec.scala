@@ -166,7 +166,7 @@ class ProviderServiceSpec extends Specification with Mockito {
 
   "'Authorize Token' request" should {
     "authorize token by generating verifier for user." in new commonMocks {
-      val header = "OAuth oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"" +
+      val header = AuthHeader +
         ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", username=\"" + urlEncode(Username) + "\"" +
         ", password=\"" + urlEncode(Password) + "\""
@@ -189,12 +189,8 @@ class ProviderServiceSpec extends Specification with Mockito {
           "oauth_verifier=" + urlEncode(verifierKey)))
       }
     }
-    "return Unauthorized and should not authorize token if credentials are invalid." in new commonMocks {
-      val header = "OAuth oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"" +
-        ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
-        ", username=\"" + urlEncode(Username) + "\"" +
-        ", password=\"" + urlEncode(Password) + "\""
-      val request = KoauthRequest("", "", header, List.empty, List.empty)
+    "return Unauthorized and should not authorize if verification returns unauthorized." in new commonMocks {
+      val request = emptyRequest
       verifier.verifyForAuthorize(request) returns successful(VerificationFailed(MessageInvalidCredentials))
 
       val response = Await.result(service.authorize(request), 1.0 seconds)
@@ -203,7 +199,7 @@ class ProviderServiceSpec extends Specification with Mockito {
         response must beEqualTo(ResponseUnauthorized(MessageInvalidCredentials))
       }
     }
-    "return Bad Request and should not authorize, if OAuth parameters are missing or duplicated." in new commonMocks {
+    "return Bad Request and should not authorize, if verification returns unsupported." in new commonMocks {
       val request = emptyRequest
       verifier.verifyForAuthorize(request) returns successful(VerificationUnsupported(MessageParameterMissing))
 
