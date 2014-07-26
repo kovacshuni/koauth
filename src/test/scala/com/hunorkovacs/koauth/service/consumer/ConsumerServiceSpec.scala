@@ -133,7 +133,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a general signed request" should {
     "sign correctly and include signature in Authorization header together with the rest of the parameters." in {
-      val request = new KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
+      val request = KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
       val requestAndInfoF = createGeneralSignedRequest(request)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -144,7 +144,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a signature base" should {
     "exclude secrets, encode, sort, concat correctly every parameter." in {
-      val request = new KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
+      val request = KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
       createSignatureBase(request) must beEqualTo(SignatureBase)
     }

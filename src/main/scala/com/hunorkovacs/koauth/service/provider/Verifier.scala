@@ -1,7 +1,5 @@
 package com.hunorkovacs.koauth.service.provider
 
-import java.util.{Calendar, TimeZone}
-
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics._

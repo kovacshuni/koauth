@@ -1,7 +1,5 @@
 package com.hunorkovacs.koauth.service.consumer
 
-import java.util.{Calendar, TimeZone}
-
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.{sign, concatItemsForSignature, createAuthorizationHeader}
@@ -134,7 +132,7 @@ object DefaultConsumerService extends ConsumerService {
   def createSignatureBase(request: KoauthRequest): String = {
     val filteredList = request.oauthParamsList
       .filterNot(param => consumerSecretName == param._1 || tokenSecretName == param._1)
-    concatItemsForSignature(new KoauthRequest(request.method,
+    concatItemsForSignature(KoauthRequest(request.method,
       request.urlWithoutParams,
       request.urlParams,
       request.bodyParams,
