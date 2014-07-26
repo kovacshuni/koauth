@@ -106,7 +106,7 @@ protected object DefaultVerifier extends Verifier {
                 val password = request.oauthParamsMap(passwordName)
                 persistence.authenticate(username, password) flatMap {
                   case false => successful(VerificationFailed(MessageInvalidCredentials))
-                  case true => fourVerifications(request, someConsumerSecret, username, password)
+                  case true => fourVerifications(request, someConsumerSecret, token, someTokenSecret)
                 }
             }
         }
