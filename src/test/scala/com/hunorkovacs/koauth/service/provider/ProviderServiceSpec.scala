@@ -129,10 +129,13 @@ class ProviderServiceSpec extends Specification with Mockito {
         }
         successful(Unit)
       }
+      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext]) returns successful(Unit)
 
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
       there was one(pers).whoAuthorizedRequesToken(ConsumerKey, RequestToken, Verifier) and {
+        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext])
+      } and {
         there was one(pers).persistAccessToken(ConsumerKey, accessToken, secret, Username)
       } and {
         response must beEqualTo(ResponseOk("oauth_token=" + urlEncode(accessToken) + "&" +
@@ -154,6 +157,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
       there was one(pers).whoAuthorizedRequesToken(ConsumerKey, RequestToken, Verifier) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         response must beEqualTo(ResponseUnauthorized(MessageNotAuthorized))
@@ -171,6 +176,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
       there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         there was no(pers).whoAuthorizedRequesToken(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         response must beEqualTo(ResponseUnauthorized(MessageInvalidSignature))
@@ -187,8 +194,11 @@ class ProviderServiceSpec extends Specification with Mockito {
 
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
-      there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and
-        (response must beEqualTo(ResponseBadRequest(MessageUnsupportedMethod)))
+      there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
+        response must beEqualTo(ResponseBadRequest(MessageUnsupportedMethod))
+      }
     }
 
     "return Bad Request and should not touch persistence, if OAuth parameters are missing or duplicated." in {
@@ -202,6 +212,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
       there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         there was no(pers).whoAuthorizedRequesToken(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         response must beEqualTo(ResponseBadRequest(MessageParameterMissing))
@@ -230,10 +242,13 @@ class ProviderServiceSpec extends Specification with Mockito {
         }
         successful(Unit)
       }
+      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext]) returns successful(Unit)
 
       val response = Await.result(service.authorize(request), 1.0 seconds)
 
       there was one(pers).authorizeRequestToken(ConsumerKey, RequestToken, Username, verifierKey) and {
+        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext])
+      } and {
         response must beEqualTo(ResponseOk("oauth_token=" + urlEncode(RequestToken) + "&" +
           "oauth_verifier=" + urlEncode(verifierKey)))
       }
@@ -249,6 +264,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.authorize(request), 1.0 seconds)
 
       there was no(pers).authorizeRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(ResponseUnauthorized(MessageInvalidCredentials))
       }
     }
@@ -263,6 +280,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.authorize(request), 1.0 seconds)
 
       there was no(pers).authorizeRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(ResponseBadRequest(MessageParameterMissing))
       }
     }
@@ -278,10 +297,13 @@ class ProviderServiceSpec extends Specification with Mockito {
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
       pers.getUsername(ConsumerKey, RequestToken) returns successful(Username)
+      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext]) returns successful(Unit)
 
       val response = Await.result(service.oauthenticate(request), 1.0 seconds)
 
-      response must beEqualTo(Right(Username))
+      response must beEqualTo(Right(Username)) and {
+        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext])
+      }
     }
     "return Unauthorized if signature and other parameters are ok, but token is not a valid access token." in {
       implicit lazy val pers = mock[Persistence]
@@ -294,6 +316,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.oauthenticate(request), 1.0 seconds)
 
       there was no(pers).getUsername(anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(Left(ResponseUnauthorized(MessageInvalidToken)))
       }
     }
@@ -308,6 +332,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.oauthenticate(request), 1.0 seconds)
 
       there was no(pers).getUsername(anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(Left(ResponseUnauthorized(MessageInvalidSignature)))
       }
     }
@@ -322,6 +348,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       val response = Await.result(service.oauthenticate(request), 1.0 seconds)
 
       there was no(pers).getUsername(anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(Left(ResponseBadRequest(MessageParameterMissing)))
       }
     }
