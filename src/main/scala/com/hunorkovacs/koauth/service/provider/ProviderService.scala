@@ -35,20 +35,14 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
       case VerificationOk =>
-        val argsF = Future {
-          val consumerKey = request.oauthParamsMap(ConsumerKeyName)
-          val callback = request.oauthParamsMap(CallbackName)
-          val (token, secret) = generateTokenAndSecret
-          (consumerKey, token, secret, callback)
-        }
-        argsF flatMap { args =>
-          val (consumerKey, token, secret, callback) = args
+        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
+        val callback = request.oauthParamsMap(CallbackName)
+        val nonce = request.oauthParamsMap(NonceName)
+        val (token, secret) = generateTokenAndSecret
+        persistenceService.persistNonce(nonce, consumerKey, token) flatMap { u =>
           persistenceService.persistRequestToken(consumerKey, token, secret, callback)
-        } flatMap { u =>
-          argsF map { args =>
-            val (consumerKey, token, secret, callback) = args
-            createRequestTokenResponse(token, secret, callback)
-          }
+        } map { u =>
+          createRequestTokenResponse(token, secret, callback)
         }
     }
   }

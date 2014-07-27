@@ -6,6 +6,7 @@ import com.hunorkovacs.koauth.service.provider.DefaultVerifier._
 import org.mockito.Matchers
 import org.specs2.mock._
 import org.specs2.mutable.{Before, Specification}
+import org.specs2.specification.Scope
 
 import scala.concurrent.Future.successful
 import scala.concurrent.duration._
@@ -27,64 +28,92 @@ class ProviderServiceSpec extends Specification with Mockito {
   val Password = "password!@#"
 
   "'Request Token' request" should {
-    "generate token, token secret, save them and return them in the response." in new commonMocks {
+    "generate token, token secret, save them and return them in the response." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val encodedCallback = urlEncode(Callback)
       val header = AuthHeader + ", oauth_callback=\"" + encodedCallback + "\""
       val request = KoauthRequest("", "", header, List.empty, List.empty)
-      var encodedToken, encodedSecret = ""
+      var token, secret = ""
       pers.persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) answers { (p, m) =>
         p match {
           case a: Array[Object] =>
-            a(1) match { case s: String => encodedToken = urlEncode(s) }
-            a(2) match { case s: String => encodedSecret = urlEncode(s) }
+            a(1) match { case s: String => token = s }
+            a(2) match { case s: String => secret = urlEncode(s) }
         }
         successful(Unit)
       }
+      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), anyString)(any[ExecutionContext]) returns successful(Unit)
       verifier.verifyForRequestToken(request) returns successful(VerificationOk)
 
       val response = Await.result(service.requestToken(request), 1.0 seconds)
 
-      there was one(pers).persistRequestToken(Matchers.eq(ConsumerKey), anyString, anyString,
-        Matchers.eq(Callback))(any[ExecutionContext]) and {
-        response must beEqualTo(ResponseOk(s"oauth_callback_confirmed=$encodedCallback&" +
-          s"oauth_token=$encodedToken&" +
-          s"oauth_token_secret=$encodedSecret"))
+      there was one(pers).persistRequestToken(ConsumerKey, token, secret, Callback) and {
+        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(token))(any[ExecutionContext])
+      } and {
+        response must beEqualTo(ResponseOk(s"oauth_callback_confirmed=$encodedCallback" +
+          "&oauth_token=" + urlEncode(token) +
+          "&oauth_token_secret=" + urlEncode(secret)))
       }
     }
-    "return Unauthorized and should not touch persistence, if request items' verification is negative." in new commonMocks {
+    "return Unauthorized and should not touch persistence, if request items' verification is negative." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForRequestToken(request) returns successful(VerificationFailed(MessageInvalidSignature))
 
       val response = Await.result(service.requestToken(request), 1.0 seconds)
 
       there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(ResponseUnauthorized(MessageInvalidSignature))
       }
     }
-    "return Bad Request and should not touch persistence, if request items' verification is unsupported." in new commonMocks {
+    "return Bad Request and should not touch persistence, if request items' verification is unsupported." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForRequestToken(request) returns successful(VerificationUnsupported(MessageUnsupportedMethod))
 
       val response = Await.result(service.requestToken(request), 1.0 seconds)
 
       there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(ResponseBadRequest(MessageUnsupportedMethod))
       }
     }
-    "return Bad Request and should not touch persistence, if OAuth parameters are missing or duplicated." in new commonMocks {
+    "return Bad Request and should not touch persistence, if OAuth parameters are missing or duplicated." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForRequestToken(request) returns successful(VerificationUnsupported(MessageParameterMissing))
 
       val response = Await.result(service.requestToken(request), 1.0 seconds)
 
       there was no(pers).persistRequestToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
+        there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
+      } and {
         response must beEqualTo(ResponseBadRequest(MessageParameterMissing))
       }
     }
   }
 
   "'Access Token' request" should {
-    "generate token, token secret, save them and return them in the response if all ok." in new commonMocks {
+    "generate token, token secret, save them and return them in the response if all ok." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
       val request = KoauthRequest("", "", header, List.empty, List.empty)
@@ -111,7 +140,11 @@ class ProviderServiceSpec extends Specification with Mockito {
       }
     }
 
-    "return Unauthorized and should not give Access Token, if Request Token was not authorized." in new commonMocks {
+    "return Unauthorized and should not give Access Token, if Request Token was not authorized." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
       val request = KoauthRequest("", "", header, List.empty, List.empty)
@@ -127,7 +160,11 @@ class ProviderServiceSpec extends Specification with Mockito {
       }
     }
 
-    "return Unauthorized and should not touch persistence, if request items' verification is negative." in new commonMocks {
+    "return Unauthorized and should not touch persistence, if request items' verification is negative." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForAccessToken(request) returns successful(VerificationFailed(MessageInvalidSignature))
 
@@ -140,7 +177,11 @@ class ProviderServiceSpec extends Specification with Mockito {
       }
     }
 
-    "return Bad Request and should not touch persistence, if request items' verification is unsupported." in new commonMocks {
+    "return Bad Request and should not touch persistence, if request items' verification is unsupported." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForAccessToken(request) returns successful(VerificationUnsupported(MessageUnsupportedMethod))
 
@@ -150,7 +191,11 @@ class ProviderServiceSpec extends Specification with Mockito {
         (response must beEqualTo(ResponseBadRequest(MessageUnsupportedMethod)))
     }
 
-    "return Bad Request and should not touch persistence, if OAuth parameters are missing or duplicated." in new commonMocks {
+    "return Bad Request and should not touch persistence, if OAuth parameters are missing or duplicated." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForAccessToken(request) returns successful(VerificationUnsupported(MessageParameterMissing))
 
@@ -165,7 +210,11 @@ class ProviderServiceSpec extends Specification with Mockito {
   }
 
   "'Authorize Token' request" should {
-    "authorize token by generating verifier for user." in new commonMocks {
+    "authorize token by generating verifier for user." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val header = AuthHeader +
         ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", username=\"" + urlEncode(Username) + "\"" +
@@ -189,7 +238,11 @@ class ProviderServiceSpec extends Specification with Mockito {
           "oauth_verifier=" + urlEncode(verifierKey)))
       }
     }
-    "return Unauthorized and should not authorize if verification returns unauthorized." in new commonMocks {
+    "return Unauthorized and should not authorize if verification returns unauthorized." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForAuthorize(request) returns successful(VerificationFailed(MessageInvalidCredentials))
 
@@ -199,7 +252,11 @@ class ProviderServiceSpec extends Specification with Mockito {
         response must beEqualTo(ResponseUnauthorized(MessageInvalidCredentials))
       }
     }
-    "return Bad Request and should not authorize, if verification returns unsupported." in new commonMocks {
+    "return Bad Request and should not authorize, if verification returns unsupported." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForAuthorize(request) returns successful(VerificationUnsupported(MessageParameterMissing))
 
@@ -212,7 +269,11 @@ class ProviderServiceSpec extends Specification with Mockito {
   }
 
   "'Accessing Protected Resources' request" should {
-    "authenticate by by Consumer Secret and Access Token, return corresponding user." in new commonMocks {
+    "authenticate by by Consumer Secret and Access Token, return corresponding user." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\""
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
@@ -222,7 +283,11 @@ class ProviderServiceSpec extends Specification with Mockito {
 
       response must beEqualTo(Right(Username))
     }
-    "return Unauthorized if signature and other parameters are ok, but token is not a valid access token." in new commonMocks {
+    "return Unauthorized if signature and other parameters are ok, but token is not a valid access token." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForOauthenticate(request) returns successful(VerificationFailed(MessageInvalidToken))
 
@@ -232,7 +297,11 @@ class ProviderServiceSpec extends Specification with Mockito {
         response must beEqualTo(Left(ResponseUnauthorized(MessageInvalidToken)))
       }
     }
-    "return Unauthorized if invalid signature." in new commonMocks {
+    "return Unauthorized if invalid signature." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForOauthenticate(request) returns successful(VerificationFailed(MessageInvalidSignature))
 
@@ -242,7 +311,11 @@ class ProviderServiceSpec extends Specification with Mockito {
         response must beEqualTo(Left(ResponseUnauthorized(MessageInvalidSignature)))
       }
     }
-    "return Bad Request and should not authenticate, if OAuth parameters are missing or duplicated." in new commonMocks {
+    "return Bad Request and should not authenticate, if OAuth parameters are missing or duplicated." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
       val request = emptyRequest
       verifier.verifyForOauthenticate(request) returns successful(VerificationUnsupported(MessageParameterMissing))
 
@@ -255,12 +328,4 @@ class ProviderServiceSpec extends Specification with Mockito {
   }
 
   private def emptyRequest = KoauthRequest("", "", "", List.empty, List.empty)
-
-  private trait commonMocks extends Before with Mockito {
-    implicit lazy val pers = mock[Persistence]
-    lazy val verifier = mock[Verifier]
-    lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
-
-    override def before = Nil
-  }
 }

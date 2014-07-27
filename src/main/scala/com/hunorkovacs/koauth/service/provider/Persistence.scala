@@ -15,6 +15,11 @@ trait Persistence {
                   token: String)
                  (implicit ec: ExecutionContext): Future[Boolean]
 
+  def persistNonce(nonce: String,
+                   consumerKey: String,
+                   token: String)
+                  (implicit ec: ExecutionContext): Future[Unit]
+
   /**
    * Save a Request Token without with void verifier username and verifier key.
    */
