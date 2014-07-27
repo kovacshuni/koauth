@@ -45,13 +45,13 @@ class ProviderServiceSpec extends Specification with Mockito {
         }
         successful(Unit)
       }
-      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), anyString)(any[ExecutionContext]) returns successful(Unit)
+      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(""))(any[ExecutionContext]) returns successful(Unit)
       verifier.verifyForRequestToken(request) returns successful(VerificationOk)
 
       val response = Await.result(service.requestToken(request), 1.0 seconds)
 
       there was one(pers).persistRequestToken(ConsumerKey, token, secret, Callback) and {
-        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(token))(any[ExecutionContext])
+        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(""))(any[ExecutionContext])
       } and {
         response must beEqualTo(ResponseOk(s"oauth_callback_confirmed=$encodedCallback" +
           "&oauth_token=" + urlEncode(token) +

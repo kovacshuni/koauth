@@ -39,7 +39,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
         val callback = request.oauthParamsMap(CallbackName)
         val nonce = request.oauthParamsMap(NonceName)
         val (token, secret) = generateTokenAndSecret
-        persistence.persistNonce(nonce, consumerKey, token) flatMap { u =>
+        persistence.persistNonce(nonce, consumerKey, "") flatMap { u =>
           persistence.persistRequestToken(consumerKey, token, secret, callback)
         } map { u =>
           createRequestTokenResponse(token, secret, callback)
