@@ -13,16 +13,16 @@ import scala.concurrent.{ExecutionContext, Future}
 trait ProviderService {
 
   def requestToken(request: KoauthRequest)
-                  (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Response]
+                  (implicit persistenceService: Persistence, ec: ExecutionContext): Future[KoauthResponse]
 
   def authorize(request: KoauthRequest)
-               (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Response]
+               (implicit persistenceService: Persistence, ec: ExecutionContext): Future[KoauthResponse]
 
   def accessToken(request: KoauthRequest)
-                 (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Response]
+                 (implicit persistenceService: Persistence, ec: ExecutionContext): Future[KoauthResponse]
 
   def oauthenticate(request: KoauthRequest)
-                   (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Either[Response, String]]
+                   (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Either[KoauthResponse, String]]
 }
 
 protected class CustomProviderService(val oauthVerifier: Verifier) extends ProviderService {
@@ -30,7 +30,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
   import oauthVerifier._
 
   def requestToken(request: KoauthRequest)
-                  (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Response] = {
+                  (implicit persistenceService: Persistence, ec: ExecutionContext): Future[KoauthResponse] = {
     verifyForRequestToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -54,7 +54,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
   }
 
   def authorize(request: KoauthRequest)
-               (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Response] = {
+               (implicit persistenceService: Persistence, ec: ExecutionContext): Future[KoauthResponse] = {
     verifyForAuthorize(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -70,7 +70,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
   }
 
   def accessToken(request: KoauthRequest)
-                 (implicit persistenceService: Persistence, ec: ExecutionContext): Future[Response] = {
+                 (implicit persistenceService: Persistence, ec: ExecutionContext): Future[KoauthResponse] = {
     verifyForAccessToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))

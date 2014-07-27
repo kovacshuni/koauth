@@ -25,7 +25,7 @@ trait Verifier {
 protected object DefaultVerifier extends Verifier {
 
   private val HmacReadable = "HMAC-SHA1"
-  private val TimePrecisionMillis = 10 * 60 * 1000
+  private val TimePrecisionSeconds = 10 * 60
 
   final val RequestTokenRequiredParams = List[String](ConsumerKeyName, SignatureMethodName, SignatureName,
     TimestampName, NonceName, VersionName, CallbackName).sorted
@@ -155,7 +155,7 @@ protected object DefaultVerifier extends Verifier {
     try {
       val actualStamp = timestamp.toLong
       val expectedStamp = System.currentTimeMillis() / 1000
-      if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionMillis) VerificationOk
+      if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionSeconds) VerificationOk
       else VerificationFailed(MessageInvalidTimestamp)
     } catch {
       case nfEx: NumberFormatException => VerificationUnsupported("Invalid timestamp format.")

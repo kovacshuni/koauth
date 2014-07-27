@@ -1,10 +1,10 @@
 package com.hunorkovacs.koauth.domain
 
-trait Response
+trait KoauthResponse
 
-case class ResponseOk(body: String) extends Response
+case class ResponseOk(body: String) extends KoauthResponse
 
-trait ResponseNok extends Response
+trait ResponseNok extends KoauthResponse
 
 case class ResponseUnauthorized(body: String) extends ResponseNok
 

@@ -113,28 +113,28 @@ class VerifierSpec extends Specification with Mockito {
       verifyTimestamp(request) must equalTo (VerificationOk)
     }
     "return positive verification if timestamp is 9 minutes late." in {
-      val nineMinutesAgo = now - 9 * 60 * 1000
+      val nineMinutesAgo = now - 9 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       verifyTimestamp(request) must equalTo (VerificationOk)
     }
     "return positive verification if timestamp is 9 minutes ahead." in {
-      val nineMinutesAgo = now + 9 * 60 * 1000
+      val nineMinutesAgo = now + 9 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       verifyTimestamp(request) must equalTo (VerificationOk)
     }
     "return negative verification if timestamp is 11 minutes late." in {
-      val nineMinutesAgo = now - 11 * 60 * 1000
+      val nineMinutesAgo = now - 11 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp))
     }
     "return negative verification if timestamp is 11 minutes ahead." in {
-      val nineMinutesAgo = now + 11 * 60 * 1000
+      val nineMinutesAgo = now + 11 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
@@ -202,7 +202,7 @@ class VerifierSpec extends Specification with Mockito {
         equalTo (VerificationFailed(MessageInvalidSignature)).await
     }
     "return negative if signature, method, nonce all ok but timestamp late." in new commonMocks {
-      val time = now - 11 * 60 * 1000
+      val time = now - 11 * 60
       val signatureBase = actualizeSignatureBase(SignatureBase, time)
       val signature = sign(signatureBase, ConsumerSecret, TokenSecret)
       val paramsList = actualizeParamsList(ParamsList, signature, time)
