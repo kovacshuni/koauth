@@ -88,7 +88,7 @@ class VerifierSpec extends Specification with Mockito {
         .::(("oauth_signature", "123456"))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       verifySignature(request, ConsumerSecret, TokenSecret) must
-        equalTo (VerificationFailed(MessageInvalidSignature))
+        equalTo (VerificationFailed(MessageInvalidSignature + SignatureBase))
     }
   }
 
@@ -194,12 +194,13 @@ class VerifierSpec extends Specification with Mockito {
     }
     "return negative if method, timestamp, nonce all ok but signature is invalid." in new commonMocks {
       val time = now
+      val signatureBase = actualizeSignatureBase(SignatureBase, time)
       val paramsList = actualizeParamsList(ParamsList, "#:|^*&invalidsignature", time)
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
       fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
-        equalTo (VerificationFailed(MessageInvalidSignature)).await
+        equalTo (VerificationFailed(MessageInvalidSignature + signatureBase)).await
     }
     "return negative if signature, method, nonce all ok but timestamp late." in new commonMocks {
       val time = now - 11 * 60

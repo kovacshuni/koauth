@@ -38,7 +38,7 @@ protected object DefaultVerifier extends Verifier {
 
   val MessageInvalidConsumerKey = "Consumer Key does not exist."
   val MessageInvalidToken = "Token with Consumer Key does not exist."
-  val MessageInvalidSignature = "Signature does not match."
+  val MessageInvalidSignature = "Signature does not match. Signature base: "
   val MessageInvalidNonce = "Nonce was already used."
   val MessageInvalidTimestamp = "Timestamp falls outside the tolerated interval."
   val MessageUnsupportedMethod = "Unsupported Signature Method."
@@ -132,7 +132,7 @@ protected object DefaultVerifier extends Verifier {
     val computedSignature = sign(signatureBase, consumerSecret, tokenSecret)
     val sentSignature = urlDecode(request.oauthParamsMap(SignatureName))
     if (sentSignature.equals(computedSignature)) VerificationOk
-    else VerificationFailed(MessageInvalidSignature)
+    else VerificationFailed(MessageInvalidSignature + signatureBase)
   }
 
   def verifyNonce(request: KoauthRequest, token: String)
