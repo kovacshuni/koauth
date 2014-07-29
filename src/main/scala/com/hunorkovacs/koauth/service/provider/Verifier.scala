@@ -130,7 +130,7 @@ protected object DefaultVerifier extends Verifier {
   def verifySignature(request: KoauthRequest, consumerSecret: String, tokenSecret: String): Verification = {
     val signatureBase = concatItemsForSignature(request)
     val computedSignature = sign(signatureBase, consumerSecret, tokenSecret)
-    val sentSignature = urlDecode(request.oauthParamsMap(SignatureName))
+    val sentSignature = request.oauthParamsMap(SignatureName)
     if (sentSignature.equals(computedSignature)) VerificationOk
     else VerificationFailed(MessageInvalidSignature + signatureBase)
   }

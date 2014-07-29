@@ -368,7 +368,7 @@ class VerifierSpec extends Specification with Mockito {
     (paramsList filterNot { e: (String, String) =>
       "oauth_signature".equals(e._1) ||
         "oauth_timestamp".equals(e._1)
-    }).::(("oauth_signature", urlEncode(signature)))
+    }).::(("oauth_signature", signature))
       .::(("oauth_timestamp", time.toString))
   }
 
