@@ -124,11 +124,13 @@ class ArithmeticsSpec extends Specification {
         UrlParams,
         BodyParams,
         OauthParamsList)
-      concatItemsForSignature(request) must equalTo (SignatureBase)
+      concatItemsForSignature(request) must
+        equalTo (SignatureBase.replaceFirst("https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json",
+          "https%3A%2F%2Fapi.twitter.com%2F1%2FStatuses%2FUpdate.JSON"))
     }
     "include specific port." in {
       val request = KoauthRequest(Method,
-        "HTTpS://Api.Twitter.com:9000/1/Statuses/Update.JSON",
+        "https://api.twitter.com:9000/1/statuses/update.json",
         UrlParams,
         BodyParams,
         OauthParamsList)

@@ -15,6 +15,7 @@ object Arithmetics {
   private val HmacSha1Algorithm = "HmacSHA1"
   private val UTF8Charset = Charset.forName(UTF8)
   private val Base64Encoder = Base64.getEncoder
+  private val FirstSlash = "(?<!/)/(?!/)"
 
   def urlDecode(s: String) = URLDecoder.decode(s, UTF8)
 
@@ -34,7 +35,7 @@ object Arithmetics {
 
   def concatItemsForSignature(request: KoauthRequest): String = {
     val method = urlEncode(request.method)
-    val url = urlEncode(request.urlWithoutParams.toLowerCase)
+    val url = urlEncode(toLowerCase(request.urlWithoutParams))
     val params =  urlEncode(normalizeRequestParams(request.urlParams, request.oauthParamsList, request.bodyParams))
     concat(List(method, url, params))
   }
@@ -44,6 +45,12 @@ object Arithmetics {
                              bodyParams: List[(String, String)]): String = {
     val filtered = oauthParamsList.filterNot(kv => kv._1 == RealmName || kv._1 == SignatureName)
     pairSortConcat(urlParams ::: filtered ::: bodyParams)
+  }
+
+  def toLowerCase(url: String): String = {
+    val parts = url.split(FirstSlash, 2)
+    if (parts.length > 1) parts(0).toLowerCase + "/" + parts(1)
+    else parts(0).toLowerCase
   }
 
   def encodePairSortConcat(keyValueList: List[(String, String)]): String = {
