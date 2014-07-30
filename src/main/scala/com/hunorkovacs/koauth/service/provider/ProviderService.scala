@@ -75,7 +75,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
         val consumerKey = request.oauthParamsMap(ConsumerKeyName)
         val requestToken = request.oauthParamsMap(TokenName)
         val verifier = request.oauthParamsMap(VerifierName)
-        persistence.whoAuthorizedRequesToken(consumerKey, requestToken, verifier) flatMap {
+        persistence.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) flatMap {
           case None => successful(new ResponseUnauthorized(MessageNotAuthorized))
           case Some(username) =>
             val (token, secret) = generateTokenAndSecret

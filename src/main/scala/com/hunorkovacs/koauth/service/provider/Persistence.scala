@@ -60,10 +60,10 @@ trait Persistence {
   /**
    * @return The associated username to the token in a Some, otherwise a None.
    */
-  def whoAuthorizedRequesToken(consumerKey: String,
-                               requestToken: String,
-                               verifier: String)
-                              (implicit ec: ExecutionContext): Future[Option[String]]
+  def whoAuthorizedRequestToken(consumerKey: String,
+                                requestToken: String,
+                                verifier: String)
+                               (implicit ec: ExecutionContext): Future[Option[String]]
 
   /**
    * Saves an Access Token with companion attributes.

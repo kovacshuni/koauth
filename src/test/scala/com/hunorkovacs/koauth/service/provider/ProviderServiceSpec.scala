@@ -118,7 +118,7 @@ class ProviderServiceSpec extends Specification with Mockito {
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
-      pers.whoAuthorizedRequesToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
+      pers.whoAuthorizedRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
         Matchers.eq(Verifier))(any[ExecutionContext]) returns successful(Some(Username))
       var accessToken, secret = ""
       pers.persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) answers { (p, m) =>
@@ -133,7 +133,7 @@ class ProviderServiceSpec extends Specification with Mockito {
 
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
-      there was one(pers).whoAuthorizedRequesToken(ConsumerKey, RequestToken, Verifier) and {
+      there was one(pers).whoAuthorizedRequestToken(ConsumerKey, RequestToken, Verifier) and {
         there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext])
       } and {
         there was one(pers).persistAccessToken(ConsumerKey, accessToken, secret, Username)
@@ -152,11 +152,11 @@ class ProviderServiceSpec extends Specification with Mockito {
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
-      pers.whoAuthorizedRequesToken(ConsumerKey, RequestToken, Verifier) returns successful(None)
+      pers.whoAuthorizedRequestToken(ConsumerKey, RequestToken, Verifier) returns successful(None)
 
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
-      there was one(pers).whoAuthorizedRequesToken(ConsumerKey, RequestToken, Verifier) and {
+      there was one(pers).whoAuthorizedRequestToken(ConsumerKey, RequestToken, Verifier) and {
         there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext])
@@ -178,7 +178,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
         there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
-        there was no(pers).whoAuthorizedRequesToken(anyString, anyString, anyString)(any[ExecutionContext])
+        there was no(pers).whoAuthorizedRequestToken(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         response must beEqualTo(ResponseUnauthorized(MessageInvalidSignature))
       }
@@ -214,7 +214,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       there was no(pers).persistAccessToken(anyString, anyString, anyString, anyString)(any[ExecutionContext]) and {
         there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
-        there was no(pers).whoAuthorizedRequesToken(anyString, anyString, anyString)(any[ExecutionContext])
+        there was no(pers).whoAuthorizedRequestToken(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         response must beEqualTo(ResponseBadRequest(MessageParameterMissing))
       }
