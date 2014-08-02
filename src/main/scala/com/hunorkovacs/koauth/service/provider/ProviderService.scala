@@ -6,6 +6,7 @@ import com.hunorkovacs.koauth.service.Arithmetics._
 import DefaultVerifier.MessageNotAuthorized
 import com.hunorkovacs.koauth.service.Generator._
 import VerifierFactory.getDefaultOauthVerifier
+import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 
 import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}

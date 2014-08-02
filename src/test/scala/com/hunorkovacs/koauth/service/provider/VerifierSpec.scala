@@ -1,8 +1,9 @@
 package com.hunorkovacs.koauth.service.provider
 
-import com.hunorkovacs.koauth.domain.{KoauthRequest, VerificationFailed, VerificationOk, VerificationUnsupported}
+import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.{sign, urlEncode}
 import com.hunorkovacs.koauth.service.provider.VerifierFactory.getDefaultOauthVerifier
+import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 

@@ -3,8 +3,9 @@ package com.hunorkovacs.koauth.service.provider
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics._
+import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 
-import scala.concurrent.Future.{sequence, successful}
+import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
 
 trait Verifier {

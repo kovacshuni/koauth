@@ -1,4 +1,4 @@
-package com.hunorkovacs.koauth.domain
+package com.hunorkovacs.koauth.service.provider
 
 trait Verification
 

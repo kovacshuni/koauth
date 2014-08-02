@@ -3,6 +3,7 @@ package com.hunorkovacs.koauth.service.provider
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
 import com.hunorkovacs.koauth.service.provider.DefaultVerifier._
+import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 import org.mockito.Matchers
 import org.specs2.mock._
 import org.specs2.mutable.{Before, Specification}
