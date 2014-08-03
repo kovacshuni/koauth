@@ -88,5 +88,5 @@ trait Persistence {
    * @return the username associated to the token
    */
   def getUsername(consumerKey: String, accessToken: String)
-                 (implicit ec: ExecutionContext): Future[String]
+                 (implicit ec: ExecutionContext): Future[Option[String]]
 }

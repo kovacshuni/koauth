@@ -297,7 +297,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\""
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
-      pers.getUsername(ConsumerKey, RequestToken) returns successful(Username)
+      pers.getUsername(ConsumerKey, RequestToken) returns successful(Some(Username))
       pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext]) returns successful(Unit)
 
       val response = Await.result(service.oauthenticate(request), 1.0 seconds)
@@ -320,6 +320,23 @@ class ProviderServiceSpec extends Specification with Mockito {
         there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext])
       } and {
         response must beEqualTo(Left(ResponseUnauthorized(MessageInvalidToken)))
+      }
+    }
+    "return Unauthorized if signature and other parameters are ok, but user does not exit for Consumer Key and Access Token." in {
+      implicit lazy val pers = mock[Persistence]
+      lazy val verifier = mock[Verifier]
+      lazy val service = ProviderServiceFactory.createCustomOauthService(verifier)
+
+      val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\""
+      val request = KoauthRequest("", "", header, List.empty, List.empty)
+      verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
+      pers.getUsername(ConsumerKey, RequestToken) returns successful(None)
+      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))(any[ExecutionContext]) returns successful(Unit)
+
+      val response = Await.result(service.oauthenticate(request), 1.0 seconds)
+
+      there was no(pers).persistNonce(anyString, anyString, anyString)(any[ExecutionContext]) and {
+        response must beEqualTo(Left(ResponseUnauthorized(MessageUserInexistent)))
       }
     }
     "return Unauthorized if invalid signature." in {

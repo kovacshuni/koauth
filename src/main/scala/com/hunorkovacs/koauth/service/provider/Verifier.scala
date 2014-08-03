@@ -46,6 +46,7 @@ protected object DefaultVerifier extends Verifier {
   val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
   val MessageNotAuthorized = "Request Token not authorized."
   val MessageInvalidCredentials = "Invalid user credentials."
+  val MessageUserInexistent = "User does not exist for given Consumer Key and Access Token."
 
   def verifyForRequestToken(request: KoauthRequest)
             (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {

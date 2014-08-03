@@ -3,7 +3,7 @@ package com.hunorkovacs.koauth.service.provider
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics._
-import DefaultVerifier.MessageNotAuthorized
+import DefaultVerifier.{MessageNotAuthorized, MessageUserInexistent}
 import com.hunorkovacs.koauth.service.Generator._
 import VerifierFactory.getDefaultOauthVerifier
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
@@ -40,9 +40,9 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
         val callback = request.oauthParamsMap(CallbackName)
         val nonce = request.oauthParamsMap(NonceName)
         val (token, secret) = generateTokenAndSecret
-        persistence.persistNonce(nonce, consumerKey, "") flatMap { u =>
+        persistence.persistNonce(nonce, consumerKey, "") flatMap { _ =>
           persistence.persistRequestToken(consumerKey, token, secret, callback)
-        } map { u =>
+        } map { _ =>
           createRequestTokenResponse(token, secret, callback)
         }
     }
@@ -59,9 +59,9 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
         val username = request.oauthParamsMap(UsernameName)
         val verifier = generateVerifier
         val nonce = request.oauthParamsMap(NonceName)
-        persistence.persistNonce(nonce, consumerKey, requestToken) flatMap { u =>
+        persistence.persistNonce(nonce, consumerKey, requestToken) flatMap { _ =>
           persistence.authorizeRequestToken(consumerKey, requestToken, username, verifier)
-        } map { u =>
+        } map { _ =>
           createAuthorizeResponse(requestToken, verifier)
         }
     }
@@ -81,9 +81,9 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
           case Some(username) =>
             val (token, secret) = generateTokenAndSecret
             val nonce = request.oauthParamsMap(NonceName)
-            persistence.persistNonce(nonce, consumerKey, requestToken) flatMap { u =>
+            persistence.persistNonce(nonce, consumerKey, requestToken) flatMap { _ =>
               persistence.persistAccessToken(consumerKey, token, secret, username)
-            } map { u =>
+            } map { _ =>
               createAccesTokenResponse(token, secret)
             }
         }
@@ -99,10 +99,9 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
         val consumerKey = request.oauthParamsMap(ConsumerKeyName)
         val token = request.oauthParamsMap(TokenName)
         val nonce = request.oauthParamsMap(NonceName)
-        persistence.persistNonce(nonce, consumerKey, token) flatMap { u =>
-          persistence.getUsername(consumerKey, token)
-        } map { username =>
-          Right(username)
+        persistence.getUsername(consumerKey, token) flatMap {
+          case None => successful(Left(new ResponseUnauthorized(MessageUserInexistent)))
+          case Some(username) => persistence.persistNonce(nonce, consumerKey, token).map(_ => Right(username))
         }
     }
   }

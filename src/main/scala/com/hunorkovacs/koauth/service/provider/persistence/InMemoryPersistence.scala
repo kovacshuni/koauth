@@ -65,7 +65,9 @@ class InMemoryPersistence(implicit val ec: ExecutionContext) extends Persistence
   override def whoAuthorizedRequestToken(consumerKey: String, requestToken: String, verifier: String)
                                        (implicit ec: ExecutionContext): Future[Option[String]] = {
     Future {
-      requestTokens.find(p => consumerKey == p.consumerKey && requestToken == p.requestToken) match {
+      requestTokens.find(p => consumerKey == p.consumerKey
+        && requestToken == p.requestToken
+        && Some(verifier) == p.verifier) match {
         case None => None
         case Some(foundRequestToken) => foundRequestToken.verifierUsername
       }
@@ -105,9 +107,10 @@ class InMemoryPersistence(implicit val ec: ExecutionContext) extends Persistence
   }
 
   override def getUsername(consumerKey: String, accessToken: String)
-                          (implicit ec: ExecutionContext): Future[String] = {
+                          (implicit ec: ExecutionContext): Future[Option[String]] = {
     Future {
-      accessTokens.find(t => consumerKey == t.consumerKey && accessToken == t.accessToken).get.username
+      accessTokens.find(t => consumerKey == t.consumerKey && accessToken == t.accessToken)
+        .map(_.username)
     }
   }
 
