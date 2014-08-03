@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service.consumer
 
-import com.hunorkovacs.koauth.domain.OauthParams.{ConsumerSecretName, TokenSecretName}
+import com.hunorkovacs.koauth.domain.OauthParams.ConsumerSecretName
 import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
 import com.hunorkovacs.koauth.service.consumer.DefaultConsumerService._

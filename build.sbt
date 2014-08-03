@@ -15,5 +15,5 @@ resolvers ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.4",
-  "org.specs2" %% "specs2" % "2.3.12" % "test"
+  "org.specs2" %% "specs2" % "2.3.12"
 )

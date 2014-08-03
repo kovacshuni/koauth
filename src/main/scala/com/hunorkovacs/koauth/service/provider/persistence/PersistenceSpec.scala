@@ -1,10 +1,9 @@
 package com.hunorkovacs.koauth.service.provider.persistence
 
 import com.hunorkovacs.koauth.service.Generator._
-import org.specs2.mutable._
+import org.specs2.mutable.Specification
 
-import scala.concurrent.Await.ready
-import scala.concurrent.ExecutionContext
+import scala.concurrent.Await._
 import scala.concurrent.duration._
 
 abstract class PersistenceSpec(val pers: Persistence) extends Specification {
@@ -123,5 +122,3 @@ abstract class PersistenceSpec(val pers: Persistence) extends Specification {
     }
   }
 }
-
-class InMemoryPersistenceSpec extends PersistenceSpec(new InMemoryPersistence()(ExecutionContext.Implicits.global))
