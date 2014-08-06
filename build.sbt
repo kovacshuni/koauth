@@ -17,3 +17,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.4",
   "org.specs2" %% "specs2" % "2.3.12"
 )
+
+publishTo := Some("Sonatype Snapshots Nexus" at "https://oss.sonatype.org/content/repositories/snapshots")
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
