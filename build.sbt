@@ -1,3 +1,9 @@
+import SonatypeKeys._
+
+sonatypeSettings
+
+profileName := "com.hunorkovacs"
+
 organization := """com.hunorkovacs"""
 
 name := """koauth"""
@@ -18,6 +24,24 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.3.12"
 )
 
-publishTo := Some("Sonatype Snapshots Nexus" at "https://oss.sonatype.org/content/repositories/snapshots")
-
-credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+pomExtra := {
+  <url>https://github.com/kovacshuni/koauth</url>
+    <licenses>
+      <license>
+        <name>Apache 2</name>
+        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      </license>
+    </licenses>
+    <scm>
+      <connection>scm:git:github.com/kovacshuni/koauth</connection>
+      <developerConnection>scm:git@github.com:kovacshuni/koauth.git</developerConnection>
+      <url>github.com/kovacshuni/koauth</url>
+    </scm>
+    <developers>
+      <developer>
+        <id>kovacshuni</id>
+        <name>Hunor Kovács</name>
+        <url>www.hunorkovacs.com</url>
+      </developer>
+    </developers>
+}
