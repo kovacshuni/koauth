@@ -4,7 +4,7 @@ import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics._
 import VerifierObject.{MessageNotAuthorized, MessageUserInexistent}
-import com.hunorkovacs.koauth.service.Generator._
+import com.hunorkovacs.koauth.service.{DefaultTokenGenerator, TokenGenerator}
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 
 import scala.concurrent.Future.successful
@@ -23,10 +23,12 @@ trait ProviderService {
 
 protected class CustomProviderService(private val oauthVerifier: Verifier,
                                       private val persistence: Persistence,
+                                      private val generator: TokenGenerator,
                                       private val ec: ExecutionContext) extends ProviderService {
 
   implicit private def implicitEc = ec
   import oauthVerifier._
+  import generator._
 
   def requestToken(request: KoauthRequest): Future[KoauthResponse] = {
     verifyForRequestToken(request) flatMap {
@@ -103,8 +105,13 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
 
 object ProviderServiceFactory {
 
+  def createProviderService(persistence: Persistence, generator: TokenGenerator, ec: ExecutionContext): ProviderService = {
+    val verifier = new CustomVerifier(persistence, ec)
+    new CustomProviderService(verifier, persistence, generator, ec)
+  }
+
   def createProviderService(persistence: Persistence, ec: ExecutionContext): ProviderService = {
     val verifier = new CustomVerifier(persistence, ec)
-    new CustomProviderService(verifier, persistence, ec)
+    new CustomProviderService(verifier, persistence, DefaultTokenGenerator, ec)
   }
 }

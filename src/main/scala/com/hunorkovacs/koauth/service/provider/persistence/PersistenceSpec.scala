@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service.provider.persistence
 
-import com.hunorkovacs.koauth.service.Generator._
+import com.hunorkovacs.koauth.service.DefaultTokenGenerator._
 import org.specs2.mutable.Specification
 
 import scala.concurrent.Await._

@@ -3,7 +3,7 @@ package com.hunorkovacs.koauth.service.consumer
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.{sign, concatItemsForSignature, createAuthorizationHeader}
-import com.hunorkovacs.koauth.service.Generator.generateNonce
+import com.hunorkovacs.koauth.service.DefaultTokenGenerator.generateNonce
 
 import scala.concurrent.{ExecutionContext, Future}
 
