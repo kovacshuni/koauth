@@ -2,12 +2,12 @@ package com.hunorkovacs.koauth.service.provider
 
 import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.{sign, urlEncode}
-import com.hunorkovacs.koauth.service.provider.VerifierFactory.getDefaultOauthVerifier
+import com.hunorkovacs.koauth.service.provider.VerifierObject._
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 
-import scala.concurrent.Await
+import scala.concurrent.{ExecutionContext, Await}
 import scala.concurrent.Future.successful
 import scala.concurrent.duration._
 
@@ -75,71 +75,70 @@ class VerifierSpec extends Specification with Mockito {
     .:::(List(("username", Username),
       ("password", Password)))
 
-  val verifier = getDefaultOauthVerifier
-  import verifier._
+  implicit private val ec = ExecutionContext.Implicits.global
 
   "Verifying signature" should {
-    "return positive verification if signature matches." in {
+    "return positive verification if signature matches." in new commonMocks {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
-      verifySignature(request, ConsumerSecret, TokenSecret) must
+      verifier.verifySignature(request, ConsumerSecret, TokenSecret) must
         equalTo (VerificationOk)
     }
-    "return negative verification if signature doesn't match." in {
+    "return negative verification if signature doesn't match." in new commonMocks {
       val paramsList = ParamsList.filterNot(e => "oauth_signature".equals(e._1))
         .::(("oauth_signature", "123456"))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      verifySignature(request, ConsumerSecret, TokenSecret) must
+      verifier.verifySignature(request, ConsumerSecret, TokenSecret) must
         equalTo (VerificationFailed(MessageInvalidSignature + SignatureBase))
     }
   }
 
   "Verifying signature method" should {
-    "return positive verification if method is HMAC-SHA1." in {
+    "return positive verification if method is HMAC-SHA1." in new commonMocks {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
-      verifyAlgorithm(request) must equalTo (VerificationOk)
+      verifier.verifyAlgorithm(request) must equalTo (VerificationOk)
     }
-    "return unsupported verification if method is other than HMAC-SHA1." in {
+    "return unsupported verification if method is other than HMAC-SHA1." in new commonMocks {
       val paramsList = ParamsList.filterNot(e => "oauth_signature_method".equals(e._1))
         .::(("oauth_signature_method", "MD5"))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      verifyAlgorithm(request) must equalTo (VerificationUnsupported(MessageUnsupportedMethod))
+      verifier.verifyAlgorithm(request) must equalTo (VerificationUnsupported(MessageUnsupportedMethod))
     }
   }
 
   "Verifying timestamp" should {
-    "return positive verification if timestamp equals current time." in {
+    "return positive verification if timestamp equals current time." in new commonMocks {
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", now.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      verifyTimestamp(request) must equalTo (VerificationOk)
+      verifier.verifyTimestamp(request) must equalTo (VerificationOk)
     }
-    "return positive verification if timestamp is 9 minutes late." in {
+    "return positive verification if timestamp is 9 minutes late." in new commonMocks {
       val nineMinutesAgo = now - 9 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      verifyTimestamp(request) must equalTo (VerificationOk)
+      verifier.verifyTimestamp(request) must equalTo (VerificationOk)
     }
-    "return positive verification if timestamp is 9 minutes ahead." in {
+    "return positive verification if timestamp is 9 minutes ahead." in new commonMocks {
       val nineMinutesAgo = now + 9 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      verifyTimestamp(request) must equalTo (VerificationOk)
+      verifier.verifyTimestamp(request) must equalTo (VerificationOk)
     }
-    "return negative verification if timestamp is 11 minutes late." in {
+    "return negative verification if timestamp is 11 minutes late." in new commonMocks {
       val nineMinutesAgo = now - 11 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp))
+      verifier.verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp))
     }
-    "return negative verification if timestamp is 11 minutes ahead." in {
+    "return negative verification if timestamp is 11 minutes ahead." in new commonMocks {
       val nineMinutesAgo = now + 11 * 60
       val paramsList = ParamsList.filterNot(e => "oauth_timestamp".equals(e._1))
         .::(("oauth_timestamp", nineMinutesAgo.toString))
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp))
+      verifier.verifyTimestamp(request) must equalTo (VerificationFailed(MessageInvalidTimestamp))
     }
   }
 
@@ -148,34 +147,34 @@ class VerifierSpec extends Specification with Mockito {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
-      verifyNonce(request, Token) must equalTo (VerificationOk).await
+      verifier.verifyNonce(request, Token) must equalTo (VerificationOk).await
     }
     "return negative verification if nonce exists for same consumer key and token." in new commonMocks {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(true)
 
-      verifyNonce(request, Token) must equalTo (VerificationFailed(MessageInvalidNonce)).await
+      verifier.verifyNonce(request, Token) must equalTo (VerificationFailed(MessageInvalidNonce)).await
     }
   }
 
   "Verifying required parameters" should {
-    "return positive if lists are the same but shuffled." in {
+    "return positive if lists are the same but shuffled." in new commonMocks {
       val request = createRequest(List(("b", "2"), ("a", "1")))
-      verifyRequiredParams(request, List("a", "b")) must beEqualTo (VerificationOk)
+      verifier.verifyRequiredParams(request, List("a", "b")) must beEqualTo (VerificationOk)
     }
-    "return negative if parameter is missing and state which." in {
+    "return negative if parameter is missing and state which." in new commonMocks {
       val request = createRequest(List(("a", "1")))
-      verifyRequiredParams(request, List("a", "b")) must
+      verifier.verifyRequiredParams(request, List("a", "b")) must
         beEqualTo (VerificationUnsupported(MessageParameterMissing + "b"))
     }
-    "return negative if duplicate parameter and state which." in {
+    "return negative if duplicate parameter and state which." in new commonMocks {
       val request = createRequest(List(("a", "1"), ("b", "2"), ("b", "3")))
-      verifyRequiredParams(request, List("a", "b")) must
+      verifier.verifyRequiredParams(request, List("a", "b")) must
         beEqualTo (VerificationUnsupported(MessageParameterMissing + "b"))
     }
-    "return negative if additional parameter and state which." in {
+    "return negative if additional parameter and state which." in new commonMocks {
       val request = createRequest(List(("a", "1"), ("b", "2"), ("c", "3")))
-      verifyRequiredParams(request, List("a", "b")) must
+      verifier.verifyRequiredParams(request, List("a", "b")) must
         beEqualTo (VerificationUnsupported(MessageParameterMissing + "c"))
     }
     def createRequest(paramsList: List[(String, String)]) = KoauthRequest("", "", List.empty, List.empty, paramsList)
@@ -190,7 +189,7 @@ class VerifierSpec extends Specification with Mockito {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
-      fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
+      verifier.fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
         equalTo (VerificationOk).await
     }
     "return negative if method, timestamp, nonce all ok but signature is invalid." in new commonMocks {
@@ -200,7 +199,7 @@ class VerifierSpec extends Specification with Mockito {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
-      fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
+      verifier.fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
         equalTo (VerificationFailed(MessageInvalidSignature + signatureBase)).await
     }
     "return negative if signature, method, nonce all ok but timestamp late." in new commonMocks {
@@ -211,7 +210,7 @@ class VerifierSpec extends Specification with Mockito {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
-      fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
+      verifier.fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
         equalTo (VerificationFailed(MessageInvalidTimestamp)).await
     }
     "return negative if signature, method, timestamp all ok but nonce exists" in new commonMocks {
@@ -222,7 +221,7 @@ class VerifierSpec extends Specification with Mockito {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(true)
 
-      fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
+      verifier.fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
         equalTo (VerificationFailed(MessageInvalidNonce)).await
     }
     "return unsupported if signature, timestamp, nonce all ok but method is different from hmac-sha1." in new commonMocks {
@@ -236,7 +235,7 @@ class VerifierSpec extends Specification with Mockito {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
-      fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
+      verifier.fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
         equalTo (VerificationUnsupported(MessageUnsupportedMethod)).await
     }
   }
@@ -252,18 +251,18 @@ class VerifierSpec extends Specification with Mockito {
       mockedPer.nonceExists(Nonce, ConsumerKey, "") returns successful(false)
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
 
-      verifyForRequestToken(request) must equalTo (VerificationOk).await
+      verifier.verifyForRequestToken(request) must equalTo (VerificationOk).await
     }
     "return negative if Consumer Key is not registered." in new commonMocks {
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(None)
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsListWithCallback)
 
-      verifyForRequestToken(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
+      verifier.verifyForRequestToken(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
     }
     "return negative if required parameter is missing." in new commonMocks {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
 
-      (Await.result(verifyForRequestToken(request), 1.0 second) match {
+      (Await.result(verifier.verifyForRequestToken(request), 1.0 second) match {
         case VerificationUnsupported(message) => message
         case _ => ""
       }) must startingWith(MessageParameterMissing)
@@ -280,26 +279,26 @@ class VerifierSpec extends Specification with Mockito {
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
-      verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationOk).await
+      verifier.verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationOk).await
     }
     "return negative if consumer key doesn't exist." in new commonMocks {
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(None)
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
 
-      verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
+      verifier.verifyWithToken(request, OauthenticateRequiredParams, getSecret) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
     }
     "return negative if token with consumer key doesn't exist." in new commonMocks {
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       def cantGetSecret(consumerKey: String, token: String) = successful(None)
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
 
-      verifyWithToken(request, OauthenticateRequiredParams, cantGetSecret) must equalTo (VerificationFailed(MessageInvalidToken)).await
+      verifier.verifyWithToken(request, OauthenticateRequiredParams, cantGetSecret) must equalTo (VerificationFailed(MessageInvalidToken)).await
     }
     "return negative if required parameter is missing." in new commonMocks {
       val params = ParamsListWithCallback.filterNot(p => p._1 == "oauth_version")
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, params)
 
-      val verification = Await.result(verifyWithToken(request, OauthenticateRequiredParams, getSecret), 1.0 second)
+      val verification = Await.result(verifier.verifyWithToken(request, OauthenticateRequiredParams, getSecret), 1.0 second)
 
       val message = verification match {
         case VerificationUnsupported(m) => m must startingWith(MessageParameterMissing)
@@ -325,7 +324,7 @@ class VerifierSpec extends Specification with Mockito {
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
       mockedPer.authenticate(Username, Password) returns successful(true)
 
-      verifyForAuthorize(request) must equalTo (VerificationOk).await
+      verifier.verifyForAuthorize(request) must equalTo (VerificationOk).await
     }
     "return negative if user credentials are invalid, consumer key with token registered." in new commonMocks {
       val time = now
@@ -338,27 +337,27 @@ class VerifierSpec extends Specification with Mockito {
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
       mockedPer.authenticate(Username, Password) returns successful(false)
 
-      verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidCredentials)).await
+      verifier.verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidCredentials)).await
     }
     "return negative if consumer key not registered, user credentials are ok." in new commonMocks {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsListWithPassword)
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(None)
 
-      verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
+      verifier.verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
     }
     "return negative if Consumer Key with Request Token not registered, user credentials are ok." in new commonMocks {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsListWithPassword)
       mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
       mockedPer.getRequestTokenSecret(ConsumerKey, Token) returns successful(None)
 
-      verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidToken)).await
+      verifier.verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidToken)).await
     }
     "return negative if request parameter is missing or duplicate." in new commonMocks {
       val params = ParamsListWithPassword.filterNot(p => p._1 == "oauth_consumer_key")
       val request = KoauthRequest("", "", List.empty, List.empty, params)
       mockedPer.authenticate(Username, Password) returns successful(false)
 
-      verifyForAuthorize(request) must equalTo (VerificationUnsupported(MessageParameterMissing + "oauth_consumer_key")).await
+      verifier.verifyForAuthorize(request) must equalTo (VerificationUnsupported(MessageParameterMissing + "oauth_consumer_key")).await
     }
   }
 
@@ -377,6 +376,7 @@ class VerifierSpec extends Specification with Mockito {
 
   private trait commonMocks extends Before with Mockito {
     implicit lazy val mockedPer = mock[Persistence]
+    val verifier = new CustomVerifier(mockedPer, ec)
 
     override def before = Nil
   }

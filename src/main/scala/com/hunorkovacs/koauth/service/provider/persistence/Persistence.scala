@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service.provider.persistence
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 
 trait Persistence {
 
@@ -12,13 +12,11 @@ trait Persistence {
    */
   def nonceExists(nonce: String,
                   consumerKey: String,
-                  token: String)
-                 (implicit ec: ExecutionContext): Future[Boolean]
+                  token: String): Future[Boolean]
 
   def persistNonce(nonce: String,
                    consumerKey: String,
-                   token: String)
-                  (implicit ec: ExecutionContext): Future[Unit]
+                   token: String): Future[Unit]
 
   /**
    * Save a Request Token without with void verifier username and verifier key.
@@ -26,14 +24,12 @@ trait Persistence {
   def persistRequestToken(consumerKey: String,
                           requestToken: String,
                           requestTokenSecret: String,
-                          callback: String)
-                         (implicit ec: ExecutionContext): Future[Unit]
+                          callback: String): Future[Unit]
 
   /**
    * @return Consumer Secret associated to given Consumer Key
    */
-  def getConsumerSecret(consumerKey: String)
-                       (implicit ec: ExecutionContext): Future[Option[String]]
+  def getConsumerSecret(consumerKey: String): Future[Option[String]]
 
   /**
    * You should be able to find a RequestToken by its Consumer Key and Request Token.
@@ -46,24 +42,21 @@ trait Persistence {
   def authorizeRequestToken(consumerKey: String,
                             requestToken: String,
                             verifierUsername: String,
-                            verifier: String)
-                           (implicit ec: ExecutionContext): Future[Unit]
+                            verifier: String): Future[Unit]
 
   /**
    * Simple authentication using directly username and password.
    *
    * @return true if this user exists with the respective password, false otherwise
    */
-  def authenticate(username: String, password: String)
-                  (implicit ec: ExecutionContext): Future[Boolean]
+  def authenticate(username: String, password: String): Future[Boolean]
 
   /**
    * @return The associated username to the token in a Some, otherwise a None.
    */
   def whoAuthorizedRequestToken(consumerKey: String,
                                 requestToken: String,
-                                verifier: String)
-                               (implicit ec: ExecutionContext): Future[Option[String]]
+                                verifier: String): Future[Option[String]]
 
   /**
    * Saves an Access Token with companion attributes.
@@ -71,22 +64,18 @@ trait Persistence {
   def persistAccessToken(consumerKey: String,
                          accessToken: String,
                          accessTokenSecret: String,
-                         username: String)
-                        (implicit ec: ExecutionContext): Future[Unit]
+                         username: String): Future[Unit]
 
 
-  def getRequestTokenSecret(consumerKey: String, requestToken: String)
-                           (implicit ec: ExecutionContext): Future[Option[String]]
+  def getRequestTokenSecret(consumerKey: String, requestToken: String): Future[Option[String]]
 
   /**
    * @return the Token Secret in a Some. If not found, a None
    */
-  def getAccessTokenSecret(consumerKey: String, accessToken: String)
-                          (implicit ec: ExecutionContext): Future[Option[String]]
+  def getAccessTokenSecret(consumerKey: String, accessToken: String): Future[Option[String]]
 
   /**
    * @return the username associated to the token
    */
-  def getUsername(consumerKey: String, accessToken: String)
-                 (implicit ec: ExecutionContext): Future[Option[String]]
+  def getUsername(consumerKey: String, accessToken: String): Future[Option[String]]
 }

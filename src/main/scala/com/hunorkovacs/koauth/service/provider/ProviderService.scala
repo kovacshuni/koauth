@@ -3,9 +3,8 @@ package com.hunorkovacs.koauth.service.provider
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics._
-import DefaultVerifier.{MessageNotAuthorized, MessageUserInexistent}
+import VerifierObject.{MessageNotAuthorized, MessageUserInexistent}
 import com.hunorkovacs.koauth.service.Generator._
-import VerifierFactory.getDefaultOauthVerifier
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 
 import scala.concurrent.Future.successful
@@ -13,25 +12,23 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait ProviderService {
 
-  def requestToken(request: KoauthRequest)
-                  (implicit persistence: Persistence, ec: ExecutionContext): Future[KoauthResponse]
+  def requestToken(request: KoauthRequest): Future[KoauthResponse]
 
-  def authorize(request: KoauthRequest)
-               (implicit persistence: Persistence, ec: ExecutionContext): Future[KoauthResponse]
+  def authorize(request: KoauthRequest): Future[KoauthResponse]
 
-  def accessToken(request: KoauthRequest)
-                 (implicit persistence: Persistence, ec: ExecutionContext): Future[KoauthResponse]
+  def accessToken(request: KoauthRequest): Future[KoauthResponse]
 
-  def oauthenticate(request: KoauthRequest)
-                   (implicit persistence: Persistence, ec: ExecutionContext): Future[Either[KoauthResponse, String]]
+  def oauthenticate(request: KoauthRequest): Future[Either[KoauthResponse, String]]
 }
 
-protected class CustomProviderService(val oauthVerifier: Verifier) extends ProviderService {
+protected class CustomProviderService(private val oauthVerifier: Verifier,
+                                      private val persistence: Persistence,
+                                      private val ec: ExecutionContext) extends ProviderService {
 
+  implicit private def implicitEc = ec
   import oauthVerifier._
 
-  def requestToken(request: KoauthRequest)
-                  (implicit persistence: Persistence, ec: ExecutionContext): Future[KoauthResponse] = {
+  def requestToken(request: KoauthRequest): Future[KoauthResponse] = {
     verifyForRequestToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -48,8 +45,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
     }
   }
 
-  def authorize(request: KoauthRequest)
-               (implicit persistence: Persistence, ec: ExecutionContext): Future[KoauthResponse] = {
+  def authorize(request: KoauthRequest): Future[KoauthResponse] = {
     verifyForAuthorize(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -67,8 +63,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
     }
   }
 
-  def accessToken(request: KoauthRequest)
-                 (implicit persistence: Persistence, ec: ExecutionContext): Future[KoauthResponse] = {
+  def accessToken(request: KoauthRequest): Future[KoauthResponse] = {
     verifyForAccessToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -90,8 +85,7 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
     }
   }
 
-  def oauthenticate(request: KoauthRequest)
-                   (implicit persistence: Persistence, ec: ExecutionContext): Future[Either[ResponseNok, String]] = {
+  def oauthenticate(request: KoauthRequest): Future[Either[ResponseNok, String]] = {
     verifyForOauthenticate(request) flatMap {
       case VerificationUnsupported(message) => successful(Left(new ResponseBadRequest(message)))
       case VerificationFailed(message) => successful(Left(new ResponseUnauthorized(message)))
@@ -109,7 +103,8 @@ protected class CustomProviderService(val oauthVerifier: Verifier) extends Provi
 
 object ProviderServiceFactory {
 
-  def createDefaultOauthService = new CustomProviderService(getDefaultOauthVerifier)
-
-  def createCustomOauthService(oauthVerifier: Verifier) = new CustomProviderService(oauthVerifier)
+  def createProviderService(persistence: Persistence, ec: ExecutionContext): ProviderService = {
+    val verifier = new CustomVerifier(persistence, ec)
+    new CustomProviderService(verifier, persistence, ec)
+  }
 }

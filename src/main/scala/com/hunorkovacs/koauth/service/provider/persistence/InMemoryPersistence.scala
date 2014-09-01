@@ -3,7 +3,7 @@ package com.hunorkovacs.koauth.service.provider.persistence
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
-class ExampleMemoryPersistence(implicit override val ec: ExecutionContext) extends InMemoryPersistence {
+class ExampleMemoryPersistence(override protected val ec: ExecutionContext) extends InMemoryPersistence(ec) {
 
   override val consumers = ListBuffer[Consumer](
     Consumer("OmFjJKNqU4v791CWj6QKaBaiEep0WBxJ", "wr1KLYYH6o5yKFfiyN9ysKkPXcIAim2S", "admin")
@@ -26,7 +26,9 @@ class ExampleMemoryPersistence(implicit override val ec: ExecutionContext) exten
   )
 }
 
-class InMemoryPersistence(implicit val ec: ExecutionContext) extends Persistence {
+class InMemoryPersistence(protected val ec: ExecutionContext) extends Persistence {
+
+  implicit private val implicitEc = ec
 
   val consumers = ListBuffer.empty[Consumer]
   val requestTokens = ListBuffer.empty[RequestToken]
@@ -34,15 +36,13 @@ class InMemoryPersistence(implicit val ec: ExecutionContext) extends Persistence
   val nonces = ListBuffer.empty[Nonce]
   val users = ListBuffer.empty[User]
 
-  override def nonceExists(nonce: String, consumerKey: String, token: String)
-                          (implicit ec: ExecutionContext): Future[Boolean] = {
+  override def nonceExists(nonce: String, consumerKey: String, token: String): Future[Boolean] = {
     Future {
       nonces.exists(p => nonce == p.nonce && consumerKey == p.consumerKey && token == p.token)
     }
   }
 
-  override def authorizeRequestToken(consumerKey: String, requestToken: String, verifierUsername: String, verifier: String)
-                                    (implicit ec: ExecutionContext): Future[Unit] = {
+  override def authorizeRequestToken(consumerKey: String, requestToken: String, verifierUsername: String, verifier: String): Future[Unit] = {
     Future {
       val searchedRequestToken =
         requestTokens.find(p => consumerKey == p.consumerKey && requestToken == p.requestToken).get
@@ -52,8 +52,7 @@ class InMemoryPersistence(implicit val ec: ExecutionContext) extends Persistence
     }
   }
 
-  override def authenticate(username: String, password: String)
-                           (implicit ec: ExecutionContext): Future[Boolean] = {
+  override def authenticate(username: String, password: String): Future[Boolean] = {
     Future {
       users.find(u => username == u.username && password == u.password) match {
         case None => false
@@ -62,8 +61,7 @@ class InMemoryPersistence(implicit val ec: ExecutionContext) extends Persistence
     }
   }
 
-  override def whoAuthorizedRequestToken(consumerKey: String, requestToken: String, verifier: String)
-                                       (implicit ec: ExecutionContext): Future[Option[String]] = {
+  override def whoAuthorizedRequestToken(consumerKey: String, requestToken: String, verifier: String): Future[Option[String]] = {
     Future {
       requestTokens.find(p => consumerKey == p.consumerKey
         && requestToken == p.requestToken
@@ -74,56 +72,49 @@ class InMemoryPersistence(implicit val ec: ExecutionContext) extends Persistence
     }
   }
 
-  override def getAccessTokenSecret(consumerKey: String, accessToken: String)
-                                   (implicit ec: ExecutionContext): Future[Option[String]] = {
+  override def getAccessTokenSecret(consumerKey: String, accessToken: String): Future[Option[String]] = {
     Future {
       accessTokens.find(t => consumerKey == t.consumerKey && accessToken == t.accessToken)
         .map(t => t.accessTokenSecret)
     }
   }
 
-  override def persistAccessToken(consumerKey: String, accessToken: String, accessTokenSecret: String, username: String)
-                                 (implicit ec: ExecutionContext): Future[Unit] = {
+  override def persistAccessToken(consumerKey: String, accessToken: String, accessTokenSecret: String, username: String): Future[Unit] = {
     Future {
       accessTokens += AccessToken(consumerKey, accessToken, accessTokenSecret, username)
       Unit
     }
   }
 
-  override def persistRequestToken(consumerKey: String, requestToken: String, requestTokenSecret: String, callback: String)
-                                  (implicit ec: ExecutionContext): Future[Unit] = {
+  override def persistRequestToken(consumerKey: String, requestToken: String, requestTokenSecret: String, callback: String): Future[Unit] = {
     Future {
       requestTokens += RequestToken(consumerKey, requestToken, requestTokenSecret, callback, None, None)
       Unit
     }
   }
 
-  override def getConsumerSecret(consumerKey: String)
-                                (implicit ec: ExecutionContext): Future[Option[String]] = {
+  override def getConsumerSecret(consumerKey: String): Future[Option[String]] = {
     Future {
       consumers.find(c => consumerKey == c.consumerKey)
         .map(c => c.consumerSecret)
     }
   }
 
-  override def getUsername(consumerKey: String, accessToken: String)
-                          (implicit ec: ExecutionContext): Future[Option[String]] = {
+  override def getUsername(consumerKey: String, accessToken: String): Future[Option[String]] = {
     Future {
       accessTokens.find(t => consumerKey == t.consumerKey && accessToken == t.accessToken)
         .map(_.username)
     }
   }
 
-  override def getRequestTokenSecret(consumerKey: String, requestToken: String)
-                                    (implicit ec: ExecutionContext): Future[Option[String]] = {
+  override def getRequestTokenSecret(consumerKey: String, requestToken: String): Future[Option[String]] = {
     Future {
       requestTokens.find(t => consumerKey == t.consumerKey && requestToken == t.requestToken)
         .map(t => t.requestTokenSecret)
     }
   }
 
-  override def persistNonce(nonce: String, consumerKey: String, token: String)
-                           (implicit ec: ExecutionContext): Future[Unit] = {
+  override def persistNonce(nonce: String, consumerKey: String, token: String): Future[Unit] = {
     Future {
       nonces += Nonce(nonce, consumerKey, token)
       Unit

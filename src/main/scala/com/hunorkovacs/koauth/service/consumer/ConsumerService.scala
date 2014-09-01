@@ -12,8 +12,7 @@ trait ConsumerService {
   def createRequestTokenRequest(request: KoauthRequest,
                                 consumerKey: String,
                                 consumerSecret: String,
-                                callback: String)
-                               (implicit ec: ExecutionContext): Future[RequestWithInfo]
+                                callback: String): Future[RequestWithInfo]
 
   def createAuthorizeRequest(request: KoauthRequest,
                              consumerKey: String,
@@ -21,37 +20,34 @@ trait ConsumerService {
                              requestToken: String,
                              tokenSecret: String,
                              username: String,
-                             password: String)
-                            (implicit ec: ExecutionContext): Future[RequestWithInfo]
+                             password: String): Future[RequestWithInfo]
 
   def createAccessTokenRequest(request: KoauthRequest,
                                consumerKey: String,
                                consumerSecret: String,
                                requestToken: String,
                                requestTokenSecret: String,
-                               verifier: String)
-                              (implicit ec: ExecutionContext): Future[RequestWithInfo]
+                               verifier: String): Future[RequestWithInfo]
 
   def createOauthenticatedRequest(request: KoauthRequest,
                                   consumerKey: String,
                                   consumerSecret: String,
                                   requestToken: String,
-                                  requestTokenSecret: String)
-                                 (implicit ec: ExecutionContext): Future[RequestWithInfo]
+                                  requestTokenSecret: String): Future[RequestWithInfo]
 
-  def createGeneralSignedRequest(request: KoauthRequest)
-                                (implicit ec: ExecutionContext): Future[RequestWithInfo]
+  def createGeneralSignedRequest(request: KoauthRequest): Future[RequestWithInfo]
 }
 
 case class RequestWithInfo(request: KoauthRequest, signatureBase: String, header: String)
 
-object DefaultConsumerService extends ConsumerService {
+class DefaultConsumerService(private val ec: ExecutionContext) extends ConsumerService {
+
+  implicit private val implicitEc = ec
 
   override def createRequestTokenRequest(request: KoauthRequest,
                                          consumerKey: String,
                                          consumerSecret: String,
-                                         callback: String)
-                                        (implicit ec: ExecutionContext): Future[RequestWithInfo] = {
+                                         callback: String): Future[RequestWithInfo] = {
     Future {
       val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
         .::((ConsumerSecretName, consumerSecret))
@@ -66,8 +62,7 @@ object DefaultConsumerService extends ConsumerService {
                                       requestToken: String,
                                       tokenSecret: String,
                                       username: String,
-                                      password: String)
-                                     (implicit ec: ExecutionContext): Future[RequestWithInfo] = {
+                                      password: String): Future[RequestWithInfo] = {
     Future {
       val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
         .::((ConsumerSecretName, consumerSecret))
@@ -84,8 +79,7 @@ object DefaultConsumerService extends ConsumerService {
                                         consumerSecret: String,
                                         requestToken: String,
                                         requestTokenSecret: String,
-                                        verifier: String)
-                                       (implicit ec: ExecutionContext): Future[RequestWithInfo] = {
+                                        verifier: String): Future[RequestWithInfo] = {
     Future {
       val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
       .::((ConsumerSecretName, consumerSecret))
@@ -100,8 +94,7 @@ object DefaultConsumerService extends ConsumerService {
                                            consumerKey: String,
                                            consumerSecret: String,
                                            requestToken: String,
-                                           requestTokenSecret: String)
-                                          (implicit ec: ExecutionContext): Future[RequestWithInfo] = {
+                                           requestTokenSecret: String): Future[RequestWithInfo] = {
     Future {
       val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
         .::((ConsumerSecretName, consumerSecret))
@@ -118,8 +111,7 @@ object DefaultConsumerService extends ConsumerService {
       (TimestampName, (System.currentTimeMillis / 1000).toString))
   }
 
-  def createGeneralSignedRequest(request: KoauthRequest)
-                                (implicit ec: ExecutionContext): Future[RequestWithInfo] = {
+  def createGeneralSignedRequest(request: KoauthRequest): Future[RequestWithInfo] = {
     Future {
       val consumerSecret = request.oauthParamsMap.applyOrElse(ConsumerSecretName, (s: String) => "")
       val tokenSecret = request.oauthParamsMap.applyOrElse(TokenSecretName, (s: String) => "")

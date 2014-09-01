@@ -10,46 +10,22 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait Verifier {
 
-  def verifyForRequestToken(request: KoauthRequest)
-                           (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
+  def verifyForRequestToken(request: KoauthRequest): Future[Verification]
 
-  def verifyForAccessToken(request: KoauthRequest)
-                          (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
+  def verifyForAccessToken(request: KoauthRequest): Future[Verification]
 
-  def verifyForOauthenticate(request: KoauthRequest)
-                            (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
+  def verifyForOauthenticate(request: KoauthRequest): Future[Verification]
 
-  def verifyForAuthorize(request: KoauthRequest)
-                        (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification]
+  def verifyForAuthorize(request: KoauthRequest): Future[Verification]
 }
 
-protected object DefaultVerifier extends Verifier {
+protected class CustomVerifier(private val persistence: Persistence,
+                               private val ec: ExecutionContext) extends Verifier {
 
-  private val HmacReadable = "HMAC-SHA1"
-  private val TimePrecisionSeconds = 10 * 60
+  implicit private val implicitEc = ec
+  import VerifierObject._
 
-  final val RequestTokenRequiredParams = List[String](ConsumerKeyName, SignatureMethodName, SignatureName,
-    TimestampName, NonceName, VersionName, CallbackName).sorted
-  final val AuthorizeRequiredParams = List[String](ConsumerKeyName, TokenName, UsernameName, PasswordName,
-    SignatureMethodName, SignatureName, TimestampName, NonceName, VersionName).sorted
-  final val AccessTokenRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
-    SignatureName, TimestampName, NonceName, VersionName, VerifierName).sorted
-  final val OauthenticateRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
-    SignatureName, TimestampName, NonceName, VersionName).sorted
-
-  val MessageInvalidConsumerKey = "Consumer Key does not exist."
-  val MessageInvalidToken = "Token with Consumer Key does not exist."
-  val MessageInvalidSignature = "Signature does not match. Signature base: "
-  val MessageInvalidNonce = "Nonce was already used."
-  val MessageInvalidTimestamp = "Timestamp falls outside the tolerated interval."
-  val MessageUnsupportedMethod = "Unsupported Signature Method."
-  val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
-  val MessageNotAuthorized = "Request Token not authorized."
-  val MessageInvalidCredentials = "Invalid user credentials."
-  val MessageUserInexistent = "User does not exist for given Consumer Key and Access Token."
-
-  def verifyForRequestToken(request: KoauthRequest)
-            (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
+  def verifyForRequestToken(request: KoauthRequest): Future[Verification] = {
     Future(verifyRequiredParams(request, RequestTokenRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
@@ -60,18 +36,15 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifyForAccessToken(request: KoauthRequest)
-                          (implicit persistence: Persistence, ec: ExecutionContext) =
+  def verifyForAccessToken(request: KoauthRequest) =
     verifyWithToken(request, AccessTokenRequiredParams, persistence.getRequestTokenSecret)
 
-  def verifyForOauthenticate(request: KoauthRequest)
-                            (implicit persistence: Persistence, ec: ExecutionContext) =
+  def verifyForOauthenticate(request: KoauthRequest) =
     verifyWithToken(request, OauthenticateRequiredParams, persistence.getAccessTokenSecret)
 
   def verifyWithToken(request: KoauthRequest,
                       requiredParams: List[String],
-                      getSecret: (String, String) => Future[Option[String]])
-                     (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
+                      getSecret: (String, String) => Future[Option[String]]): Future[Verification] = {
     Future(verifyRequiredParams(request, requiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
@@ -91,8 +64,7 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def verifyForAuthorize(request: KoauthRequest)
-                        (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
+  def verifyForAuthorize(request: KoauthRequest): Future[Verification] = {
     Future(verifyRequiredParams(request, AuthorizeRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
@@ -115,8 +87,7 @@ protected object DefaultVerifier extends Verifier {
     }
   }
 
-  def fourVerifications(request: KoauthRequest, consumerSecret: String, token: String, tokenSecret: String)
-                               (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
+  def fourVerifications(request: KoauthRequest, consumerSecret: String, token: String, tokenSecret: String): Future[Verification] = {
     verifyNonce(request, token) flatMap { nonceVerification =>
       Future {
         List(verifySignature(request, consumerSecret, tokenSecret),
@@ -137,8 +108,7 @@ protected object DefaultVerifier extends Verifier {
     else VerificationFailed(MessageInvalidSignature + signatureBase)
   }
 
-  def verifyNonce(request: KoauthRequest, token: String)
-                 (implicit persistence: Persistence, ec: ExecutionContext): Future[Verification] = {
+  def verifyNonce(request: KoauthRequest, token: String): Future[Verification] = {
     Future {
       val nonce = request.oauthParamsMap(NonceName)
       val consumerKey = request.oauthParamsMap(ConsumerKeyName)
@@ -178,7 +148,28 @@ protected object DefaultVerifier extends Verifier {
   }
 }
 
-object VerifierFactory {
+protected object VerifierObject {
 
-  def getDefaultOauthVerifier = DefaultVerifier
+  val HmacReadable = "HMAC-SHA1"
+  val TimePrecisionSeconds = 10 * 60
+
+  final val RequestTokenRequiredParams = List[String](ConsumerKeyName, SignatureMethodName, SignatureName,
+    TimestampName, NonceName, VersionName, CallbackName).sorted
+  final val AuthorizeRequiredParams = List[String](ConsumerKeyName, TokenName, UsernameName, PasswordName,
+    SignatureMethodName, SignatureName, TimestampName, NonceName, VersionName).sorted
+  final val AccessTokenRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
+    SignatureName, TimestampName, NonceName, VersionName, VerifierName).sorted
+  final val OauthenticateRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
+    SignatureName, TimestampName, NonceName, VersionName).sorted
+
+  val MessageInvalidConsumerKey = "Consumer Key does not exist."
+  val MessageInvalidToken = "Token with Consumer Key does not exist."
+  val MessageInvalidSignature = "Signature does not match. Signature base: "
+  val MessageInvalidNonce = "Nonce was already used."
+  val MessageInvalidTimestamp = "Timestamp falls outside the tolerated interval."
+  val MessageUnsupportedMethod = "Unsupported Signature Method."
+  val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
+  val MessageNotAuthorized = "Request Token not authorized."
+  val MessageInvalidCredentials = "Invalid user credentials."
+  val MessageUserInexistent = "User does not exist for given Consumer Key and Access Token."
 }
