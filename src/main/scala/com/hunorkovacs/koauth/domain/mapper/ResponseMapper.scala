@@ -5,5 +5,5 @@ import com.hunorkovacs.koauth.domain.KoauthResponse
 
 trait ResponseMapper[ResponseType] {
 
-  def map(source: KoauthResponse)(implicit ec: ExecutionContext): Future[ResponseType]
+  def map(source: KoauthResponse): Future[ResponseType]
 }

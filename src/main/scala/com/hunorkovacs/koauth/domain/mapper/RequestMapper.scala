@@ -5,5 +5,5 @@ import scala.concurrent.{ExecutionContext, Future}
 
 trait RequestMapper[RequestType] {
 
-  def map(source: RequestType)(implicit ec: ExecutionContext): Future[KoauthRequest]
+  def map(source: RequestType): Future[KoauthRequest]
 }
