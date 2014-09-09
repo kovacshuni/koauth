@@ -47,7 +47,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Request Token' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
       val requestAndInfoF = createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -70,7 +70,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Authorize' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
       val requestAndInfoF = createAuthorizeRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Username, Password)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -97,7 +97,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Access Token' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
       val requestAndInfoF = createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header
@@ -122,7 +122,7 @@ class ConsumerServiceSpec extends Specification {
 
   "Creating a 'Oauthenticate' request" should {
     "include all the necessary OAuth parameters." in {
-      val request = KoauthRequest(Method, Url, "", List.empty, List.empty)
+      val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
       val requestAndInfoF = createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret)
       val header = Await.result(requestAndInfoF, 1.0 seconds).header

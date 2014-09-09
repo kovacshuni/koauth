@@ -27,7 +27,7 @@ object KoauthRequest {
 
   def apply(method: String,
             urlWithoutParams: String,
-            authorizationHeader: String,
+            authorizationHeader: Option[String],
             urlParams: List[(String, String)],
             bodyParams: List[(String, String)]) = {
     val params = extractOauthParams(authorizationHeader)
@@ -46,10 +46,11 @@ object KoauthRequest {
       paramList)
   }
 
-  def extractOauthParams(authorizationHeader: String): List[(String, String)] = {
+  def extractOauthParams(authorizationHeader: Option[String]): List[(String, String)] = {
     def withoutQuote(s: String) = s.substring(0, s.length - 1)
 
-    authorizationHeader.stripPrefix("OAuth ")
+    authorizationHeader.getOrElse("")
+      .stripPrefix("OAuth ")
       .split(",")
       .filter(s => s.contains("=\""))
       .map(param => param.trim)

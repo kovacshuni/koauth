@@ -37,7 +37,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
 
       val encodedCallback = urlEncode(Callback)
-      val header = AuthHeader + ", oauth_callback=\"" + encodedCallback + "\""
+      val header = Some(AuthHeader + ", oauth_callback=\"" + encodedCallback + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       var token, secret = ""
       pers.persistRequestToken(anyString, anyString, anyString, anyString) answers { (p, m) =>
@@ -117,8 +117,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       lazy val verifier = mock[Verifier]
       lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
 
-      val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
-        ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
+      val header = Some(AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
+        ", oauth_verifier=\"" + urlEncode(Verifier) + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
       pers.whoAuthorizedRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
@@ -151,8 +151,8 @@ class ProviderServiceSpec extends Specification with Mockito {
       lazy val verifier = mock[Verifier]
       lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
 
-      val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
-        ", oauth_verifier=\"" + urlEncode(Verifier) + "\""
+      val header = Some(AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
+        ", oauth_verifier=\"" + urlEncode(Verifier) + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
       pers.whoAuthorizedRequestToken(ConsumerKey, RequestToken, Verifier) returns successful(None)
@@ -230,10 +230,10 @@ class ProviderServiceSpec extends Specification with Mockito {
       lazy val verifier = mock[Verifier]
       lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
 
-      val header = AuthHeader +
+      val header = Some(AuthHeader +
         ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
         ", username=\"" + urlEncode(Username) + "\"" +
-        ", password=\"" + urlEncode(Password) + "\""
+        ", password=\"" + urlEncode(Password) + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAuthorize(request) returns successful(VerificationOk)
       var verifierKey = ""
@@ -296,7 +296,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       lazy val verifier = mock[Verifier]
       lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
 
-      val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\""
+      val header = Some(AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
       pers.getUsername(ConsumerKey, RequestToken) returns successful(Some(Username))
@@ -329,7 +329,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       lazy val verifier = mock[Verifier]
       lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
 
-      val header = AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\""
+      val header = Some(AuthHeader + ", oauth_token=\"" + urlEncode(RequestToken) + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
       pers.getUsername(ConsumerKey, RequestToken) returns successful(None)
@@ -375,5 +375,5 @@ class ProviderServiceSpec extends Specification with Mockito {
     }
   }
 
-  private def emptyRequest = KoauthRequest("", "", "", List.empty, List.empty)
+  private def emptyRequest = KoauthRequest("", "", None, List.empty, List.empty)
 }

@@ -17,19 +17,22 @@ class RequestSpec extends Specification {
 
   "Extracting OAuth params" should {
     "extract normal parameters separated with commas&spaces." in {
-      extractOauthParams(HeaderWithSpace) must equalTo(OauthParamsList)
+      extractOauthParams(Some(HeaderWithSpace)) must equalTo(OauthParamsList)
     }
     "extract normal parameters sepatated by commas." in {
-      extractOauthParams(HeaderWithSpace.replaceAll(", ", ",")) must equalTo(OauthParamsList)
+      extractOauthParams(Some(HeaderWithSpace.replaceAll(", ", ","))) must equalTo(OauthParamsList)
     }
     "extract empty values." in {
-      extractOauthParams("OAuth oauth_token=\"\"") must equalTo(List(("oauth_token", "")))
+      extractOauthParams(Some("OAuth oauth_token=\"\"")) must equalTo(List(("oauth_token", "")))
     }
     "extract totally empty header." in {
-      extractOauthParams("") must equalTo(List.empty[(String, String)])
+      extractOauthParams(Some("")) must equalTo(List.empty[(String, String)])
+    }
+    "extract not existing header." in {
+      extractOauthParams(None) must equalTo(List.empty[(String, String)])
     }
     "discard irregular words." in {
-      extractOauthParams("Why is this here,oauth_token=\"123\",And this?") must
+      extractOauthParams(Some("Why is this here,oauth_token=\"123\",And this?")) must
       equalTo(List(("oauth_token", "123")))
     }
   }
