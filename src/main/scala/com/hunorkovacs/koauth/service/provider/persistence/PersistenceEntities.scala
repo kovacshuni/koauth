@@ -19,6 +19,3 @@ case class AccessToken(consumerKey: String,
 case class Nonce(nonce: String,
                  consumerKey: String,
                  token: String)
-
-case class User(username: String,
-                password: String)

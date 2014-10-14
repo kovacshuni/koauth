@@ -62,18 +62,6 @@ abstract class PersistenceSpec(val pers: Persistence) extends Specification {
   }
 
   "Getting who authorized a Request Token " should {
-    "return the username if the token has been authorized before." in {
-      val consumerKey = generateTokenAndSecret._1
-      val (requestToken, requestTokenSecret) = generateTokenAndSecret
-      val verifier = generateVerifier
-      val username = generateNonce
-      val callback = "oob"
-
-      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 seconds)
-      ready(pers.authorizeRequestToken(consumerKey, requestToken, username, verifier), 1.0 seconds)
-
-      pers.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) must beEqualTo(Some(username)).await
-    }
     "return None if the token has never been authorized." in {
       val consumerKey = generateTokenAndSecret._1
       val (requestToken, requestTokenSecret) = generateTokenAndSecret
@@ -83,17 +71,6 @@ abstract class PersistenceSpec(val pers: Persistence) extends Specification {
       ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 seconds)
 
       pers.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) must beEqualTo(None).await
-    }
-    "return None if the token has been authorized with a different verifier." in {
-      val consumerKey = generateTokenAndSecret._1
-      val (requestToken, requestTokenSecret) = generateTokenAndSecret
-      val callback = "oob"
-      val username = generateNonce
-
-      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 seconds)
-      ready(pers.authorizeRequestToken(consumerKey, requestToken, username, generateVerifier), 1.0 seconds)
-
-      pers.whoAuthorizedRequestToken(consumerKey, requestToken, generateVerifier) must beEqualTo(None).await
     }
     "return None if the token does not exist." in {
       val consumerKey = generateTokenAndSecret._1

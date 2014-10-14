@@ -20,10 +20,6 @@ class ExampleMemoryPersistence(override protected val ec: ExecutionContext) exte
     AccessToken("OmFjJKNqU4v791CWj6QKaBaiEep0WBxJ", "NDW4H8pFTthDV7kmSkdyYDmiBspabYEW",
       "e3lqNSPq1hU6v7FFnq6p6die6pFIYJU0", "admin")
   )
-
-  override val users = ListBuffer[User](
-    User("admin", "admin")
-  )
 }
 
 class InMemoryPersistence(protected val ec: ExecutionContext) extends Persistence {
@@ -34,30 +30,10 @@ class InMemoryPersistence(protected val ec: ExecutionContext) extends Persistenc
   val requestTokens = ListBuffer.empty[RequestToken]
   val accessTokens = ListBuffer.empty[AccessToken]
   val nonces = ListBuffer.empty[Nonce]
-  val users = ListBuffer.empty[User]
 
   override def nonceExists(nonce: String, consumerKey: String, token: String): Future[Boolean] = {
     Future {
       nonces.exists(p => nonce == p.nonce && consumerKey == p.consumerKey && token == p.token)
-    }
-  }
-
-  override def authorizeRequestToken(consumerKey: String, requestToken: String, verifierUsername: String, verifier: String): Future[Unit] = {
-    Future {
-      val searchedRequestToken =
-        requestTokens.find(p => consumerKey == p.consumerKey && requestToken == p.requestToken).get
-      val verifiedToken = RequestToken(consumerKey, requestToken, searchedRequestToken.requestTokenSecret,
-        searchedRequestToken.callback, Some(verifierUsername), Some(verifier))
-      requestTokens.update(requestTokens.indexOf(searchedRequestToken), verifiedToken)
-    }
-  }
-
-  override def authenticate(username: String, password: String): Future[Boolean] = {
-    Future {
-      users.find(u => username == u.username && password == u.password) match {
-        case None => false
-        case Some(user) => true
-      }
     }
   }
 

@@ -22,8 +22,6 @@ class ConsumerServiceSpec extends Specification {
   val Signature = "tnnArxj06cWHq44gCs1OSKk/jLY="
   val Timestamp = "1318622958"
   val Callback = "https://twitter.com/callback"
-  val Username = "username123"
-  val Password = "password!@#"
   val Verifier = "9f38h8hf83h22#$%@!"
   val OauthParamsList = List(("oauth_consumer_key", ConsumerKey),
     (ConsumerSecretName, ConsumerSecret),
@@ -54,33 +52,6 @@ class ConsumerServiceSpec extends Specification {
 
       header must contain("oauth_callback=\"" + urlEncode(Callback) + "\"") and {
         header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"")
-      } and {
-        header must contain(", oauth_nonce=\"")
-      } and {
-        header must contain(", oauth_signature=\"")
-      } and {
-        header must contain(", oauth_signature_method=\"HMAC-SHA1\"")
-      } and {
-        header must contain(", oauth_timestamp=\"")
-      } and {
-        header must contain(", oauth_version=\"1.0\"")
-      }
-    }
-  }
-
-  "Creating a 'Authorize' request" should {
-    "include all the necessary OAuth parameters." in {
-      val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
-
-      val requestAndInfoF = createAuthorizeRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Username, Password)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
-
-      header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
-        header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
-      } and {
-        header must contain("username=\"" + urlEncode(Username) + "\"")
-      } and {
-        header must contain("password=\"" + urlEncode(Password) + "\"")
       } and {
         header must contain(", oauth_nonce=\"")
       } and {

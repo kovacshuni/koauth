@@ -15,8 +15,6 @@ trait Verifier {
   def verifyForAccessToken(request: KoauthRequest): Future[Verification]
 
   def verifyForOauthenticate(request: KoauthRequest): Future[Verification]
-
-  def verifyForAuthorize(request: KoauthRequest): Future[Verification]
 }
 
 protected class CustomVerifier(private val persistence: Persistence,
@@ -60,29 +58,6 @@ protected class CustomVerifier(private val persistence: Persistence,
                 }
               }
           }
-        }
-    }
-  }
-
-  def verifyForAuthorize(request: KoauthRequest): Future[Verification] = {
-    Future(verifyRequiredParams(request, AuthorizeRequiredParams)) flatMap {
-      case nok: VerificationNok => successful(nok)
-      case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
-        persistence.getConsumerSecret(consumerKey) flatMap {
-          case None => successful(VerificationFailed(MessageInvalidConsumerKey))
-          case Some(someConsumerSecret) =>
-            val token = request.oauthParamsMap(TokenName)
-            persistence.getRequestTokenSecret(consumerKey, token) flatMap {
-              case None => successful(VerificationFailed(MessageInvalidToken))
-              case Some(someTokenSecret) =>
-                val username = request.oauthParamsMap(UsernameName)
-                val password = request.oauthParamsMap(PasswordName)
-                persistence.authenticate(username, password) flatMap {
-                  case false => successful(VerificationFailed(MessageInvalidCredentials))
-                  case true => fourVerifications(request, someConsumerSecret, token, someTokenSecret)
-                }
-            }
         }
     }
   }
@@ -155,8 +130,6 @@ protected object VerifierObject {
 
   final val RequestTokenRequiredParams = List[String](ConsumerKeyName, SignatureMethodName, SignatureName,
     TimestampName, NonceName, VersionName, CallbackName).sorted
-  final val AuthorizeRequiredParams = List[String](ConsumerKeyName, TokenName, UsernameName, PasswordName,
-    SignatureMethodName, SignatureName, TimestampName, NonceName, VersionName).sorted
   final val AccessTokenRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
     SignatureName, TimestampName, NonceName, VersionName, VerifierName).sorted
   final val OauthenticateRequiredParams = List[String](ConsumerKeyName, TokenName, SignatureMethodName,
@@ -170,6 +143,5 @@ protected object VerifierObject {
   val MessageUnsupportedMethod = "Unsupported Signature Method."
   val MessageParameterMissing = "OAuth parameter is missing, or duplicated. Difference: "
   val MessageNotAuthorized = "Request Token not authorized."
-  val MessageInvalidCredentials = "Invalid user credentials."
   val MessageUserInexistent = "User does not exist for given Consumer Key and Access Token."
 }

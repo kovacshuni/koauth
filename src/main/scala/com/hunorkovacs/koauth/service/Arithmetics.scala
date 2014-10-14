@@ -78,11 +78,6 @@ object Arithmetics {
     new ResponseOk(encodePairSortConcat(list))
   }
 
-  def createAuthorizeResponse(token: String, verifier: String): ResponseOk = {
-    val list = List((TokenName, token), (VerifierName, verifier))
-    new ResponseOk(encodePairSortConcat(list))
-  }
-
   def createAccesTokenResponse(token: String, secret: String): ResponseOk = {
     val list = List((TokenName, token), (TokenSecretName, secret))
     new ResponseOk(encodePairSortConcat(list))

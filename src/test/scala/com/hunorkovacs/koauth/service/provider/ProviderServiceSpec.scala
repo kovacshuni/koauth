@@ -26,7 +26,6 @@ class ProviderServiceSpec extends Specification with Mockito {
   val RequestToken = "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"
   val Verifier = "hfdp7dh39dks9884"
   val Username = "username123"
-  val Password = "password!@#"
 
   implicit private val ec = ExecutionContext.Implicits.global
 
@@ -218,72 +217,6 @@ class ProviderServiceSpec extends Specification with Mockito {
         there was no(pers).persistNonce(anyString, anyString, anyString)
       } and {
         there was no(pers).whoAuthorizedRequestToken(anyString, anyString, anyString)
-      } and {
-        response must beEqualTo(ResponseBadRequest(MessageParameterMissing))
-      }
-    }
-  }
-
-  "'Authorize Token' request" should {
-    "authorize token by generating verifier for user." in {
-      implicit lazy val pers = mock[Persistence]
-      lazy val verifier = mock[Verifier]
-      lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
-
-      val header = Some(AuthHeader +
-        ", oauth_token=\"" + urlEncode(RequestToken) + "\"" +
-        ", username=\"" + urlEncode(Username) + "\"" +
-        ", password=\"" + urlEncode(Password) + "\"")
-      val request = KoauthRequest("", "", header, List.empty, List.empty)
-      verifier.verifyForAuthorize(request) returns successful(VerificationOk)
-      var verifierKey = ""
-      pers.authorizeRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
-        Matchers.eq(Username), anyString) answers { (p, m) =>
-        p match {
-          case a: Array[Object] =>
-            a(3) match { case s: String => verifierKey = s }
-        }
-        successful(Unit)
-      }
-      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken)) returns successful(Unit)
-
-      val response = Await.result(service.authorize(request), 1.0 seconds)
-
-      there was one(pers).authorizeRequestToken(ConsumerKey, RequestToken, Username, verifierKey) and {
-        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))
-      } and {
-        response must beEqualTo(ResponseOk("oauth_token=" + urlEncode(RequestToken) + "&" +
-          "oauth_verifier=" + urlEncode(verifierKey)))
-      }
-    }
-    "return Unauthorized and should not authorize if verification returns unauthorized." in {
-      implicit lazy val pers = mock[Persistence]
-      lazy val verifier = mock[Verifier]
-      lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
-
-      val request = emptyRequest
-      verifier.verifyForAuthorize(request) returns successful(VerificationFailed(MessageInvalidCredentials))
-
-      val response = Await.result(service.authorize(request), 1.0 seconds)
-
-      there was no(pers).authorizeRequestToken(anyString, anyString, anyString, anyString) and {
-        there was no(pers).persistNonce(anyString, anyString, anyString)
-      } and {
-        response must beEqualTo(ResponseUnauthorized(MessageInvalidCredentials))
-      }
-    }
-    "return Bad Request and should not authorize, if verification returns unsupported." in {
-      implicit lazy val pers = mock[Persistence]
-      lazy val verifier = mock[Verifier]
-      lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
-
-      val request = emptyRequest
-      verifier.verifyForAuthorize(request) returns successful(VerificationUnsupported(MessageParameterMissing))
-
-      val response = Await.result(service.authorize(request), 1.0 seconds)
-
-      there was no(pers).authorizeRequestToken(anyString, anyString, anyString, anyString) and {
-        there was no(pers).persistNonce(anyString, anyString, anyString)
       } and {
         response must beEqualTo(ResponseBadRequest(MessageParameterMissing))
       }

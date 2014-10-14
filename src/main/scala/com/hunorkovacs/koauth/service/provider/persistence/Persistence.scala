@@ -32,26 +32,6 @@ trait Persistence {
   def getConsumerSecret(consumerKey: String): Future[Option[String]]
 
   /**
-   * You should be able to find a RequestToken by its Consumer Key and Request Token.
-   * This method should complete and persist (update) that already exisiting record with the verifying username and verifier key.
-   * If the respective Request Token doesn't exist or it's already verified this should fail somehow.
-   *
-   * @param verifierUsername The username who is authorizing the token.
-   * @param verifier The verifier key that was generated during the authorization.
-   */
-  def authorizeRequestToken(consumerKey: String,
-                            requestToken: String,
-                            verifierUsername: String,
-                            verifier: String): Future[Unit]
-
-  /**
-   * Simple authentication using directly username and password.
-   *
-   * @return true if this user exists with the respective password, false otherwise
-   */
-  def authenticate(username: String, password: String): Future[Boolean]
-
-  /**
    * @return The associated username to the token in a Some, otherwise a None.
    */
   def whoAuthorizedRequestToken(consumerKey: String,

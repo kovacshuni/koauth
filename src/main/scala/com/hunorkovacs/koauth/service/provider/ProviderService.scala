@@ -14,8 +14,6 @@ trait ProviderService {
 
   def requestToken(request: KoauthRequest): Future[KoauthResponse]
 
-  def authorize(request: KoauthRequest): Future[KoauthResponse]
-
   def accessToken(request: KoauthRequest): Future[KoauthResponse]
 
   def oauthenticate(request: KoauthRequest): Future[Either[KoauthResponse, String]]
@@ -43,24 +41,6 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
           persistence.persistRequestToken(consumerKey, token, secret, callback)
         } map { _ =>
           createRequestTokenResponse(token, secret, callback)
-        }
-    }
-  }
-
-  def authorize(request: KoauthRequest): Future[KoauthResponse] = {
-    verifyForAuthorize(request) flatMap {
-      case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
-      case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
-      case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
-        val requestToken = request.oauthParamsMap(TokenName)
-        val username = request.oauthParamsMap(UsernameName)
-        val verifier = generateVerifier
-        val nonce = request.oauthParamsMap(NonceName)
-        persistence.persistNonce(nonce, consumerKey, requestToken) flatMap { _ =>
-          persistence.authorizeRequestToken(consumerKey, requestToken, username, verifier)
-        } map { _ =>
-          createAuthorizeResponse(requestToken, verifier)
         }
     }
   }

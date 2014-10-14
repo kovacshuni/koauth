@@ -14,6 +14,4 @@ object OauthParams {
   val CallbackConfirmedName = "oauth_callback_confirmed"
   val VerifierName = "oauth_verifier"
   val RealmName = "realm"
-  val UsernameName = "username"
-  val PasswordName = "password"
 }

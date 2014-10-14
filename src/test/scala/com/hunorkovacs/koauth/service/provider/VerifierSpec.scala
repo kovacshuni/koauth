@@ -13,8 +13,6 @@ import scala.concurrent.duration._
 
 class VerifierSpec extends Specification with Mockito {
 
-  val Username = "username123"
-  val Password = "username!@#"
   val SignatureBase = "POST&https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json" +
     "&include_entities%3Dtrue" +
     "%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog" +
@@ -34,17 +32,6 @@ class VerifierSpec extends Specification with Mockito {
     "%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb" +
     "%26oauth_version%3D1.0" +
     "%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521"
-  val BaseWithPassword = "POST&https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json" +
-    "&include_entities%3Dtrue" +
-    "%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog" +
-    "%26oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg" +
-    "%26oauth_signature_method%3DHMAC-SHA1" +
-    "%26oauth_timestamp%3D1318622958" +
-    "%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb" +
-    "%26oauth_version%3D1.0" +
-    "%26password%3D" + urlEncode(Password) +
-    "%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521" +
-    "%26username%3D" + urlEncode(Username)
   val ConsumerSecret = "kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw"
   val TokenSecret = "LswwdoUaIvS8ltyTt5jkRh4J50vUPVVHtR2YPi5kE"
   val Signature = "tnnArxj06cWHq44gCs1OSKk/jLY="
@@ -71,9 +58,6 @@ class VerifierSpec extends Specification with Mockito {
     ("oauth_signature", Signature2),
     ("oauth_callback", "https://twitter.com/callback"),
     ("oauth_version", "1.0"))
-  val ParamsListWithPassword = ParamsList
-    .:::(List(("username", Username),
-      ("password", Password)))
 
   implicit private val ec = ExecutionContext.Implicits.global
 
@@ -309,55 +293,6 @@ class VerifierSpec extends Specification with Mockito {
     def getSecret(consumerKey: String, token: String) = {
       if (ConsumerKey == consumerKey && Token == token) successful(Some(TokenSecret))
       else successful(None)
-    }
-  }
-
-  "Verifying for authorization" should {
-    "return positive if user credentials are valid, consumer key with token registered." in new commonMocks {
-      val time = now
-      val signatureBase = actualizeSignatureBase(BaseWithPassword, time)
-      val signature = sign(signatureBase, ConsumerSecret, TokenSecret)
-      val paramsList = actualizeParamsList(ParamsListWithPassword, signature, time)
-      val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
-      mockedPer.getRequestTokenSecret(ConsumerKey, Token) returns successful(Some(TokenSecret))
-      mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
-      mockedPer.authenticate(Username, Password) returns successful(true)
-
-      verifier.verifyForAuthorize(request) must equalTo (VerificationOk).await
-    }
-    "return negative if user credentials are invalid, consumer key with token registered." in new commonMocks {
-      val time = now
-      val signatureBase = actualizeSignatureBase(BaseWithPassword, time)
-      val signature = sign(signatureBase, ConsumerSecret, TokenSecret)
-      val paramsList = actualizeParamsList(ParamsListWithPassword, signature, time)
-      val request = KoauthRequest(Method, Url, UrlParams, BodyParams, paramsList)
-      mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
-      mockedPer.getRequestTokenSecret(ConsumerKey, Token) returns successful(Some(TokenSecret))
-      mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
-      mockedPer.authenticate(Username, Password) returns successful(false)
-
-      verifier.verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidCredentials)).await
-    }
-    "return negative if consumer key not registered, user credentials are ok." in new commonMocks {
-      val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsListWithPassword)
-      mockedPer.getConsumerSecret(ConsumerKey) returns successful(None)
-
-      verifier.verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidConsumerKey)).await
-    }
-    "return negative if Consumer Key with Request Token not registered, user credentials are ok." in new commonMocks {
-      val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsListWithPassword)
-      mockedPer.getConsumerSecret(ConsumerKey) returns successful(Some(ConsumerSecret))
-      mockedPer.getRequestTokenSecret(ConsumerKey, Token) returns successful(None)
-
-      verifier.verifyForAuthorize(request) must equalTo (VerificationFailed(MessageInvalidToken)).await
-    }
-    "return negative if request parameter is missing or duplicate." in new commonMocks {
-      val params = ParamsListWithPassword.filterNot(p => p._1 == "oauth_consumer_key")
-      val request = KoauthRequest("", "", List.empty, List.empty, params)
-      mockedPer.authenticate(Username, Password) returns successful(false)
-
-      verifier.verifyForAuthorize(request) must equalTo (VerificationUnsupported(MessageParameterMissing + "oauth_consumer_key")).await
     }
   }
 
