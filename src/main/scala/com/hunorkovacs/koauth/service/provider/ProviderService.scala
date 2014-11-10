@@ -6,6 +6,7 @@ import com.hunorkovacs.koauth.service.Arithmetics._
 import VerifierObject.{MessageNotAuthorized, MessageUserInexistent}
 import com.hunorkovacs.koauth.service.{DefaultTokenGenerator, TokenGenerator}
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
@@ -24,11 +25,14 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
                                       private val generator: TokenGenerator,
                                       private val ec: ExecutionContext) extends ProviderService {
 
-  implicit private def implicitEc = ec
+  implicit private val implicitEc = ec
+  private val logger = LoggerFactory.getLogger(classOf[CustomProviderService])
+
   import oauthVerifier._
   import generator._
 
   def requestToken(request: KoauthRequest): Future[KoauthResponse] = {
+    logger.debug("Request Token request called. Incoming request is {}", request)
     verifyForRequestToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -46,6 +50,7 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
   }
 
   def accessToken(request: KoauthRequest): Future[KoauthResponse] = {
+    logger.debug("Access Token request called. Incoming request is {}", request)
     verifyForAccessToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -68,6 +73,7 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
   }
 
   def oauthenticate(request: KoauthRequest): Future[Either[ResponseNok, String]] = {
+    logger.debug("Accessing Protected Resources request called. Incoming request is {}", request)
     verifyForOauthenticate(request) flatMap {
       case VerificationUnsupported(message) => successful(Left(new ResponseBadRequest(message)))
       case VerificationFailed(message) => successful(Left(new ResponseUnauthorized(message)))
@@ -76,7 +82,10 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
         val token = request.oauthParamsMap(TokenName)
         val nonce = request.oauthParamsMap(NonceName)
         persistence.getUsername(consumerKey, token) flatMap {
-          case None => successful(Left(new ResponseUnauthorized(MessageUserInexistent)))
+          case None =>
+            logger.debug("User does not exist for Consumer Key {} and Access Token {}. Request id: {}",
+              consumerKey, token, request.id)
+            successful(Left(new ResponseUnauthorized(MessageUserInexistent)))
           case Some(username) => persistence.persistNonce(nonce, consumerKey, token).map(_ => Right(username))
         }
     }
@@ -85,12 +94,16 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
 
 object ProviderServiceFactory {
 
+  private val logger = LoggerFactory.getLogger(ProviderServiceFactory.getClass)
+
   def createProviderService(persistence: Persistence, generator: TokenGenerator, ec: ExecutionContext): ProviderService = {
+    logger.debug("Creating ProviderService with custom Persistence, TokenGenerator and ExecutionContext.")
     val verifier = new CustomVerifier(persistence, ec)
     new CustomProviderService(verifier, persistence, generator, ec)
   }
 
   def createProviderService(persistence: Persistence, ec: ExecutionContext): ProviderService = {
+    logger.debug("Creating ProviderService with custom Persistence and ExecutionContext.")
     val verifier = new CustomVerifier(persistence, ec)
     new CustomProviderService(verifier, persistence, DefaultTokenGenerator, ec)
   }

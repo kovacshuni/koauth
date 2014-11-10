@@ -1,5 +1,7 @@
 package com.hunorkovacs.koauth.domain
 
+import java.util.UUID
+
 import com.hunorkovacs.koauth.service.Arithmetics.urlDecode
 
 class KoauthRequest private(val method: String,
@@ -8,7 +10,17 @@ class KoauthRequest private(val method: String,
                             val bodyParams: List[(String, String)],
                             val oauthParamsList: List[(String, String)]) {
 
+  val id = UUID.randomUUID().toString
   val oauthParamsMap: Map[String, String] = oauthParamsList.toMap
+
+  override def toString = {
+    "KoauthRequest with id: " + id +
+      "; method: " + method +
+      "; URL without parameters: " + urlWithoutParams +
+      "; URL parameters: " + urlParams +
+      "; body parameters" + bodyParams +
+      "; Oauth parameters from Authorization header: " + oauthParamsList
+  }
 }
 
 object KoauthRequest {

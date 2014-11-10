@@ -4,6 +4,7 @@ import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.domain._
 import com.hunorkovacs.koauth.service.Arithmetics._
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
+import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future.successful
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,15 +22,21 @@ protected class CustomVerifier(private val persistence: Persistence,
                                private val ec: ExecutionContext) extends Verifier {
 
   implicit private val implicitEc = ec
+  private val EmptyString = ""
+  private val logger = LoggerFactory.getLogger(classOf[CustomVerifier])
+
   import VerifierObject._
 
   def verifyForRequestToken(request: KoauthRequest): Future[Verification] = {
     Future(verifyRequiredParams(request, RequestTokenRequiredParams)) flatMap {
       case nok: VerificationNok => successful(nok)
       case VerificationOk =>
-        persistence.getConsumerSecret(request.oauthParamsMap(ConsumerKeyName)) flatMap {
-          case None => successful(VerificationFailed(MessageInvalidConsumerKey))
-          case Some(consumerSecret) => fourVerifications(request, consumerSecret, "", "")
+        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
+        persistence.getConsumerSecret(consumerKey) flatMap {
+          case None =>
+            logger.debug("Consumer Key {} does not exist. Request id: {}{}", consumerKey, request.id, "")
+            successful(VerificationFailed(MessageInvalidConsumerKey))
+          case Some(consumerSecret) => fourVerifications(request, consumerSecret, EmptyString, EmptyString)
         }
     }
   }
@@ -49,11 +56,16 @@ protected class CustomVerifier(private val persistence: Persistence,
         val consumerKeyF = Future(request.oauthParamsMap(ConsumerKeyName))
         consumerKeyF flatMap { consumerKey =>
           persistence.getConsumerSecret(consumerKey) flatMap {
-            case None => successful(VerificationFailed(MessageInvalidConsumerKey))
+            case None =>
+              logger.debug("Consumer Key {} does not exist. Request id: {}{}", consumerKey, request.id, "")
+              successful(VerificationFailed(MessageInvalidConsumerKey))
             case Some(someConsumerSecret) =>
               Future(request.oauthParamsMap(TokenName)) flatMap { token =>
                 getSecret(consumerKey, token) flatMap {
-                  case None => successful(VerificationFailed(MessageInvalidToken))
+                  case None =>
+                    logger.debug("Token {} with Consumer Key {} does not exist. Request id: {}",
+                      token, consumerKey, request.id)
+                    successful(VerificationFailed(MessageInvalidToken))
                   case Some(someTokenSecret) => fourVerifications(request, someConsumerSecret, token, someTokenSecret)
                 }
               }
@@ -80,7 +92,11 @@ protected class CustomVerifier(private val persistence: Persistence,
     val computedSignature = sign(signatureBase, consumerSecret, tokenSecret)
     val sentSignature = request.oauthParamsMap(SignatureName)
     if (sentSignature.equals(computedSignature)) VerificationOk
-    else VerificationFailed(MessageInvalidSignature + signatureBase)
+    else {
+      logger.debug("Signature does not match. Given: {}; Computed: {}; Computed signature base: {}; Request id: {}",
+        sentSignature, computedSignature, signatureBase, request.id)
+      VerificationFailed(MessageInvalidSignature + signatureBase)
+    }
   }
 
   def verifyNonce(request: KoauthRequest, token: String): Future[Verification] = {
@@ -91,7 +107,10 @@ protected class CustomVerifier(private val persistence: Persistence,
     } flatMap { args =>
       val (nonce, consumerKey) = args
       persistence.nonceExists(nonce, consumerKey, token) map { exists =>
-        if (exists) VerificationFailed(MessageInvalidNonce)
+        if (exists) {
+          logger.debug("Nonce was already used: {}; Request id: {}{}", nonce, request.id, "")
+          VerificationFailed(MessageInvalidNonce)
+        }
         else VerificationOk
       }
     }
@@ -99,27 +118,40 @@ protected class CustomVerifier(private val persistence: Persistence,
 
   def verifyTimestamp(request: KoauthRequest): Verification = {
     val timestamp = request.oauthParamsMap(TimestampName)
+    val expectedStamp = System.currentTimeMillis() / 1000
     try {
       val actualStamp = timestamp.toLong
-      val expectedStamp = System.currentTimeMillis() / 1000
       if (Math.abs(actualStamp - expectedStamp) <= TimePrecisionSeconds) VerificationOk
       else VerificationFailed(MessageInvalidTimestamp)
     } catch {
-      case nfEx: NumberFormatException => VerificationUnsupported("Invalid timestamp format.")
+      case nfEx: NumberFormatException =>
+        logger.debug("Invalid timestamp format. Given timestamp: {}; Expecting a stamp close to this: {};",
+          timestamp, expectedStamp)
+        logger.debug("Request id was {}", request.id)
+        logger.debug("Exception was: {}", nfEx)
+        VerificationUnsupported("Invalid timestamp format.")
     }
   }
 
   def verifyAlgorithm(request: KoauthRequest): Verification = {
     val signatureMethod = request.oauthParamsMap(SignatureMethodName)
-    if (HmacReadable != signatureMethod) VerificationUnsupported(MessageUnsupportedMethod)
+    if (HmacReadable != signatureMethod) {
+      logger.debug("Unsupported Signature Method. Given: {}; Required: {}. Request id: {}",
+        signatureMethod, HmacReadable, request.id)
+      VerificationUnsupported(MessageUnsupportedMethod)
+    }
     else VerificationOk
   }
 
   def verifyRequiredParams(request: KoauthRequest, requiredParams: List[String]): Verification = {
     val paramsKeys = request.oauthParamsList.map(e => e._1)
     if (requiredParams.equals(paramsKeys.sorted)) VerificationOk
-    else VerificationUnsupported(MessageParameterMissing +
-      (paramsKeys.diff(requiredParams) ::: requiredParams.diff(paramsKeys)).mkString(", "))
+    else {
+      val diff = requiredParams.diff(paramsKeys)
+      logger.debug("Given OAuth parameters are not as required. Given: {}; Required: {}; Request id: {}",
+        paramsKeys, requiredParams, request.id)
+      VerificationUnsupported(MessageParameterMissing + (paramsKeys.diff(requiredParams) ::: diff).mkString(", "))
+    }
   }
 }
 
