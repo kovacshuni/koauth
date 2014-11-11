@@ -131,6 +131,7 @@ class ProviderServiceSpec extends Specification with Mockito {
         }
         successful(Unit)
       }
+      pers.deleteRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken)) returns successful(Unit)
       pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken)) returns successful(Unit)
 
       val response = Await.result(service.accessToken(request), 1.0 seconds)
@@ -139,6 +140,8 @@ class ProviderServiceSpec extends Specification with Mockito {
         there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))
       } and {
         there was one(pers).persistAccessToken(ConsumerKey, accessToken, secret, Username)
+      } and {
+        there was one(pers).deleteRequestToken(ConsumerKey, RequestToken)
       } and {
         response must beEqualTo(ResponseOk("oauth_token=" + urlEncode(accessToken) + "&" +
           "oauth_token_secret=" + urlEncode(secret)))

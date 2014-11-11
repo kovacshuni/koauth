@@ -96,4 +96,11 @@ class InMemoryPersistence(protected val ec: ExecutionContext) extends Persistenc
       Unit
     }
   }
+
+  override def deleteRequestToken(consumerKey: String, requestToken: String): Future[Unit] = {
+    Future {
+      val someToken = requestTokens.find(t => consumerKey == t.consumerKey && requestToken == t.requestToken).get
+      requestTokens -= someToken
+    }
+  }
 }

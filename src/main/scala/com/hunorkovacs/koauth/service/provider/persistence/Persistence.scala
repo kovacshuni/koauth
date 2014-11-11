@@ -46,6 +46,9 @@ trait Persistence {
                          accessTokenSecret: String,
                          username: String): Future[Unit]
 
+  def deleteRequestToken(consumerKey: String,
+                         requestToken: String): Future[Unit]
+
 
   def getRequestTokenSecret(consumerKey: String, requestToken: String): Future[Option[String]]
 

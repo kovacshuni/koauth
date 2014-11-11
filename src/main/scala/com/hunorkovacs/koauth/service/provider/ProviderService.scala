@@ -65,6 +65,7 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
             val nonce = request.oauthParamsMap(NonceName)
             persistence.persistNonce(nonce, consumerKey, requestToken) flatMap { _ =>
               persistence.persistAccessToken(consumerKey, token, secret, username)
+              persistence.deleteRequestToken(consumerKey, requestToken)
             } map { _ =>
               createAccesTokenResponse(token, secret)
             }

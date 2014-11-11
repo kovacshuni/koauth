@@ -41,6 +41,16 @@ abstract class PersistenceSpec(val pers: Persistence) extends Specification {
 
       pers.getRequestTokenSecret(consumerKey, requestToken) must beEqualTo(None).await
     }
+    "return None if the token has existed before but was deleted since." in {
+      val consumerKey = generateTokenAndSecret._1
+      val (requestToken, requestTokenSecret) = generateTokenAndSecret
+      val callback = "oob"
+
+      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 second)
+      ready(pers.deleteRequestToken(consumerKey, requestToken), 1.0 second)
+
+      pers.getRequestTokenSecret(consumerKey, requestToken) must beEqualTo(None).await
+    }
   }
 
   "Getting an Access Token Secret" should {
