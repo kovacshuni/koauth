@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.domain.mapper
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import com.hunorkovacs.koauth.domain.KoauthResponse
 
 trait ResponseMapper[ResponseType] {

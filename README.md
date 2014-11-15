@@ -1,112 +1,76 @@
-# KOAuth - Asynchronous Scala Library for OAuth 1.0a
-
-**Not released yet. Work is in progress. Not ready for any kind of testing or using in production.**
+# KOAuth - OAuth 1.0a Provider & Consumer Library in Scala
 
 This library aids calculations according to the [OAuth 1.0a](http://oauth.net/core/1.0a/)
 specifications for both HTTP server and client.
 
-* Provider library: Verifying and responding to HTTP requests according to OAuth 1.0 specifications.
+* Provider library: Verifying and responding to HTTP requests according to OAuth 1.0a specifications.
 * Consumer library: Complementing HTTP requests to be sent with OAuth parameters. 
 
-## Set up your project dependencies
+## Quick how to
 
-If you're using SBT, clone this project, build and publish it to your local repository and
-add to your project as a dependency.
+### Dependencies
 
-Building and publishing locally:
-
-```
-git clone https://github.com/kovacshuni/koauth.git
-cd koauth
-sbt
-compile
-publish-local
-```
-
-I also don't understand yet all these versions of Scala and SBT and numbers concatenated to
-artifact names with underscores and the single/double percent stuff, so i just hardcoded 2.11.
-
-Add as dependency by editing your `build.sbt` and adding the following:
-
-```scala
-libraryDependencies ++= Seq(
-  "com.hunorkovacs" % "koauth_2.11" % "1.0"
-)
-```
-
-Or if you want to be on the bleeding edge using snapshots:
-
-```scala
-libraryDependencies ++= Seq(
-  "com.hunorkovacs" % "koauth_2.11" % "1.0-SNAPSHOT"
-)
-```
-
-koauth is available on Maven Central. No it's not. Not yet. But i'll try to publish it soon.
+koauth is available on Maven Central. Add the following repository and dependency in your `build.sbt`:
 
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
-```
 
-or 
+libraryDependencies += "com.hunorkovacs" % "koauth" % "1.0"
+```
+### Persistence
+
+**One must provide an implementation for the `Persistence` trait***. Oauth 1.0a works with
+tokens & nonces, so this library exposes an interface (trait) that you must implement and connect
+to your database in your own way. You could use any kind of underlying database as you whish,
+just need to respect the signature of the `Persistence` traits methods and the lib will call them.
+
+There is one implementation provided by the koauth library itself, as a guideline
+but it is *in-memory*, and all the kept data is lost after stopping the application.
+
+You then provide this persistence when creating your provider service:
 
 ```scala
-resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/snapshots/"
+val persistence = new ExampleMemoryPersistence()
+val providerService = ProviderServiceFactory.createProviderService(persistence, executionContext)
 ```
 
-## Asynchronous
+### Request mapping
 
-*Futures* were used everywhere possible in the code, trying to make the every call
-independent to run in parallel. You will need to supply an `ExecutionContext` for
-the `OauthService` functions:
-
-```scala
-import play.api.libs.concurrent.Execution.Implicits.defaultContext
-```
-
-## Step By Step Example - Provider
-
-How to integrate OAuth verification in your REST API server, using this library.
-
-There is also an sample project: [koauth-sample-play](https://github.com/kovacshuni/koauth-sample-play)
-that you can most easily follow. It is using [Play Framework](http://www.playframework.com/) 2.2.2
-as web framework, [MongoDB](http://www.mongodb.org/) with [ReactiveMongo](http://reactivemongo.org/)
-to save client credentials and other details. Worth to use as the starting point, because it is
-easier to understand.
-
-### Define the HTTP paths required by OAuth 1
-
-* POST to /oauth/request-token
-* POST to /oauth/authorize
-* POST to /oauth/access-token
-
-Your exact paths may differ, but for a proper OAuth 1 you will need to define at least 3 for these above.
-You will probably want paths, to register a new user, verify their email, read the rights a token gives
-access to, and invalidate tokens but that is not mandatory here, but your app's part to do.
-
-### Mapping your HTTP requests and responses
-
-You will need to **implement the `OauthRequestMapper` and `OauthResponseMapper`** to map your web
-framework's HTTP request and response types to the library's independent types.
-After that, you can easily call the service methods of the koauth library.
-You may also want to catch the exception that may occur during authentication and return your specific
-HTTP responses accordingly.
+**Implement the `RequestMapper` and `ResponseMapper`** as needed to map your HTTP client's
+request and response types to koauth lib's independent types.
 
 ```scala
-object PlayToOauthRequestMapper extends OauthRequestMapper[Request[AnyContent]] {
-  override def map(source: Request[AnyContent])(implicit ec: ExecutionContext): Future[OauthRequest] = {
+class NettyRequestMapper(private val ec: ExecutionContext) extends RequestMapper[HttpRequest] {
+
+  implicit private val implicitEc = ec
+
+  override def map(source: HttpRequest): Future[KoauthRequest] = {
     Future {
-      OauthRequest(source.headers("Authorization"),
-        "http://" + source.host.toLowerCase + "/" + source.path,
-        source.method.toUpperCase,
-        source.queryString)
+      val method = source.getMethod.getName
+      val queryStringDecoder = new QueryStringDecoder(source.getUri)
+      val urlWithoutParams = "http://" + source.headers.get(HttpHeaders.Names.HOST) + queryStringDecoder.getPath
+      val authHeader = Option(source.headers.get(AUTHORIZATION))
+      val urlParams = queryStringDecoder.getParameters.asScala.mapValues(_.get(0)).toList
+      val bodyParams = List.empty
+
+      KoauthRequest(method, urlWithoutParams, authHeader, urlParams, bodyParams)
     }
   }
 }
 
-object OauthToPlayResponseMapper extends OauthResponseMapper[SimpleResult] {
-  override def map(source: Future[OauthResponseOk])(implicit ec: ExecutionContext): Future[SimpleResult] = {
-    source.map(r => Ok(r.body))
+class OauthResponseMapper(private val ec: ExecutionContext) extends ResponseMapper[Result] {
+
+  implicit private val implicitEc = ec
+
+  override def map(source: KoauthResponse): Future[Result] = {
+    Future {
+      source match {
+        case ResponseOk(body) => Ok(body)
+        case ResponseUnauthorized(body) => Unauthorized(body)
+        case ResponseBadRequest(body) => BadRequest(body)
+        case _ => NotImplemented
+      }
+    }
   }
 }
 
@@ -115,71 +79,89 @@ object OauthController extends Controller {
    * Mapped to POST /oauth/request-token
    */
   def requestToken = Action.async { request =>
-    try {
-      val oauthRequestF = PlayToOauthRequestMapper.map(request)
-
-      val oauthResponseF = OauthService.requestToken(oauthRequestF)
-
-      OauthToPlayResponseMapper.map(oauthResponseF)
-    } catch {
-      case badRequestEx: OauthBadRequestException => Future(BadRequest(badRequestEx.message))
-      case unauthorizedEx: OauthUnauthorizedException => Future(Unauthorized(unauthorizedEx.message))
-    }
+    requestMapper.map(request)
+      .flatMap(oauthProvider.requestToken)
+      .flatMap(responseMapper.map)
   }
 }
 ```
 
-### Calling the OauthService
+## Provider
 
-There are service functions defined in `OauthService` for every necessary step in OAuth 1.
-Please read [the documentation](http://oauth.net/core/1.0a/) of Oauth 1, understand the process
+There is also an sample project: [koauth-sample-play](https://github.com/kovacshuni/koauth-sample-play)
+that is using [Play Framework](http://www.playframework.com/). This is something you can most easily follow.
+Worth to use as the starting point, because it is easier to understand.
+
+### Define the HTTP paths required by OAuth 1.0a
+
+* POST to /oauth/request-token
+* POST to /oauth/access-token
+
+Your exact paths may differ, but for a proper OAuth 1.0a you will need to define at least two HTTP endpoints.
+You will probably want one or more endpoints for authorizing Request Tokens, but that is not a necessity for
+this library as even the Oauth1.0a specs say that is custom and for you to figure out.
+
+There are service functions defined in `ProviderService` for every necessary step in OAuth 1.0a.
+Please read [the documentation](http://oauth.net/core/1.0a/) of Oauth 1.0a, understand the process
 of obtaining an access token and using one for authenticating requests. Implement your controllers
 for the specification's steps and use the service's methods.
-
-### Persistence
-
-Another **must is to provide an implementation for the `OauthPersistence` trait*** and relate to
-the object in your controller class implicitly (or pass to service methods explicitly).
-
-```scala
-implicit val persistenceService: OauthPersistence = new InMemoryOauthPersistence()
-```
-
-There is one implementation provided by the koauth library itself, as a guideline 
-but it is *in-memory*, and all the kept data is lost after stopping the application.
 
 ## Step By Step Example - Consumer
 
 How to build HTTP requests that should be OAuth signed, using this library.
 
-todo write this readme part
+The consumer service doesn't need a database, it just signs requests on the fly.
+You create one by using the constructor:
 
-## Fully, absolutely RESTful
+```scala
+val ec = play.api.libs.concurrent.Execution.Implicits.defaultContext
+new DefaultConsumerService(ec)
+```
 
-At the step where the *request token* is exchanged to an *access token*, there is a part where
-the user logs in to the service provider (if not logged in yet), reads the rights that the token
-will have permission to use and authorizes the *request token*. This will be permitted
-to be exchanged to an *access token* with the corresponding rights to use.
+Then you can just simply sign requests by calling the service methods:
 
-This step is called *authorize*.
+```
+val requestWithInfo = consumerService.createOauthenticatedRequest(request, ....)
+```
 
-Now this part is not strictly specified how to be done, but most of the documentations I found
-are talking about logging in the service provider website and clicking an, for example,
-approve button, then that website redirecting them and so on.
+It will return you the request with completed nonce and other parameters, the Authorization header
+you have to add to your request and the Signature Base string which could help you debug unhappy situations.
+There are separate service methods for different types of Oauth 1.0a requests.
 
-This library was designed to be able to be used **without the need to pass by the REST API**,
-without directly communicating with a so-called website, reading rights in HTML or clicking buttons.
-So the *authorize* step is done by adding the *username* and *password* as
-additional OAuth parameters to the *Authorization* header of the *authorize* HTTP request.
-No need for verifying any signature in this step. But authenticating the user by the provided 
-username and password. This is
-the only call when we are sending the real password to the application server, it represents
-the part when the user would type their credentials on a website and hitting the log in button.
+## Authorization
 
-Presenting the user with the rights the token is warranted would be another necessity. One should 
-define a REST endpoint that presents these rights, but because this does not expose any
-specific info about any user, it's close to being static (except the list of rights) I left this
-out of the responsabilies of this library. 
+*Authorizing* a Request Token is done in a custom way and it's not incorporated in this lib as
+it is not incorporated in the Oauth 1.0a specs. This is usually done by sending a request that
+contains a username, password and a request token key and the server verifying that and assigning
+a verifier for the respective token if everything was correct. But using a password is not necessary.
+One could authorize with facebook for example: if a valid facebook access token could be acquired,
+one could use that to authorize a request token. This method is totally in your hands.
+
+## Asynchronous
+
+*Futures* were used in the code, trying to make the every call independent to run in parallel.
+You will need to supply an `ExecutionContext` for the provider and consumer services:
+
+```scala
+val persistence = ....
+val ec = play.api.libs.concurrent.Execution.Implicits.defaultContext
+val consumer = new ConsumerService(ec)
+val provider = new ProviderService(persistence, ec)
+```
+
+## Contributing
+
+Just create a pull-request, we'll discuss it, i'll try to be quick.
+
+Building, testing and publishing locally:
+
+```
+git clone https://github.com/kovacshuni/koauth.git
+cd koauth
+sbt
+compile
+publish-local
+```
 
 ## Owner
 
