@@ -15,7 +15,7 @@ koauth is available on Maven Central. Add the following repository and dependenc
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-libraryDependencies += "com.hunorkovacs" % "koauth" % "1.0"
+libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.0"
 ```
 ### Persistence
 
