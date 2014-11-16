@@ -3,7 +3,7 @@
 This library aids calculations according to the [OAuth 1.0a](http://oauth.net/core/1.0a/)
 specifications for both HTTP server and client.
 
-* Provider library: Verifying and responding to HTTP requests according to OAuth 1.0a specifications.
+* Provider library: Verifying and responding to HTTP requests according to specifications.
 * Consumer library: Complementing HTTP requests to be sent with OAuth parameters. 
 
 ## Quick how to
@@ -19,7 +19,7 @@ libraryDependencies += "com.hunorkovacs" % "koauth" % "1.0"
 ```
 ### Persistence
 
-**One must provide an implementation for the `Persistence` trait***. Oauth 1.0a works with
+**One must provide an implementation for the `Persistence` trait**. Oauth 1.0a works with
 tokens & nonces, so this library exposes an interface (trait) that you must implement and connect
 to your database in your own way. You could use any kind of underlying database as you whish,
 just need to respect the signature of the `Persistence` traits methods and the lib will call them.
@@ -27,11 +27,19 @@ just need to respect the signature of the `Persistence` traits methods and the l
 There is one implementation provided by the koauth library itself, as a guideline
 but it is *in-memory*, and all the kept data is lost after stopping the application.
 
-You then provide this persistence when creating your provider service:
+You then pass your persistence as argument when creating your provider service:
 
 ```scala
 val persistence = new ExampleMemoryPersistence()
 val providerService = ProviderServiceFactory.createProviderService(persistence, executionContext)
+```
+
+There is a test class, `PersistenceSpec`, that could help you verify if your implementation is correct.
+It's not an exhausting suite but gives you a basic acknowledgement whether your Persistence is fine.
+Write your test like this:
+
+```scala
+class YourPersistenceSpec extends PersistenceSpec(new YourPersistence(ExecutionContext.Implicits.global))
 ```
 
 ### Request mapping
@@ -91,6 +99,11 @@ object OauthController extends Controller {
 There is also an sample project: [koauth-sample-play](https://github.com/kovacshuni/koauth-sample-play)
 that is using [Play Framework](http://www.playframework.com/). This is something you can most easily follow.
 Worth to use as the starting point, because it is easier to understand.
+
+In a RESTful environment, and with Oauth 1.0a, every request is authenticated, so it's usually a
+good practice to have your authentication come in as either a filter or a separate proxy application.
+There is another example, that does this:
+[koauth-sample-proxy-finagle](https://github.com/kovacshuni/koauth-sample-proxy-finagle)
 
 ### Define the HTTP paths required by OAuth 1.0a
 
@@ -153,14 +166,14 @@ val provider = new ProviderService(persistence, ec)
 
 Just create a pull-request, we'll discuss it, i'll try to be quick.
 
-Building, testing and publishing locally:
+Building and testing locally:
 
 ```
 git clone https://github.com/kovacshuni/koauth.git
 cd koauth
 sbt
 compile
-publish-local
+test
 ```
 
 ## Owner
