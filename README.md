@@ -1,4 +1,7 @@
-# KOAuth - OAuth 1.0a Provider & Consumer Library in Scala
+# KOAuth Sync - OAuth 1.0a Provider & Consumer Library in Scala
+
+**Same as [koauth](https://github.com/kovacshuni/koauth) but not in asynchronous mode.
+From the topmost function definitions and interfaces Futures were removed.**
 
 This library aids calculations according to the [OAuth 1.0a](http://oauth.net/core/1.0a/)
 specifications for both HTTP server and client.
@@ -15,7 +18,7 @@ koauth is available on Maven Central. Add the following repository and dependenc
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.0"
+libraryDependencies += "com.hunorkovacs" %% "koauth-sync" % "1.0.0"
 ```
 ### Persistence
 
@@ -52,17 +55,15 @@ class NettyRequestMapper(private val ec: ExecutionContext) extends RequestMapper
 
   implicit private val implicitEc = ec
 
-  override def map(source: HttpRequest): Future[KoauthRequest] = {
-    Future {
-      val method = source.getMethod.getName
-      val queryStringDecoder = new QueryStringDecoder(source.getUri)
-      val urlWithoutParams = "http://" + source.headers.get(HttpHeaders.Names.HOST) + queryStringDecoder.getPath
-      val authHeader = Option(source.headers.get(AUTHORIZATION))
-      val urlParams = queryStringDecoder.getParameters.asScala.mapValues(_.get(0)).toList
-      val bodyParams = List.empty
+  override def map(source: HttpRequest): KoauthRequest = {
+    val method = source.getMethod.getName
+    val queryStringDecoder = new QueryStringDecoder(source.getUri)
+    val urlWithoutParams = "http://" + source.headers.get(HttpHeaders.Names.HOST) + queryStringDecoder.getPath
+    val authHeader = Option(source.headers.get(AUTHORIZATION))
+    val urlParams = queryStringDecoder.getParameters.asScala.mapValues(_.get(0)).toList
+    val bodyParams = List.empty
 
-      KoauthRequest(method, urlWithoutParams, authHeader, urlParams, bodyParams)
-    }
+    KoauthRequest(method, urlWithoutParams, authHeader, urlParams, bodyParams)
   }
 }
 
@@ -70,14 +71,12 @@ class OauthResponseMapper(private val ec: ExecutionContext) extends ResponseMapp
 
   implicit private val implicitEc = ec
 
-  override def map(source: KoauthResponse): Future[Result] = {
-    Future {
-      source match {
-        case ResponseOk(body) => Ok(body)
-        case ResponseUnauthorized(body) => Unauthorized(body)
-        case ResponseBadRequest(body) => BadRequest(body)
-        case _ => NotImplemented
-      }
+  override def map(source: KoauthResponse): Result = {
+    source match {
+      case ResponseOk(body) => Ok(body)
+      case ResponseUnauthorized(body) => Unauthorized(body)
+      case ResponseBadRequest(body) => BadRequest(body)
+      case _ => NotImplemented
     }
   }
 }
@@ -171,6 +170,7 @@ Building and testing locally:
 ```
 git clone https://github.com/kovacshuni/koauth.git
 cd koauth
+git checkout sync
 sbt
 compile
 test
