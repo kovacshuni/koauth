@@ -176,6 +176,22 @@ compile
 test
 ```
 
+Publishing (mostly for me :) )
+[help] (http://www.scala-sbt.org/0.13/docs/Using-Sonatype.html)
+
+```
+sbt
+show */*:pgpSecretRing
+# rm that file
+show */*:pgpPublicRing
+# rm that file
+set pgpReadOnly := false
+pgp-cmd gen-key
+pgp-cmd send-key kovacshuni@yahoo.com hkp://pool.sks-keyservers.net
+# make sure this contains your credentials ~/.sbt/0.13/sonatype.sbt
+publishSigned
+```
+
 ## Owner
 
 Hunor Kovács  

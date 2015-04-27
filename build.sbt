@@ -46,3 +46,9 @@ pomExtra := {
       </developer>
     </developers>
 }
+
+publishTo := Some("releases"  at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
+
+publishMavenStyle := true
+
+publishArtifact in Test := true
