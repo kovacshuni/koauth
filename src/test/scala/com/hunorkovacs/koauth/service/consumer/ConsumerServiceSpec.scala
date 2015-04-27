@@ -47,8 +47,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
-      val requestAndInfoF = createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback)
+      val header = requestAndInfo.header
 
       header must contain("oauth_callback=\"" + urlEncode(Callback) + "\"") and {
         header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"")
@@ -70,8 +70,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
-      val requestAndInfoF = createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier)
+      val header = requestAndInfo.header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
         header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
@@ -95,8 +95,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
-      val requestAndInfoF = createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret)
+      val header = requestAndInfo.header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
         header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
@@ -118,8 +118,8 @@ class ConsumerServiceSpec extends Specification {
     "sign correctly and include signature in Authorization header together with the rest of the parameters." in {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
-      val requestAndInfoF = createGeneralSignedRequest(request)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createGeneralSignedRequest(request)
+      val header = requestAndInfo.header
 
       header must beEqualTo(AuthHeader)
     }

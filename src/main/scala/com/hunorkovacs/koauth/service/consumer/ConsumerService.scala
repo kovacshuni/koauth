@@ -5,29 +5,29 @@ import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.{sign, concatItemsForSignature, createAuthorizationHeader}
 import com.hunorkovacs.koauth.service.DefaultTokenGenerator.generateNonce
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 trait ConsumerService {
 
   def createRequestTokenRequest(request: KoauthRequest,
                                 consumerKey: String,
                                 consumerSecret: String,
-                                callback: String): Future[RequestWithInfo]
+                                callback: String): RequestWithInfo
 
   def createAccessTokenRequest(request: KoauthRequest,
                                consumerKey: String,
                                consumerSecret: String,
                                requestToken: String,
                                requestTokenSecret: String,
-                               verifier: String): Future[RequestWithInfo]
+                               verifier: String): RequestWithInfo
 
   def createOauthenticatedRequest(request: KoauthRequest,
                                   consumerKey: String,
                                   consumerSecret: String,
                                   requestToken: String,
-                                  requestTokenSecret: String): Future[RequestWithInfo]
+                                  requestTokenSecret: String): RequestWithInfo
 
-  def createGeneralSignedRequest(request: KoauthRequest): Future[RequestWithInfo]
+  def createGeneralSignedRequest(request: KoauthRequest): RequestWithInfo
 }
 
 case class RequestWithInfo(request: KoauthRequest, signatureBase: String, header: String)
@@ -39,13 +39,11 @@ class DefaultConsumerService(private val ec: ExecutionContext) extends ConsumerS
   override def createRequestTokenRequest(request: KoauthRequest,
                                          consumerKey: String,
                                          consumerSecret: String,
-                                         callback: String): Future[RequestWithInfo] = {
-    Future {
-      val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
-        .::((ConsumerSecretName, consumerSecret))
-        .::((CallbackName, callback))
-      KoauthRequest(request, paramsList)
-    }.flatMap(createGeneralSignedRequest)
+                                         callback: String): RequestWithInfo = {
+    val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
+      .::((ConsumerSecretName, consumerSecret))
+      .::((CallbackName, callback))
+    createGeneralSignedRequest(KoauthRequest(request, paramsList))
   }
 
   override def createAccessTokenRequest(request: KoauthRequest,
@@ -53,29 +51,25 @@ class DefaultConsumerService(private val ec: ExecutionContext) extends ConsumerS
                                         consumerSecret: String,
                                         requestToken: String,
                                         requestTokenSecret: String,
-                                        verifier: String): Future[RequestWithInfo] = {
-    Future {
-      val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
-      .::((ConsumerSecretName, consumerSecret))
-      .::((TokenName, requestToken))
-      .::((TokenSecretName, requestTokenSecret))
-      .::((VerifierName, verifier))
-      KoauthRequest(request, paramsList)
-    }.flatMap(createGeneralSignedRequest)
+                                        verifier: String): RequestWithInfo = {
+    val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
+    .::((ConsumerSecretName, consumerSecret))
+    .::((TokenName, requestToken))
+    .::((TokenSecretName, requestTokenSecret))
+    .::((VerifierName, verifier))
+    createGeneralSignedRequest(KoauthRequest(request, paramsList))
   }
 
   override def createOauthenticatedRequest(request: KoauthRequest,
                                            consumerKey: String,
                                            consumerSecret: String,
                                            requestToken: String,
-                                           requestTokenSecret: String): Future[RequestWithInfo] = {
-    Future {
-      val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
-        .::((ConsumerSecretName, consumerSecret))
-        .::((TokenName, requestToken))
-        .::((TokenSecretName, requestTokenSecret))
-      KoauthRequest(request, paramsList)
-    }.flatMap(createGeneralSignedRequest)
+                                           requestTokenSecret: String): RequestWithInfo = {
+    val paramsList = createBasicParamList().::((ConsumerKeyName, consumerKey))
+      .::((ConsumerSecretName, consumerSecret))
+      .::((TokenName, requestToken))
+      .::((TokenSecretName, requestTokenSecret))
+    createGeneralSignedRequest(KoauthRequest(request, paramsList))
   }
 
   private def createBasicParamList(): List[(String, String)] = {
@@ -85,18 +79,16 @@ class DefaultConsumerService(private val ec: ExecutionContext) extends ConsumerS
       (TimestampName, (System.currentTimeMillis / 1000).toString))
   }
 
-  def createGeneralSignedRequest(request: KoauthRequest): Future[RequestWithInfo] = {
-    Future {
-      val consumerSecret = request.oauthParamsMap.applyOrElse(ConsumerSecretName, (s: String) => "")
-      val tokenSecret = request.oauthParamsMap.applyOrElse(TokenSecretName, (s: String) => "")
-      val base = createSignatureBase(request)
-      val signature = sign(base, consumerSecret, tokenSecret)
-      val list = request.oauthParamsList
-        .filterNot(param => ConsumerSecretName == param._1 || TokenSecretName == param._1)
-        .::((SignatureName, signature))
-      val header = createAuthorizationHeader(list)
-      RequestWithInfo(request, base, header)
-    }
+  def createGeneralSignedRequest(request: KoauthRequest): RequestWithInfo = {
+    val consumerSecret = request.oauthParamsMap.applyOrElse(ConsumerSecretName, (s: String) => "")
+    val tokenSecret = request.oauthParamsMap.applyOrElse(TokenSecretName, (s: String) => "")
+    val base = createSignatureBase(request)
+    val signature = sign(base, consumerSecret, tokenSecret)
+    val list = request.oauthParamsList
+      .filterNot(param => ConsumerSecretName == param._1 || TokenSecretName == param._1)
+      .::((SignatureName, signature))
+    val header = createAuthorizationHeader(list)
+    RequestWithInfo(request, base, header)
   }
 
   def createSignatureBase(request: KoauthRequest): String = {

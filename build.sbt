@@ -14,6 +14,8 @@ scalaVersion := "2.11.1"
 
 crossScalaVersions := Seq("2.10.4")
 
+scalacOptions in ThisBuild ++= Seq("-unchecked", "-deprecation")
+
 resolvers ++= Seq(
   "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/",
   "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases"

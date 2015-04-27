@@ -9,15 +9,16 @@ import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Future.successful
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.duration._
 
 trait ProviderService {
 
-  def requestToken(request: KoauthRequest): Future[KoauthResponse]
+  def requestToken(request: KoauthRequest): KoauthResponse
 
-  def accessToken(request: KoauthRequest): Future[KoauthResponse]
+  def accessToken(request: KoauthRequest): KoauthResponse
 
-  def oauthenticate(request: KoauthRequest): Future[Either[KoauthResponse, String]]
+  def oauthenticate(request: KoauthRequest): Either[KoauthResponse, String]
 }
 
 protected class CustomProviderService(private val oauthVerifier: Verifier,
@@ -31,8 +32,9 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
   import oauthVerifier._
   import generator._
 
-  def requestToken(request: KoauthRequest): Future[KoauthResponse] = {
+  override def requestToken(request: KoauthRequest): KoauthResponse = {
     logger.debug("Request Token request called. Incoming request is {}", request)
+    val responseF =
     verifyForRequestToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -47,10 +49,12 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
           createRequestTokenResponse(token, secret, callback)
         }
     }
+    Await.result(responseF, 2 seconds)
   }
 
-  def accessToken(request: KoauthRequest): Future[KoauthResponse] = {
+  override def accessToken(request: KoauthRequest): KoauthResponse = {
     logger.debug("Access Token request called. Incoming request is {}", request)
+    val responseF =
     verifyForAccessToken(request) flatMap {
       case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
       case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
@@ -71,10 +75,12 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
             }
         }
     }
+    Await.result(responseF, 2 seconds)
   }
 
-  def oauthenticate(request: KoauthRequest): Future[Either[ResponseNok, String]] = {
+  override def oauthenticate(request: KoauthRequest): Either[ResponseNok, String] = {
     logger.debug("Accessing Protected Resources request called. Incoming request is {}", request)
+    val responseF =
     verifyForOauthenticate(request) flatMap {
       case VerificationUnsupported(message) => successful(Left(new ResponseBadRequest(message)))
       case VerificationFailed(message) => successful(Left(new ResponseUnauthorized(message)))
@@ -90,6 +96,7 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
           case Some(username) => persistence.persistNonce(nonce, consumerKey, token).map(_ => Right(username))
         }
     }
+    Await.result(responseF, 2 seconds)
   }
 }
 
