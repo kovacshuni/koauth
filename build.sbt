@@ -6,7 +6,7 @@ profileName := "com.hunorkovacs"
 
 organization := """com.hunorkovacs"""
 
-name := """koauth"""
+name := """koauth-sync"""
 
 version := "1.0.0-SNAPSHOT"
 
@@ -38,7 +38,8 @@ pomExtra := {
     <scm>
       <connection>scm:git:github.com/kovacshuni/koauth</connection>
       <developerConnection>scm:git@github.com:kovacshuni/koauth.git</developerConnection>
-      <url>github.com/kovacshuni/koauth</url>
+      <tag>sync</tag>
+      <url>https://github.com/kovacshuni/koauth/tree/sync</url>
     </scm>
     <developers>
       <developer>
