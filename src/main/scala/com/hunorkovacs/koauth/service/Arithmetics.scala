@@ -83,6 +83,15 @@ object Arithmetics {
     new ResponseOk(encodePairSortConcat(list))
   }
 
+  def parseRequestTokenResponse(response: String) = {
+    val entries = response.split("&").map { p =>
+      val pair = p.split("=")
+      (pair(0), pair(1))
+    }.toMap
+    if (entries(CallbackConfirmedName) != "true") None
+    else Some(RequestTokenResponse(entries(TokenName), entries(TokenSecretName)))
+  }
+
   def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
     val key = encodeConcat(List(consumerSecret, tokenSecret))
     val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)

@@ -1,6 +1,7 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.{ResponseOk, KoauthRequest}
+import com.hunorkovacs.koauth.domain.{RequestTokenResponse, ResponseOk, KoauthRequest}
+import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.service.Arithmetics._
 import org.specs2.mutable._
 
@@ -136,6 +137,22 @@ class ArithmeticsSpec extends Specification {
         OauthParamsList)
       concatItemsForSignature(request) must
         equalTo(SignatureBase.replaceAll("api.twitter.com", "api.twitter.com%3A9000"))
+    }
+  }
+
+  "Parsing a Request Token response" should {
+    "parse key, secret and callback." in {
+      parseRequestTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=true") must
+        equalTo(Some(RequestTokenResponse(Token, TokenSecret)))
+    }
+    "parse key, secret and callback in any order." in {
+      val callbackUrl = "http://example.com:9000/my-callback?isCallback=yes&soOn"
+      parseRequestTokenResponse(s"$CallbackConfirmedName=true&$TokenSecretName=$TokenSecret&$TokenName=$Token") must
+        equalTo(Some(RequestTokenResponse(Token, TokenSecret)))
+    }
+    "parse unconfirmed callback" in {
+      parseRequestTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=false") must
+        equalTo(None)
     }
   }
 
