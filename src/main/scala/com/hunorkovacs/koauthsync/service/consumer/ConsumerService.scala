@@ -1,5 +1,8 @@
 package com.hunorkovacs.koauthsync.service.consumer
 
+import com.hunorkovacs.koauth.domain.KoauthRequest
+import com.hunorkovacs.koauth.service.consumer.RequestWithInfo
+
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 
@@ -26,11 +29,8 @@ trait ConsumerService {
   def createGeneralSignedRequest(request: KoauthRequest): RequestWithInfo
 }
 
-case class RequestWithInfo(request: KoauthRequest, signatureBase: String, header: String)
-
 class DefaultConsumerService(private val ec: ExecutionContext) extends ConsumerService {
 
-  implicit private val implicitEc = ec
   private val asyncConsumer = new com.hunorkovacs.koauth.service.consumer.DefaultConsumerService(ec)
 
   override def createRequestTokenRequest(request: KoauthRequest,

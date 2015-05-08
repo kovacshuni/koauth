@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauthsync.domain.mapper
 
-import com.hunorkovacs.koauthsync.domain.KoauthRequest
+import com.hunorkovacs.koauth.domain.KoauthRequest
 
 trait RequestMapper[RequestType] {
 
