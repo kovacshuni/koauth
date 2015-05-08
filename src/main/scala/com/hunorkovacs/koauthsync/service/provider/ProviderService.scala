@@ -1,14 +1,7 @@
 package com.hunorkovacs.koauthsync.service.provider
 
-import com.hunorkovacs.koauthsync.domain.OauthParams._
-import com.hunorkovacs.koauthsync.domain._
-import com.hunorkovacs.koauthsync.service.Arithmetics._
-import VerifierObject.{MessageNotAuthorized, MessageUserInexistent}
-import com.hunorkovacs.koauthsync.service.{DefaultTokenGenerator, TokenGenerator}
-import com.hunorkovacs.koauthsync.service.provider.persistence.Persistence
 import org.slf4j.LoggerFactory
 
-import scala.concurrent.Future.successful
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
 
@@ -28,75 +21,19 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
 
   implicit private val implicitEc = ec
   private val logger = LoggerFactory.getLogger(classOf[CustomProviderService])
-
-  import oauthVerifier._
-  import generator._
+  private val asyncProvider = com.hunorkovacs.koauth.service.provider.ProviderService(oauthVerifier, persistence,
+    generator, ec)
 
   override def requestToken(request: KoauthRequest): KoauthResponse = {
-    logger.debug("Request Token request called. Incoming request is {}", request)
-    val responseF =
-    verifyForRequestToken(request) flatMap {
-      case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
-      case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
-      case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
-        val callback = request.oauthParamsMap(CallbackName)
-        val nonce = request.oauthParamsMap(NonceName)
-        val (token, secret) = generateTokenAndSecret
-        persistence.persistNonce(nonce, consumerKey, "") flatMap { _ =>
-          persistence.persistRequestToken(consumerKey, token, secret, callback)
-        } map { _ =>
-          createRequestTokenResponse(token, secret, callback)
-        }
-    }
-    Await.result(responseF, 2 seconds)
+    Await.result(asyncProvider.requestToken(requestToken), 2 seconds)
   }
 
   override def accessToken(request: KoauthRequest): KoauthResponse = {
-    logger.debug("Access Token request called. Incoming request is {}", request)
-    val responseF =
-    verifyForAccessToken(request) flatMap {
-      case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
-      case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
-      case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
-        val requestToken = request.oauthParamsMap(TokenName)
-        val verifier = request.oauthParamsMap(VerifierName)
-        persistence.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) flatMap {
-          case None => successful(new ResponseUnauthorized(MessageNotAuthorized))
-          case Some(username) =>
-            val (token, secret) = generateTokenAndSecret
-            val nonce = request.oauthParamsMap(NonceName)
-            persistence.persistNonce(nonce, consumerKey, requestToken) flatMap { _ =>
-              persistence.persistAccessToken(consumerKey, token, secret, username)
-              persistence.deleteRequestToken(consumerKey, requestToken)
-            } map { _ =>
-              createAccesTokenResponse(token, secret)
-            }
-        }
-    }
-    Await.result(responseF, 2 seconds)
+    Await.result(asyncProvider.accessToken(request), 2 seconds)
   }
 
   override def oauthenticate(request: KoauthRequest): Either[ResponseNok, String] = {
-    logger.debug("Accessing Protected Resources request called. Incoming request is {}", request)
-    val responseF =
-    verifyForOauthenticate(request) flatMap {
-      case VerificationUnsupported(message) => successful(Left(new ResponseBadRequest(message)))
-      case VerificationFailed(message) => successful(Left(new ResponseUnauthorized(message)))
-      case VerificationOk =>
-        val consumerKey = request.oauthParamsMap(ConsumerKeyName)
-        val token = request.oauthParamsMap(TokenName)
-        val nonce = request.oauthParamsMap(NonceName)
-        persistence.getUsername(consumerKey, token) flatMap {
-          case None =>
-            logger.debug("User does not exist for Consumer Key {} and Access Token {}. Request id: {}",
-              consumerKey, token, request.id)
-            successful(Left(new ResponseUnauthorized(MessageUserInexistent)))
-          case Some(username) => persistence.persistNonce(nonce, consumerKey, token).map(_ => Right(username))
-        }
-    }
-    Await.result(responseF, 2 seconds)
+    Await.result(asyncProvider.oauthenticate(request), 2 seconds)
   }
 }
 
