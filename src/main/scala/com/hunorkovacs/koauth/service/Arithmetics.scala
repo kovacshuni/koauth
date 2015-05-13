@@ -88,8 +88,19 @@ object Arithmetics {
       val pair = p.split("=")
       (pair(0), pair(1))
     }.toMap
-    if (entries(CallbackConfirmedName) != "true") None
-    else Some(RequestTokenResponse(entries(TokenName), entries(TokenSecretName)))
+    if (!entries.contains(TokenName) ||
+      !entries.contains(TokenSecretName) ||
+      entries(CallbackConfirmedName) != "true") Left(response)
+    else Right(TokenResponse(entries(TokenName), entries(TokenSecretName)))
+  }
+
+  def parseAccessTokenResponse(response: String) = {
+    val entries = response.split("&").map { p =>
+      val pair = p.split("=")
+      (pair(0), pair(1))
+    }.toMap
+    if (!entries.contains(TokenName) || !entries.contains(TokenSecretName)) Left(response)
+    else Right(TokenResponse(entries(TokenName), entries(TokenSecretName)))
   }
 
   def sign(base: String, consumerSecret: String, tokenSecret: String): String = {

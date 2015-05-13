@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service
 
-import com.hunorkovacs.koauth.domain.{RequestTokenResponse, ResponseOk, KoauthRequest}
+import com.hunorkovacs.koauth.domain.{TokenResponse, ResponseOk, KoauthRequest}
 import com.hunorkovacs.koauth.domain.OauthParams._
 import com.hunorkovacs.koauth.service.Arithmetics._
 import org.specs2.mutable._
@@ -143,16 +143,34 @@ class ArithmeticsSpec extends Specification {
   "Parsing a Request Token response" should {
     "parse key, secret and callback." in {
       parseRequestTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=true") must
-        equalTo(Some(RequestTokenResponse(Token, TokenSecret)))
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
     }
     "parse key, secret and callback in any order." in {
-      val callbackUrl = "http://example.com:9000/my-callback?isCallback=yes&soOn"
       parseRequestTokenResponse(s"$CallbackConfirmedName=true&$TokenSecretName=$TokenSecret&$TokenName=$Token") must
-        equalTo(Some(RequestTokenResponse(Token, TokenSecret)))
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
     }
-    "parse unconfirmed callback" in {
-      parseRequestTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=false") must
-        equalTo(None)
+    "signal unconfirmed callback" in {
+      val response = s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=false"
+      parseRequestTokenResponse(response) must equalTo(Left(response))
+    }
+    "signal incomplete response" in {
+      val response = s"$TokenName=$Token&$CallbackConfirmedName=true"
+      parseRequestTokenResponse(response) must equalTo(Left(response))
+    }
+  }
+
+  "Parsing an Access Token response" should {
+    "parse key and secret." in {
+      parseAccessTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret") must
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
+    }
+    "parse in any order." in {
+      parseAccessTokenResponse(s"$TokenSecretName=$TokenSecret&$TokenName=$Token") must
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
+    }
+    "signal incomplete response" in {
+      val response = s"$TokenSecretName=$TokenSecret"
+      parseAccessTokenResponse(response) must equalTo(Left(response))
     }
   }
 
