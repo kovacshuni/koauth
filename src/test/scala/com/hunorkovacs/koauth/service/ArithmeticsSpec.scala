@@ -157,6 +157,10 @@ class ArithmeticsSpec extends Specification {
       val response = s"$TokenName=$Token&$CallbackConfirmedName=true"
       parseRequestTokenResponse(response) must equalTo(Left(response))
     }
+    "signal incorrect syntax" in {
+      val response = "abcd=&&"
+      parseRequestTokenResponse(response) must equalTo(Left(response))
+    }
   }
 
   "Parsing an Access Token response" should {
@@ -170,6 +174,10 @@ class ArithmeticsSpec extends Specification {
     }
     "signal incomplete response" in {
       val response = s"$TokenSecretName=$TokenSecret"
+      parseAccessTokenResponse(response) must equalTo(Left(response))
+    }
+    "signal incorrect syntax" in {
+      val response = "abcd=&&"
       parseAccessTokenResponse(response) must equalTo(Left(response))
     }
   }

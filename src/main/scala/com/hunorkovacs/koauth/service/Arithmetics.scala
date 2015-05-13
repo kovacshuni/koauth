@@ -83,10 +83,11 @@ object Arithmetics {
     new ResponseOk(encodePairSortConcat(list))
   }
 
-  def parseRequestTokenResponse(response: String) = {
+  def parseRequestTokenResponse(response: String): Either[String, TokenResponse] = {
     val entries = response.split("&").map { p =>
       val pair = p.split("=")
-      (pair(0), pair(1))
+      if (pair.size == 2) (pair(0), pair(1))
+      else return Left(response)
     }.toMap
     if (!entries.contains(TokenName) ||
       !entries.contains(TokenSecretName) ||
@@ -94,10 +95,11 @@ object Arithmetics {
     else Right(TokenResponse(entries(TokenName), entries(TokenSecretName)))
   }
 
-  def parseAccessTokenResponse(response: String) = {
+  def parseAccessTokenResponse(response: String): Either[String, TokenResponse] = {
     val entries = response.split("&").map { p =>
       val pair = p.split("=")
-      (pair(0), pair(1))
+      if (pair.size == 2) (pair(0), pair(1))
+      else return Left(response)
     }.toMap
     if (!entries.contains(TokenName) || !entries.contains(TokenSecretName)) Left(response)
     else Right(TokenResponse(entries(TokenName), entries(TokenSecretName)))
