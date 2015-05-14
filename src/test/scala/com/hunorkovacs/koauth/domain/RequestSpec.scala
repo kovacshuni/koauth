@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.domain
 
-import com.hunorkovacs.koauth.domain.KoauthRequest.extractOauthParams
+import com.hunorkovacs.koauth.domain.KoauthRequest._
 import org.specs2.mutable.Specification
 
 class RequestSpec extends Specification {
@@ -34,6 +34,38 @@ class RequestSpec extends Specification {
     "discard irregular words." in {
       extractOauthParams(Some("Why is this here,oauth_token=\"123\",And this?")) must
       equalTo(List(("oauth_token", "123")))
+    }
+  }
+
+  "Extracing URL params" should {
+    "extract normal parameters separated with &." in {
+      extractUrlParams("a=1&b=2") must equalTo(List(("a", "1"), ("b", "2")))
+    }
+    "URL decode keys and values." in {
+      extractUrlParams("the%20key=the%20value&b=2") must equalTo(List(("the key", "the value"), ("b", "2")))
+    }
+    "extract keys with no values as empty string values." in {
+      extractUrlParams("a=1&b") must equalTo(List(("a", "1"), ("b", "")))
+    }
+    "extract multiple = occurences using the first =." in {
+      extractUrlParams("a=1&b=1=2=3") must equalTo(List(("a", "1"), ("b", "1=2=3")))
+    }
+    "not support commas as list of values yet.." in {
+      extractUrlParams("a=1&b=1,2,3") must equalTo(List(("a", "1"), ("b", "1,2,3")))
+    }
+  }
+
+  "Creating a " + KoauthRequest.getClass.getSimpleName + " from only a URL" should {
+    "decode url and body parameters." in {
+      KoauthRequest("GET",
+        "http://abc.com/the/path?a=b&the%20key=the%20value#nofragment=15",
+        Some("alpha=beta&the%20body%20key=the%20body%20value")) must equalTo(
+
+        KoauthRequest("GET",
+          "http://abc.com/the/path",
+          List(("a", "b"), ("the key", "the value")),
+          List(("alpha", "beta"), ("the body key", "the body value")),
+          List.empty))
     }
   }
 }
