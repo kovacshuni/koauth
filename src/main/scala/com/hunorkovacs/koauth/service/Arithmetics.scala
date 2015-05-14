@@ -44,7 +44,7 @@ object Arithmetics {
                              oauthParamsList: List[(String, String)],
                              bodyParams: List[(String, String)]): String = {
     val filtered = oauthParamsList.filterNot(kv => kv._1 == RealmName || kv._1 == SignatureName)
-    pairSortConcat(urlParams ::: filtered ::: bodyParams)
+    encodePairSortConcat(urlParams ::: filtered ::: bodyParams)
   }
 
   def toLowerCase(url: String): String = {

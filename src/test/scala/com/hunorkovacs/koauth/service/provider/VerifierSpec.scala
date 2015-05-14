@@ -24,7 +24,7 @@ class VerifierSpec extends Specification with Mockito {
     "%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521"
   val BaseWithCallback = "POST&https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json" +
     "&include_entities%3Dtrue" +
-    "%26oauth_callback%3Dhttps%3A%2F%2Ftwitter.com%2Fcallback" +
+    "%26oauth_callback%3Dhttps%253A%252F%252Ftwitter.com%252Fcallback" +
     "%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog" +
     "%26oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg" +
     "%26oauth_signature_method%3DHMAC-SHA1" +
@@ -43,7 +43,7 @@ class VerifierSpec extends Specification with Mockito {
   val Method = "POST"
   val Url = "https://api.twitter.com/1/statuses/update.json"
   val UrlParams = List(("include_entities", "true"))
-  val BodyParams = List(("status", "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"))
+  val BodyParams = List(("status", "Hello Ladies + Gentlemen, a signed OAuth request!"))
   val ParamsList = List(("oauth_consumer_key", ConsumerKey),
     ("oauth_token", Token),
     ("oauth_timestamp", "1318622958"),

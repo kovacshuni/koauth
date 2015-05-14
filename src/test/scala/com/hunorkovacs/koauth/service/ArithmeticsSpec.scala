@@ -23,7 +23,7 @@ class ArithmeticsSpec extends Specification {
     ("oauth_timestamp", "1318622958"),
     ("oauth_token", "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"),
     ("oauth_version", "1.0"))
-  val BodyParams = List(("status", "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"))
+  val BodyParams = List(("status", "Hello Ladies + Gentlemen, a signed OAuth request!"))
 
   val Token = "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"
   val TokenSecret = "t4958tu459t8u45t98u45t9485ut"
@@ -89,6 +89,12 @@ class ArithmeticsSpec extends Specification {
         equalTo ("oauth_token=ab3cd9j4ks73hf7g&" +
           "oauth_token_secret=xyz4992k83j47x0b")
     }
+    "percent encode key and values." in {
+      encodePairSortConcat(List(("oauth_token", "hi there, this is a colon at the end:"),
+        ("oauth_token_secret", "oh thank you / you're welcome"))) must
+        equalTo ("oauth_token=hi%20there%2C%20this%20is%20a%20colon%20at%20the%20end%3A&" +
+          "oauth_token_secret=oh%20thank%20you%20%2F%20you%27re%20welcome")
+    }
     "sort by key then value." in {
       encodePairSortConcat(List(("c", "3"), ("c", "2"), ("b", "2"), ("a", "1"))) must
         equalTo ("a=1&b=2&c=2&c=3")
@@ -118,6 +124,21 @@ class ArithmeticsSpec extends Specification {
     "contian HTTP request method, request URL, and normalized request parameters separated by '&'." in {
       val request = KoauthRequest(Method, UrlWithoutParams, UrlParams, BodyParams, OauthParamsList)
       concatItemsForSignature(request) must equalTo (SignatureBase)
+    }
+    "have a double encoded callback URL at the end." in {
+      val request = KoauthRequest(Method, UrlWithoutParams, UrlParams, BodyParams,
+        OauthParamsList.::(("oauth_callback", "http://127.0.0.1:4567/accessToken")))
+      concatItemsForSignature(request) must equalTo ("POST&" +
+        "https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json&" +
+        "include_entities%3Dtrue%26" +
+        "oauth_callback%3Dhttp%253A%252F%252F127.0.0.1%253A4567%252FaccessToken%26" +
+        "oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog%26" +
+        "oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg%26" +
+        "oauth_signature_method%3DHMAC-SHA1%26" +
+        "oauth_timestamp%3D1318622958%26" +
+        "oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb%26" +
+        "oauth_version%3D1.0%26" +
+        "status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521")
     }
     "use lowercase URL." in {
       val request = KoauthRequest(Method,

@@ -13,7 +13,7 @@ class ConsumerServiceSpec extends Specification {
   val Method = "POST"
   val Url = "https://api.twitter.com/1/statuses/update.json"
   val UrlParams = List(("include_entities", "true"))
-  val BodyParams = List(("status", "Hello%20Ladies%20%2B%20Gentlemen%2C%20a%20signed%20OAuth%20request%21"))
+  val BodyParams = List(("status", "Hello Ladies + Gentlemen, a signed OAuth request!"))
   val ConsumerKey = "xvz1evFS4wEEPTGEFPHBog"
   val Token = "370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb"
   val ConsumerSecret = "kAcSOqF21Fu85e7zjz7ZN2U4ZRhfV3WpwPAoE3Z7kBw"
