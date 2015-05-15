@@ -8,15 +8,26 @@ specifications for both HTTP server and client.
 
 ## Quick how to
 
-### Dependencies
-
-koauth is available on Maven Central. Add the following repository and dependency in your `build.sbt`:
-
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.0"
+libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.0.1"
 ```
+
+### Consumer
+
+```scala
+RequestWithInfo requestWithInfo = consumer.createRequestTokenRequest(KoauthRequest.apply("POST",
+                        REQUEST_TOKEN_URL, Option.<String>empty()),
+                CONSUMER_KEY,
+                CONSUMER_SECRET,
+                "http://127.0.0.1:4567/accessToken");
+Invocation invocation = builder.header("Authorization", requestWithInfo.header()).buildPost(Entity.text(""));
+```
+
+There is an example of how to use this library [here](https://github.com/kovacshuni/koauth-sample-java).
+I recommend trying it out, it could help you a lot.
+
 ### Persistence
 
 **One must provide an implementation for the `Persistence` trait**. Oauth 1.0a works with
