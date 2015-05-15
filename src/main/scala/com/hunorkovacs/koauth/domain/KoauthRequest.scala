@@ -21,6 +21,16 @@ class KoauthRequest private(val method: String,
       "; body parameters" + bodyParams +
       "; Oauth parameters from Authorization header: " + oauthParamsList
   }
+
+  override def equals(o: Any) = o match {
+    case that: KoauthRequest =>
+        this.method == that.method &&
+          this.urlWithoutParams == that.urlWithoutParams &&
+          this.urlParams == that.urlParams &&
+          this.bodyParams == that.bodyParams &&
+          this.oauthParamsList == that.oauthParamsList
+    case _ => false
+  }
 }
 
 object KoauthRequest {
@@ -93,6 +103,17 @@ object KoauthRequest {
       paramList)
   }
 
+  /**
+   * Creates a KoauthRequest object based on the HTTP method, the URL and the, HTTP body if
+   * application/x-www-form-urlencoded is the Content-Type.
+   *
+   * Is able to parse both URL and body, and extract parameters.
+   *
+   * @param method HTTP method e.g. GET
+   * @param url URL e.g. https://api.twitter.com/1.1/statuses/user_timeline.json?count=1&include_rts=1#noonecares
+   * @param body the parameters in the body if the Content-Type is application/x-www-form-urlencoded e.g status=true&day=today
+   * @return A built up KoauthRequest object
+   */
   def apply(method: String,
             url: String,
             body: Option[String]) = {

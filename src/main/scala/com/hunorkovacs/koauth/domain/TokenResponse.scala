@@ -1,3 +1,3 @@
 package com.hunorkovacs.koauth.domain
 
-case class TokenResponse(requestToken: String, requestTokenSecret: String)
+case class TokenResponse(token: String, secret: String)
