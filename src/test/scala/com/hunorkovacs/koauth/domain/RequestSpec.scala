@@ -67,5 +67,9 @@ class RequestSpec extends Specification {
           List(("alpha", "beta"), ("the body key", "the body value")),
           List.empty))
     }
+    "decode no parameters as empty." in {
+      KoauthRequest("POST", "http://abc.com/the/path", None) must equalTo(
+        KoauthRequest("POST", "http://abc.com/the/path", List.empty, List.empty, List.empty))
+    }
   }
 }

@@ -118,10 +118,12 @@ object KoauthRequest {
             url: String,
             body: Option[String]) = {
     val urlNoFragment = if (url.contains("#")) url.substring(0, url.indexOf("#"))
-    else url
-    val urlWithoutParams = if (urlNoFragment.contains("?")) urlNoFragment.substring(0, urlNoFragment.indexOf("?"))
-    else urlNoFragment
-    val urlParams = extractUrlParams(urlNoFragment.substring(urlNoFragment.indexOf("?") + 1))
+      else url
+    val (urlWithoutParams, urlParams) = {
+      val i = urlNoFragment.indexOf("?")
+      if (i >= 0) (urlNoFragment.substring(0, i), extractUrlParams(urlNoFragment.substring(i + 1)))
+      else (urlNoFragment, List.empty)
+    }
     val bodyParams = body match {
       case None => List.empty
       case Some(b) => extractUrlParams(b)
