@@ -11,7 +11,7 @@ specifications for both HTTP server and client.
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.0.1"
+libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.0.1-SNAPSHOT"
 ```
 
 ### Consumer
@@ -172,6 +172,11 @@ val ec = play.api.libs.concurrent.Execution.Implicits.defaultContext
 val consumer = new ConsumerService(ec)
 val provider = new ProviderService(persistence, ec)
 ```
+
+## Notes
+
+* Always track the [releases from GitHub](https://github.com/kovacshuni/koauth/releases) and [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22koauth-sync_2.11%22). Pre-built nightly/snapshot versions are not available yet at Maven Central, the master branch is work-in-progress, don't rely on it too much.
+* Java 8 required, working on reverting back to Java 7 as Scala 2.11 is only experimental for 8.
 
 ## Contributing
 
