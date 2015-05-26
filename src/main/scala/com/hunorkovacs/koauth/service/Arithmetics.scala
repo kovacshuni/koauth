@@ -71,10 +71,10 @@ object Arithmetics {
 
   def concat(itemList: List[String]): String = itemList.mkString("&")
 
-  def createRequestTokenResponse(token: String, secret: String, callback: String): ResponseOk = {
+  def createRequestTokenResponse(token: String, secret: String): ResponseOk = {
     val list = List((TokenName, token),
       (TokenSecretName, secret),
-      (CallbackConfirmedName, callback))
+      (CallbackConfirmedName, "true"))
     new ResponseOk(encodePairSortConcat(list))
   }
 

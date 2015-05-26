@@ -35,8 +35,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       lazy val verifier = mock[Verifier]
       lazy val service = new CustomProviderService(verifier, pers, DefaultTokenGenerator, ec)
 
-      val encodedCallback = urlEncode(Callback)
-      val header = Some(AuthHeader + ", oauth_callback=\"" + encodedCallback + "\"")
+      val header = Some(AuthHeader + ", oauth_callback=\"" + urlEncode(Callback) + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       var token, secret = ""
       pers.persistRequestToken(anyString, anyString, anyString, anyString) answers { (p, m) =>
@@ -55,7 +54,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       there was one(pers).persistRequestToken(ConsumerKey, token, secret, Callback) and {
         there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(""))
       } and {
-        response must beEqualTo(ResponseOk(s"oauth_callback_confirmed=$encodedCallback" +
+        response must beEqualTo(ResponseOk(s"oauth_callback_confirmed=true" +
           "&oauth_token=" + urlEncode(token) +
           "&oauth_token_secret=" + urlEncode(secret)))
       }

@@ -44,7 +44,7 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
         persistence.persistNonce(nonce, consumerKey, "") flatMap { _ =>
           persistence.persistRequestToken(consumerKey, token, secret, callback)
         } map { _ =>
-          createRequestTokenResponse(token, secret, callback)
+          createRequestTokenResponse(token, secret)
         }
     }
   }

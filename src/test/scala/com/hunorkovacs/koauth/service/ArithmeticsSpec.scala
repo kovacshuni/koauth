@@ -77,8 +77,8 @@ class ArithmeticsSpec extends Specification {
 
   "Issues an unauthorized Request Token" should {
     "include token, token secret and confirm callback"  in {
-      createRequestTokenResponse(Token, TokenSecret, Callback) must
-        equalTo (ResponseOk(s"oauth_callback_confirmed=$Callback&oauth_token=$Token&oauth_token_secret=$TokenSecret"))
+      createRequestTokenResponse(Token, TokenSecret) must
+        equalTo (ResponseOk(s"oauth_callback_confirmed=true&oauth_token=$Token&oauth_token_secret=$TokenSecret"))
     }
   }
 
