@@ -1,6 +1,7 @@
 package com.hunorkovacs.koauth.domain
 
 import com.hunorkovacs.koauth.domain.KoauthRequest._
+import com.hunorkovacs.koauth.domain.OauthParams.CallbackName
 import org.specs2.mutable.Specification
 
 class RequestSpec extends Specification {
@@ -70,6 +71,18 @@ class RequestSpec extends Specification {
     "decode no parameters as empty." in {
       KoauthRequest("POST", "http://abc.com/the/path", None) must equalTo(
         KoauthRequest("POST", "http://abc.com/the/path", List.empty, List.empty, List.empty))
+    }
+    "decode Authorization header as well." in {
+      KoauthRequest("GET",
+        "http://abc.com/the/path?a=b&the%20key=the%20value#nofragment=15",
+        Some("OAuth oauth_callback=\"http%3A%2F%2F127.0.0.1%3A8080%2FaccessToken\""),
+        Some("alpha=beta&the%20body%20key=the%20body%20value")) must equalTo(
+
+        KoauthRequest("GET",
+          "http://abc.com/the/path",
+          List(("a", "b"), ("the key", "the value")),
+          List(("alpha", "beta"), ("the body key", "the body value")),
+          List((CallbackName, "http://127.0.0.1:8080/accessToken"))))
     }
   }
 }

@@ -114,11 +114,26 @@ object KoauthRequest {
    * @param body the parameters in the body if the Content-Type is application/x-www-form-urlencoded e.g status=true&day=today
    * @return A built up KoauthRequest object
    */
+  def apply(method: String, url: String, body: Option[String]): KoauthRequest = apply(method, url, None, body)
+
+  /**
+   * Creates a KoauthRequest object based on the HTTP method, the URL and the, the Authorization header, HTTP body if
+   * application/x-www-form-urlencoded is the Content-Type.
+   *
+   * Is able to parse both URL and body and Authorization header and extract parameters.
+   *
+   * @param method HTTP method e.g. GET
+   * @param url URL e.g. https://api.twitter.com/1.1/statuses/user_timeline.json?count=1&include_rts=1#noonecares
+   * @param authorizationHeader header named Authorization e.g. OAuth oauth_callback="...", oauth_consumer_key="...
+   * @param body the parameters in the body if the Content-Type is application/x-www-form-urlencoded e.g status=true&day=today
+   * @return A built up KoauthRequest object
+   */
   def apply(method: String,
             url: String,
+            authorizationHeader: Option[String],
             body: Option[String]) = {
     val urlNoFragment = if (url.contains("#")) url.substring(0, url.indexOf("#"))
-      else url
+    else url
     val (urlWithoutParams, urlParams) = {
       val i = urlNoFragment.indexOf("?")
       if (i >= 0) (urlNoFragment.substring(0, i), extractUrlParams(urlNoFragment.substring(i + 1)))
@@ -132,7 +147,7 @@ object KoauthRequest {
       urlWithoutParams,
       urlParams,
       bodyParams,
-      List.empty)
+      extractOauthParams(authorizationHeader))
   }
 
   def extractOauthParams(authorizationHeader: Option[String]): List[(String, String)] = {
