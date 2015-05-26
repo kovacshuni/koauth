@@ -91,6 +91,21 @@ abstract class PersistenceSpec(val pers: Persistence) extends Specification {
     }
   }
 
+  "Getting the callback" should {
+    "return the callback if the token exists." in {
+      val consumerKey = generateTokenAndSecret._1
+      val (requestToken, requestTokenSecret) = generateTokenAndSecret
+      val callback = "http://www.example.com:5678/callback"
+
+      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 seconds)
+
+      pers.getCallback(consumerKey, requestToken) must beEqualTo(Some(callback)).await
+    }
+    "return None if the token does not exist." in {
+      pers.getCallback("ck", "rt") must beEqualTo(None).await
+    }
+  }
+
   "Getting the username for the Access Token" should {
     "return the username if the token exists." in {
       val consumerKey = generateTokenAndSecret._1

@@ -45,6 +45,10 @@ trait Persistence {
   def whoAuthorizedRequestToken(consumerKey: String,
                                 requestToken: String,
                                 verifier: String): Future[Option[String]]
+  /**
+   * @return The callback that was registered with this Request Token.
+   */
+  def getCallback(consumerKey: String, requestToken: String): Future[Option[String]]
 
   /**
    * Saves an Access Token with companion attributes.

@@ -48,6 +48,13 @@ class InMemoryPersistence(protected val ec: ExecutionContext) extends Persistenc
     }
   }
 
+  override def getCallback(consumerKey: String, requestToken: String) = {
+    Future {
+      requestTokens.find(p => consumerKey == p.consumerKey
+        && requestToken == p.requestToken).map(_.callback)
+    }
+  }
+
   override def getAccessTokenSecret(consumerKey: String, accessToken: String): Future[Option[String]] = {
     Future {
       accessTokens.find(t => consumerKey == t.consumerKey && accessToken == t.accessToken)
