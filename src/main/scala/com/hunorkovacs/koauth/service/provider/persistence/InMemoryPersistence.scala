@@ -3,7 +3,7 @@ package com.hunorkovacs.koauth.service.provider.persistence
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future}
 
-class ExampleMemoryPersistence(override protected val ec: ExecutionContext) extends InMemoryPersistence(ec) {
+class ExampleMemoryPersistence(ec: ExecutionContext) extends InMemoryPersistence(ec) {
 
   override val consumers = ListBuffer[Consumer](
     Consumer("OmFjJKNqU4v791CWj6QKaBaiEep0WBxJ", "wr1KLYYH6o5yKFfiyN9ysKkPXcIAim2S", "admin")
@@ -22,7 +22,7 @@ class ExampleMemoryPersistence(override protected val ec: ExecutionContext) exte
   )
 }
 
-class InMemoryPersistence(protected val ec: ExecutionContext) extends Persistence {
+class InMemoryPersistence(ec: ExecutionContext) extends Persistence {
 
   implicit private val implicitEc = ec
 
