@@ -2,24 +2,26 @@ package com.hunorkovacs.koauth.service
 
 import java.net.{URLDecoder, URLEncoder}
 import java.nio.charset.Charset
-import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import com.hunorkovacs.koauth.domain.OauthParams._
 
 import com.hunorkovacs.koauth.domain._
+import org.apache.commons.codec.binary.Base64
+import org.apache.commons.codec.net.URLCodec
 
 object Arithmetics {
 
   final val UTF8 = "UTF-8"
   private val HmacSha1Algorithm = "HmacSHA1"
   private val UTF8Charset = Charset.forName(UTF8)
-  private val Base64Encoder = Base64.getEncoder
+  private val Base64Codec =  new Base64(0)
+  private val URLCodec = new URLCodec(UTF8)
   private val FirstSlash = "(?<!/)/(?!/)"
 
-  def urlDecode(s: String) = URLDecoder.decode(s, UTF8)
+  def urlDecode(s: String) = URLCodec.decode(s)
 
-  def urlEncode(s: String) = URLEncoder.encode(s, UTF8)
+  def urlEncode(s: String) = URLCodec.encode(s)
     .replaceAll("\\+", "%20")
     .replaceAll("\\*", "%2A")
     .replaceAll("%7E", "~")
@@ -112,7 +114,7 @@ object Arithmetics {
     mac.init(secretkeySpec)
     val bytesToSign = base.getBytes(UTF8Charset)
     val digest = mac.doFinal(bytesToSign)
-    val digest64 = Base64Encoder.encode(digest)
+    val digest64 = Base64Codec.encode(digest)
     new String(digest64, UTF8Charset)
   }
 }

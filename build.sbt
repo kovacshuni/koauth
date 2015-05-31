@@ -22,8 +22,11 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % "2.3.4",
   "org.specs2" %% "specs2" % "2.3.12",
-  "org.slf4j" % "slf4j-api" % "1.7.7"
+  "org.slf4j" % "slf4j-api" % "1.7.7",
+  "commons-codec" % "commons-codec" % "1.10"
 )
+
+scalacOptions += "-target:jvm-1.7"
 
 pomExtra := {
   <url>https://github.com/kovacshuni/koauth</url>
