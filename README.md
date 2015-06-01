@@ -114,7 +114,7 @@ class YourPersistenceSpec extends PersistenceSpec(
   new YourPersistence(ExecutionContext.Implicits.global))
 ```
 
-## Authorization
+### Authorization
 
 *Authorizing* a Request Token is done in a custom way and it's not incorporated in this lib as
 it is not incorporated in the Oauth 1.0a specs. This is usually done by sending a request that
