@@ -203,6 +203,8 @@ Implement your controllers for the specification's steps and use the service's m
 
 * For consumers, the Signature Base string is exposed to help you debug unhappy situations.
 * Always track the [releases from GitHub](https://github.com/kovacshuni/koauth/releases) and [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22koauth-sync_2.11%22). Pre-built nightly/snapshot versions are not available yet at Maven Central, the master branch is work-in-progress, don't rely on it too much.
+* There's a [koauth-sync](https://github.com/kovacshuni/koauth-sync) library that doesn't use _Futures_. It's a wrapper around
+this, recommended for use in Java or for when you don't want to bother with _flatMaps_, _maps_ and _Awaits_.
 * I'm planning to implement all this for OAuth 2.0 in the far future.
 
 ## Contributing
