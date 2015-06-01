@@ -8,7 +8,7 @@ organization := """com.hunorkovacs"""
 
 name := """koauth"""
 
-version := "1.0.1-SNAPSHOT"
+version := "1.1.0-SNAPSHOT"
 
 scalaVersion := "2.11.1"
 
@@ -53,5 +53,3 @@ pomExtra := {
 publishTo := Some("releases"  at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
 
 publishMavenStyle := true
-
-publishArtifact in Test := true
