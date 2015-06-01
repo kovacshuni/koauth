@@ -15,14 +15,15 @@ I recommend trying them out, it will help you more than any readme.
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.0.1-SNAPSHOT"
+libraryDependencies += "com.hunorkovacs" %% "koauth" % "1.1.0-SNAPSHOT"
 ```
 
 ### Consumer (Spray)
 
 ```scala
 private def sign(request: HttpRequest, token: String, secret: String) = {
-  consumer.createOauthenticatedRequest(KoauthRequest(request.method.value, request.uri.toString(), None, None),
+  consumer.createOauthenticatedRequest(KoauthRequest(
+      request.method.value, request.uri.toString(), None, None),
       ConsumerKey, ConsumerSecret, token, secret) map { requestWithInfo =>
     request.withHeaders(RawHeader("Authorization", requestWithInfo.header))
   }
@@ -42,8 +43,8 @@ get("/me") {
       provider.oauthenticate(koauthRequest)
     } map {
       case Left(result) => result match {
-        case ResponseUnauthorized(body) => Unauthorized("You are treated as a guest.\n" + body)
-        case ResponseBadRequest(body) => BadRequest("You are treated as a guest.\n" + body)
+        case ResponseUnauthorized(body) => Unauthorized("You are treated as a guest.")
+        case ResponseBadRequest(body) => BadRequest("You are treated as a guest.")
       }
       case Right(username) => Ok("You are " + username + ".")
     }
@@ -55,14 +56,16 @@ Yes, you will need a `RequestMapper` that turns your HTTP framework's incoming r
 
 ```scala
 override def map(source: HttpServletRequest) =
-  Future(KoauthRequest(source.getMethod, source.getRequestURL.toString, Option(source.getHeader("Authorization")), None))
+  Future(KoauthRequest(source.getMethod, source.getRequestURL.toString,
+    Option(source.getHeader("Authorization")), None))
 ```
 
 and a persistence to be able to create a provider:
 
 ```scala
   val ec = ExecutionContext.Implicits.global
-  val provider = ProviderServiceFactory.createProviderService(new MyExampleMemoryPersistence(ec), ec)
+  val provider = ProviderServiceFactory.createProviderService(
+    new MyExampleMemoryPersistence(ec), ec)
 ```
 
 ### Request/response mapping
@@ -74,16 +77,17 @@ resonses, and how to handle authorization.
 ### Persistence
 
 When creating a `ProviderService`, you'll need to define your `Persistence` for it.
-This library exposes an interface (trait) that you must implement and connect to your database in your own way.
-To store your tokens & nonces, etc, you could use any kind of underlying database as you whish.
+This library exposes a trait that you must extend to connect to your database in your own way.
+To store your tokens & nonces, etc., you could use any kind of underlying database as you whish.
 There is an *in-memory* implementation provided, as a guideline, good for practice, not for production use.
 
 There is a test class, `PersistenceSpec`, that could help you verify if your implementation is correct.
-It's not an exhausting suite but gives you a basic acknowledgement whether your Persistence is fine.
+It's not an exhausting suite but gives you a basic acknowledgement.
 Write your test like this:
 
 ```scala
-class YourPersistenceSpec extends PersistenceSpec(new YourPersistence(ExecutionContext.Implicits.global))
+class YourPersistenceSpec extends PersistenceSpec(
+  new YourPersistence(ExecutionContext.Implicits.global))
 ```
 
 ### Design your controller:
@@ -109,7 +113,7 @@ private def mapCallMap(f: KoauthRequest => Future[KoauthResponse]) = {
 }
 ```
 
-(example was written in Scalatra)
+(example using Scalatra)
 
 ## Authorization
 
@@ -134,15 +138,15 @@ val provider = new ProviderService(persistence, ec)
 
 ## Java?
 
-### Consumer (javax.ws.rs HTTP client)
+### Consumer (using javax.ws.rs HTTP client)
 
 ```java
 private class LastTweetRoute implements Route {
     public Object handle(Request request, spark.Response response) throws Exception {
         String lastTweetUrl = "https://api.twitter.com/1.1/statuses/user_timeline.json?count=1&include_rts=1&trim_user=true";
         Invocation.Builder builder = http.target(lastTweetUrl).request();
-        RequestWithInfo requestWithInfo = consumer.createOauthenticatedRequest(KoauthRequest.apply("GET",
-                        lastTweetUrl, Option.<String>empty()),
+        RequestWithInfo requestWithInfo = consumer.createOauthenticatedRequest(
+                        KoauthRequest.apply("GET", lastTweetUrl, Option.<String>empty()),
                 CONSUMER_KEY,
                 CONSUMER_SECRET,
                 accessToken.token(),
@@ -159,7 +163,7 @@ private class LastTweetRoute implements Route {
 }
 ```
 
-### Provider (Spark framework)
+### Provider (using Spark framework)
 
 ```java
 private class MeRoute implements Route {
@@ -170,10 +174,10 @@ private class MeRoute implements Route {
             KoauthResponse left = authentication.left().get();
             if (left.getClass().equals(ResponseUnauthorized.class)) {
                 response.status(401);
-                return "You are treated as a guest.\n" + ((ResponseUnauthorized) left).body();
+                return "You are treated as a guest.";
             } else {
                 response.status(400);
-                return "You are treated as a guest.\n" + ((ResponseBadRequest) left).body();
+                return "You are treated as a guest.";
             }
         } else {
             String username = authentication.right().get();
@@ -189,9 +193,9 @@ Too much code for a readme, [see the examples](https://github.com/kovacshuni/koa
 
 In a RESTful environment, and with Oauth 1.0a, every request is authenticated, so it's usually a
 good practice to have your authentication come in as either a filter or a separate proxy application.
-So instead of the _/me_ method that i defined above, you should have a proxy parses every _/*_ request, and just verifies
-if the request was signed, and if it could be authenticated correctly, attaches this info in a header and passes it on
-to the real app. There is another example, that does this:
+So instead of the _/me_ method that i defined above, you should have a proxy app that parses every _/*_ request, 
+and just verifies if the request was signed, and if it could be authenticated correctly, attaches this info 
+in a header and passes it on to the real app. There is another example, that does this:
 [koauth-sample-proxy-finagle](https://github.com/kovacshuni/koauth-sample-proxy-finagle)
 
 Please read [the documentation](http://oauth.net/core/1.0a/) of Oauth 1.0a, understand the process
