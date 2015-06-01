@@ -52,47 +52,11 @@ get("/me") {
 }
 ```
 
-Yes, you will need a `RequestMapper` that turns your HTTP framework's incoming request to a `KoauthRequest`:
-
-```scala
-override def map(source: HttpServletRequest) =
-  Future(KoauthRequest(source.getMethod, source.getRequestURL.toString,
-    Option(source.getHeader("Authorization")), None))
-```
-
-and a persistence to be able to create a provider:
-
-```scala
-  val ec = ExecutionContext.Implicits.global
-  val provider = ProviderServiceFactory.createProviderService(
-    new MyExampleMemoryPersistence(ec), ec)
-```
-
-### Request/response mapping
-
-There are also `provider.requestToken()`, `provider.authorizeRequestToken()` and `provider.accessToken()` functions defined
-to aid you. You should see [the example projects](https://github.com/kovacshuni/koauth-samples), how to map your requests, 
-resonses, and how to handle authorization.
-
-### Persistence
-
-When creating a `ProviderService`, you'll need to define your `Persistence` for it.
-This library exposes a trait that you must extend to connect to your database in your own way.
-To store your tokens & nonces, etc., you could use any kind of underlying database as you whish.
-There is an *in-memory* implementation provided, as a guideline, good for practice, not for production use.
-
-There is a test class, `PersistenceSpec`, that could help you verify if your implementation is correct.
-It's not an exhausting suite but gives you a basic acknowledgement.
-Write your test like this:
-
-```scala
-class YourPersistenceSpec extends PersistenceSpec(
-  new YourPersistence(ExecutionContext.Implicits.global))
-```
-
-### Design your controller:
+### Design your controllers:
 
 Define the HTTP paths required by OAuth 1.0a
+There are also `provider.requestToken()`, `provider.authorizeRequestToken()` and `provider.accessToken()` functions defined
+to aid you. 
 
 * POST to /oauth/request-token
 * POST to /oauth/access-token
@@ -113,7 +77,42 @@ private def mapCallMap(f: KoauthRequest => Future[KoauthResponse]) = {
 }
 ```
 
-(example using Scalatra)
+### Request/response mapping
+
+You will need a `RequestMapper` that turns your HTTP framework's incoming request to a `KoauthRequest`:
+
+```scala
+override def map(source: HttpServletRequest) =
+  Future(KoauthRequest(source.getMethod, source.getRequestURL.toString,
+    Option(source.getHeader("Authorization")), None))
+```
+
+and a persistence to be able to create a provider:
+
+```scala
+  val ec = ExecutionContext.Implicits.global
+  val provider = ProviderServiceFactory.createProviderService(
+    new MyExampleMemoryPersistence(ec), ec)
+```
+
+You should see [the example projects](https://github.com/kovacshuni/koauth-samples), how to map your requests, 
+resonses, and how to handle authorization.
+
+### Persistence
+
+When creating a `ProviderService`, you'll need to define your `Persistence` for it.
+This library exposes a trait that you must extend to connect to your database in your own way.
+To store your tokens & nonces, etc., you could use any kind of underlying database as you whish.
+There is an *in-memory* implementation provided, as a guideline, good for practice, not for production use.
+
+There is a test class, `PersistenceSpec`, that could help you verify if your implementation is correct.
+It's not an exhausting suite but gives you a basic acknowledgement.
+Write your test like this:
+
+```scala
+class YourPersistenceSpec extends PersistenceSpec(
+  new YourPersistence(ExecutionContext.Implicits.global))
+```
 
 ## Authorization
 
