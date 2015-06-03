@@ -8,7 +8,7 @@ organization := """com.hunorkovacs"""
 
 name := """koauth"""
 
-version := "1.1.0-SNAPSHOT"
+version := "1.1.0"
 
 scalaVersion := "2.11.1"
 
@@ -40,6 +40,7 @@ pomExtra := {
       <connection>scm:git:github.com/kovacshuni/koauth</connection>
       <developerConnection>scm:git@github.com:kovacshuni/koauth.git</developerConnection>
       <url>github.com/kovacshuni/koauth</url>
+      <tag>1.1.x</tag>
     </scm>
     <developers>
       <developer>
