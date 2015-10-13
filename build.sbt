@@ -10,7 +10,7 @@ name := """koauth"""
 
 version := "1.1.1-SNAPSHOT"
 
-scalaVersion := "2.11.1"
+scalaVersion := "2.11.7"
 
 crossScalaVersions := Seq("2.10.4")
 
