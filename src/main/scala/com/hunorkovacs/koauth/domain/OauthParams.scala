@@ -5,6 +5,8 @@ object OauthParams {
   val ConsumerSecretName = "oauth_consumer_secret"
   val TokenName = "oauth_token"
   val TokenSecretName = "oauth_token_secret"
+  val TokenScreenNameName = "screen_name"
+  val TokenUserIdName = "user_id"
   val SignatureMethodName = "oauth_signature_method"
   val SignatureName = "oauth_signature"
   val TimestampName = "oauth_timestamp"
