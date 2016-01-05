@@ -1,6 +1,6 @@
 package com.hunorkovacs.koauth.service
 
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets.UTF_8
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import com.hunorkovacs.koauth.domain.OauthParams._
@@ -11,11 +11,9 @@ import org.apache.commons.codec.net.URLCodec
 
 object Arithmetics {
 
-  final val UTF8 = "UTF-8"
   private val HmacSha1Algorithm = "HmacSHA1"
-  private val UTF8Charset = Charset.forName(UTF8)
   private val Base64Codec =  new Base64(0)
-  private val URLCodec = new URLCodec(UTF8)
+  private val URLCodec = new URLCodec() // UTF-8
   private val FirstSlash = "(?<!/)/(?!/)"
 
   private val paramSortOrder = (lhs: (String, String), rhs: (String, String)) => {
@@ -106,12 +104,12 @@ object Arithmetics {
 
   def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
     val key = List(consumerSecret, tokenSecret) map urlEncode mkString "&"
-    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
+    val secretkeySpec = new SecretKeySpec(key.getBytes(UTF_8), HmacSha1Algorithm)
     val mac = Mac.getInstance(HmacSha1Algorithm)
     mac.init(secretkeySpec)
-    val bytesToSign = base.getBytes(UTF8Charset)
+    val bytesToSign = base.getBytes(UTF_8)
     val digest = mac.doFinal(bytesToSign)
     val digest64 = Base64Codec.encode(digest)
-    new String(digest64, UTF8Charset)
+    new String(digest64, UTF_8)
   }
 }
