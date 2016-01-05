@@ -66,17 +66,14 @@ object Arithmetics {
     keyValueList sortWith paramSortOrder map { p =>  p._1 + "=" + p._2 } mkString "&"
   }
 
-  def createRequestTokenResponse(token: String, secret: String): ResponseOk = {
-    val list = List((TokenName, token),
-      (TokenSecretName, secret),
-      (CallbackConfirmedName, "true"))
-    new ResponseOk(encodePairSortConcat(list))
-  }
+  def createRequestTokenResponse(token: String, secret: String): ResponseOk =
+    new ResponseOk(encodePairSortConcat(TokenName -> token
+      :: TokenSecretName -> secret
+      :: CallbackConfirmedName -> "true"
+      :: Nil))
 
-  def createAccesTokenResponse(token: String, secret: String): ResponseOk = {
-    val list = List((TokenName, token), (TokenSecretName, secret))
-    new ResponseOk(encodePairSortConcat(list))
-  }
+  def createAccesTokenResponse(token: String, secret: String): ResponseOk =
+    new ResponseOk(encodePairSortConcat(TokenName -> token :: TokenSecretName -> secret :: Nil))
 
   def parseRequestTokenResponse(response: String): Either[String, TokenResponse] = {
     val entries = response.split("&").map { p =>
