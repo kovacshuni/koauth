@@ -18,6 +18,17 @@ object Arithmetics {
   private val URLCodec = new URLCodec(UTF8)
   private val FirstSlash = "(?<!/)/(?!/)"
 
+  private val paramSortOrder = (lhs: (String, String), rhs: (String, String)) => {
+    val keyOrder = lhs._1.compareTo(rhs._1)
+    if (keyOrder < 0) true
+    else if (keyOrder > 0) false
+    else lhs._2.compareTo(rhs._2) < 0
+  }
+
+  private def encodeAndSort(params: List[(String, String)]): List[(String, String)] = {
+    params map { p => (urlEncode(p._1), urlEncode(p._2)) } sortWith paramSortOrder
+  }
+
   def urlDecode(s: String) = URLCodec.decode(s)
 
   def urlEncode(s: String) = URLCodec.encode(s)
@@ -26,19 +37,14 @@ object Arithmetics {
     .replaceAll("%7E", "~")
 
   def createAuthorizationHeader(oauthParamsList: List[(String, String)]): String = {
-    "OAuth " + (oauthParamsList map { p =>
-      val k = urlEncode(p._1)
-      val v = urlEncode(p._2)
-      k + "=\"" + v + "\""
-    }).sorted
-      .mkString(", ")
+    "OAuth " + (encodeAndSort(oauthParamsList) map { p => p._1 + "=\"" + p._2 + "\"" } mkString ", ")
   }
 
   def concatItemsForSignature(request: KoauthRequest): String = {
     val method = urlEncode(request.method)
     val url = urlEncode(toLowerCase(request.urlWithoutParams))
     val params =  urlEncode(normalizeRequestParams(request.urlParams, request.oauthParamsList, request.bodyParams))
-    concat(List(method, url, params))
+    List(method, url, params) mkString "&"
   }
 
   def normalizeRequestParams(urlParams: List[(String, String)],
@@ -55,22 +61,12 @@ object Arithmetics {
   }
 
   def encodePairSortConcat(keyValueList: List[(String, String)]): String = {
-    concat((keyValueList map { keyValue =>
-      val (key, value) = keyValue
-      urlEncode(key) + "=" + urlEncode(value)
-    }).sorted)
+    encodeAndSort(keyValueList) map { p =>  p._1 + "=" + p._2 } mkString "&"
   }
 
   def pairSortConcat(keyValueList: List[(String, String)]): String = {
-    concat((keyValueList map { keyValue =>
-      val (key, value) = keyValue
-      key + "=" + value
-    }).sorted)
+    keyValueList sortWith paramSortOrder map { p =>  p._1 + "=" + p._2 } mkString "&"
   }
-
-  def encodeConcat(itemList: List[String]): String = concat(itemList.map(urlEncode))
-
-  def concat(itemList: List[String]): String = itemList.mkString("&")
 
   def createRequestTokenResponse(token: String, secret: String): ResponseOk = {
     val list = List((TokenName, token),
@@ -109,7 +105,7 @@ object Arithmetics {
   }
 
   def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
-    val key = encodeConcat(List(consumerSecret, tokenSecret))
+    val key = List(consumerSecret, tokenSecret) map urlEncode mkString "&"
     val secretkeySpec = new SecretKeySpec(key.getBytes(UTF8Charset), HmacSha1Algorithm)
     val mac = Mac.getInstance(HmacSha1Algorithm)
     mac.init(secretkeySpec)
