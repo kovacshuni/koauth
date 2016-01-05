@@ -1,5 +1,6 @@
 package com.hunorkovacs.koauth.service
 
+import java.security.SecureRandom
 import scala.util.Random
 
 trait TokenGenerator {
@@ -17,7 +18,7 @@ object DefaultTokenGenerator extends TokenGenerator {
   private final val LengthSecret = 32
   private final val LengthVerifier = 16
   private final val LengthNonce = 8
-  private val random = new Random(System.currentTimeMillis)
+  private val random = new Random(new SecureRandom())
 
   override def generateTokenAndSecret = (generate(LengthToken), generate(LengthSecret))
 
