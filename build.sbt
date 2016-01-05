@@ -26,7 +26,7 @@ libraryDependencies ++= Seq(
   "commons-codec" % "commons-codec" % "1.10"
 )
 
-scalacOptions += "-target:jvm-1.7"
+scalacOptions += "-target:jvm-1.8"
 
 pomExtra := {
   <url>https://github.com/kovacshuni/koauth</url>
