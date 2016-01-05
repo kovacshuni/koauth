@@ -1,19 +1,17 @@
 package com.hunorkovacs.koauth.service
 
+import java.net.{URLDecoder, URLEncoder}
 import java.nio.charset.StandardCharsets.UTF_8
+import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import com.hunorkovacs.koauth.domain.OauthParams._
 
 import com.hunorkovacs.koauth.domain._
-import org.apache.commons.codec.binary.Base64
-import org.apache.commons.codec.net.URLCodec
 
 object Arithmetics {
 
   private val HmacSha1Algorithm = "HmacSHA1"
-  private val Base64Codec =  new Base64(0)
-  private val URLCodec = new URLCodec() // UTF-8
   private val FirstSlash = "(?<!/)/(?!/)"
 
   private val paramSortOrder = (lhs: (String, String), rhs: (String, String)) => {
@@ -27,10 +25,10 @@ object Arithmetics {
     params map { p => (urlEncode(p._1), urlEncode(p._2)) } sortWith paramSortOrder
   }
 
-  def urlDecode(s: String) = URLCodec.decode(s)
+  def urlDecode(s: String) = URLDecoder.decode(s, "UTF-8")
 
   private val urlEncodePattern = """\+|\*|%7E""".r
-  def urlEncode(s: String) = urlEncodePattern.replaceAllIn(URLCodec.encode(s), m => m.group(0) match {
+  def urlEncode(s: String) = urlEncodePattern.replaceAllIn(URLEncoder.encode(s, "UTF-8"), m => m.group(0) match {
     case "+" => "%20"
     case "*" => "%2A"
     case "%7E" => "~"
@@ -111,7 +109,7 @@ object Arithmetics {
     mac.init(secretkeySpec)
     val bytesToSign = base.getBytes(UTF_8)
     val digest = mac.doFinal(bytesToSign)
-    val digest64 = Base64Codec.encode(digest)
+    val digest64 = Base64.getEncoder.encode(digest)
     new String(digest64, UTF_8)
   }
 }
