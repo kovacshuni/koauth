@@ -29,10 +29,12 @@ object Arithmetics {
 
   def urlDecode(s: String) = URLCodec.decode(s)
 
-  def urlEncode(s: String) = URLCodec.encode(s)
-    .replaceAll("\\+", "%20")
-    .replaceAll("\\*", "%2A")
-    .replaceAll("%7E", "~")
+  private val urlEncodePattern = """\+|\*|%7E""".r
+  def urlEncode(s: String) = urlEncodePattern.replaceAllIn(URLCodec.encode(s), m => m.group(0) match {
+    case "+" => "%20"
+    case "*" => "%2A"
+    case "%7E" => "~"
+  })
 
   def createAuthorizationHeader(oauthParamsList: List[(String, String)]): String = {
     "OAuth " + (encodeAndSort(oauthParamsList) map { p => p._1 + "=\"" + p._2 + "\"" } mkString ", ")
