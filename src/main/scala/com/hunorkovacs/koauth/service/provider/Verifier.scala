@@ -145,12 +145,17 @@ protected class CustomVerifier(private val persistence: Persistence,
 
   def verifyRequiredParams(request: KoauthRequest, requiredParams: List[String]): Verification = {
     val paramsKeys = request.oauthParamsList.map(e => e._1)
-    if (requiredParams.equals(paramsKeys.sorted)) VerificationOk
-    else {
+    if (requiredParams.equals(paramsKeys.sorted)) {
+      VerificationOk
+    } else {
       val diff = requiredParams.diff(paramsKeys)
-      logger.debug("Given OAuth parameters are not as required. Given: {}; Required: {}; Request id: {}",
-        paramsKeys, requiredParams, request.id)
-      VerificationUnsupported(MessageParameterMissing + (paramsKeys.diff(requiredParams) ::: diff).mkString(", "))
+      if (diff.isEmpty && paramsKeys.distinct.size == paramsKeys.size) {
+        VerificationOk
+      } else {
+        logger.debug("Given OAuth parameters are not as required. Given: {}; Required: {}; Request id: {}",
+          paramsKeys, requiredParams, request.id)
+        VerificationUnsupported(MessageParameterMissing + (paramsKeys.diff(requiredParams) ::: diff).mkString(", "))
+      }
     }
   }
 }
