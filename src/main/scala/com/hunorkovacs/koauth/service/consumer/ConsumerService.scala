@@ -30,9 +30,7 @@ trait ConsumerService {
   def createGeneralSignedRequest(request: KoauthRequest): Future[RequestWithInfo]
 }
 
-
 case class RequestWithInfo(request: KoauthRequest, signatureBase: String, header: String)
-
 
 class DefaultConsumerService(private val ec: ExecutionContext) extends ConsumerService {
 
@@ -108,5 +106,4 @@ class DefaultConsumerService(private val ec: ExecutionContext) extends ConsumerS
     request.urlParams,
     request.bodyParams,
     request.oauthParamsList.filterNot(p => secretNames(p._1))))
-
 }
