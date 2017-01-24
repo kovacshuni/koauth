@@ -22,7 +22,7 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.13",
   "org.slf4j" % "slf4j-simple" % "1.7.13" % "test",
-  "org.specs2" %% "specs2" % "2.3.12" % "test"
+  "org.specs2" %% "specs2" % "2.3.12"
 )
 
 scalacOptions += "-target:jvm-1.7"
