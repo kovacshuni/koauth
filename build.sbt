@@ -25,7 +25,7 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2" % "2.3.12" % "test"
 )
 
-scalacOptions += "-target:jvm-1.8"
+scalacOptions += "-target:jvm-1.7"
 
 pomExtra := {
   <url>https://github.com/kovacshuni/koauth</url>
