@@ -13,6 +13,7 @@ object Arithmetics {
 
   private val HmacSha1Algorithm = "HmacSHA1"
   private val FirstSlash = "(?<!/)/(?!/)"
+  private val Base64Encoder = Base64.getEncoder
 
   private val paramSortOrder = (lhs: (String, String), rhs: (String, String)) => {
     val keyOrder = lhs._1.compareTo(rhs._1)
@@ -106,7 +107,7 @@ object Arithmetics {
     mac.init(secretkeySpec)
     val bytesToSign = base.getBytes(UTF_8)
     val digest = mac.doFinal(bytesToSign)
-    val digest64 = Base64.getEncoder.encode(digest)
+    val digest64 = Base64Encoder.encode(digest)
     new String(digest64, UTF_8)
   }
 }
