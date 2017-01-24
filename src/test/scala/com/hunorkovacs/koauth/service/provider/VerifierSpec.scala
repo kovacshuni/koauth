@@ -156,10 +156,9 @@ class VerifierSpec extends Specification with Mockito {
       verifier.verifyRequiredParams(request, List("a", "b")) must
         beEqualTo (VerificationUnsupported(MessageParameterMissing + "b"))
     }
-    "return negative if additional parameter and state which." in new commonMocks {
+    "return positive if additional parameter and state which." in new commonMocks {
       val request = createRequest(List(("a", "1"), ("b", "2"), ("c", "3")))
-      verifier.verifyRequiredParams(request, List("a", "b")) must
-        beEqualTo (VerificationUnsupported(MessageParameterMissing + "c"))
+      verifier.verifyRequiredParams(request, List("a", "b")) must beEqualTo (VerificationOk)
     }
     def createRequest(paramsList: List[(String, String)]) = KoauthRequest("", "", List.empty, List.empty, paramsList)
   }
