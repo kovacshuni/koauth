@@ -8,9 +8,9 @@ organization := """com.hunorkovacs"""
 
 name := """koauth"""
 
-version := "1.1.1-SNAPSHOT"
+version := "1.2.0"
 
-scalaVersion := "2.11.1"
+scalaVersion := "2.11.7"
 
 crossScalaVersions := Seq("2.10.4")
 
@@ -20,13 +20,12 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % "2.3.4",
-  "org.specs2" %% "specs2" % "2.3.12",
-  "org.slf4j" % "slf4j-api" % "1.7.7",
-  "commons-codec" % "commons-codec" % "1.10"
+  "org.slf4j" % "slf4j-api" % "1.7.13",
+  "org.slf4j" % "slf4j-simple" % "1.7.13" % "test",
+  "org.specs2" %% "specs2" % "2.3.12" % "test"
 )
 
-scalacOptions += "-target:jvm-1.7"
+scalacOptions += "-target:jvm-1.8"
 
 pomExtra := {
   <url>https://github.com/kovacshuni/koauth</url>

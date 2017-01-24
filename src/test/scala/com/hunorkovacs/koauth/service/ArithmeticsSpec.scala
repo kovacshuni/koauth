@@ -98,6 +98,8 @@ class ArithmeticsSpec extends Specification {
     "sort by key then value." in {
       encodePairSortConcat(List(("c", "3"), ("c", "2"), ("b", "2"), ("a", "1"))) must
         equalTo ("a=1&b=2&c=2&c=3")
+      encodePairSortConcat(List(("test", "hello"), ("test-abc", "hello2"), ("a", "b"), ("a", "a"))) must
+        equalTo ("a=a&a=b&test=hello&test-abc=hello2")
     }
   }
 
@@ -164,11 +166,11 @@ class ArithmeticsSpec extends Specification {
   "Parsing a Request Token response" should {
     "parse key, secret and callback." in {
       parseRequestTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=true") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
     }
     "parse key, secret and callback in any order." in {
       parseRequestTokenResponse(s"$CallbackConfirmedName=true&$TokenSecretName=$TokenSecret&$TokenName=$Token") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
     }
     "signal unconfirmed callback" in {
       val response = s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=false"
@@ -187,11 +189,15 @@ class ArithmeticsSpec extends Specification {
   "Parsing an Access Token response" should {
     "parse key and secret." in {
       parseAccessTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
     }
     "parse in any order." in {
       parseAccessTokenResponse(s"$TokenSecretName=$TokenSecret&$TokenName=$Token") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
+    }
+    "parse user_id and screen_name if present." in {
+      parseAccessTokenResponse(s"$TokenSecretName=$TokenSecret&$TokenName=$Token&$TokenScreenNameName=beanbaglabs&$TokenUserIdName=2695877526") must
+        equalTo(Right(TokenResponse(Token, TokenSecret, Some("2695877526"), Some("beanbaglabs"))))
     }
     "signal incomplete response" in {
       val response = s"$TokenSecretName=$TokenSecret"
