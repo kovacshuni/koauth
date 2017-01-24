@@ -98,6 +98,8 @@ class ArithmeticsSpec extends Specification {
     "sort by key then value." in {
       encodePairSortConcat(List(("c", "3"), ("c", "2"), ("b", "2"), ("a", "1"))) must
         equalTo ("a=1&b=2&c=2&c=3")
+    }
+    "sort by key then value (2)." in {
       encodePairSortConcat(List(("test", "hello"), ("test-abc", "hello2"), ("a", "b"), ("a", "a"))) must
         equalTo ("a=a&a=b&test=hello&test-abc=hello2")
     }
