@@ -168,11 +168,11 @@ class ArithmeticsSpec extends Specification {
   "Parsing a Request Token response" should {
     "parse key, secret and callback." in {
       parseRequestTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=true") must
-        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
     }
     "parse key, secret and callback in any order." in {
       parseRequestTokenResponse(s"$CallbackConfirmedName=true&$TokenSecretName=$TokenSecret&$TokenName=$Token") must
-        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
     }
     "signal unconfirmed callback" in {
       val response = s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=false"
@@ -191,15 +191,11 @@ class ArithmeticsSpec extends Specification {
   "Parsing an Access Token response" should {
     "parse key and secret." in {
       parseAccessTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret") must
-        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
     }
     "parse in any order." in {
       parseAccessTokenResponse(s"$TokenSecretName=$TokenSecret&$TokenName=$Token") must
-        equalTo(Right(TokenResponse(Token, TokenSecret, None, None)))
-    }
-    "parse user_id and screen_name if present." in {
-      parseAccessTokenResponse(s"$TokenSecretName=$TokenSecret&$TokenName=$Token&$TokenScreenNameName=beanbaglabs&$TokenUserIdName=2695877526") must
-        equalTo(Right(TokenResponse(Token, TokenSecret, Some("2695877526"), Some("beanbaglabs"))))
+        equalTo(Right(TokenResponse(Token, TokenSecret)))
     }
     "signal incomplete response" in {
       val response = s"$TokenSecretName=$TokenSecret"

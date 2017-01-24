@@ -85,8 +85,7 @@ object Arithmetics {
     if (!entries.contains(TokenName) ||
       !entries.contains(TokenSecretName) ||
       entries(CallbackConfirmedName) != "true") Left(response)
-    else
-      Right(TokenResponse(entries(TokenName), entries(TokenSecretName), entries.get(TokenUserIdName), entries.get(TokenScreenNameName)))
+    else Right(TokenResponse(entries(TokenName), entries(TokenSecretName)))
   }
 
   def parseAccessTokenResponse(response: String): Either[String, TokenResponse] = {
@@ -96,8 +95,7 @@ object Arithmetics {
       else return Left(response)
     }.toMap
     if (!entries.contains(TokenName) || !entries.contains(TokenSecretName)) Left(response)
-    else
-      Right(TokenResponse(entries(TokenName), entries(TokenSecretName), entries.get(TokenUserIdName), entries.get(TokenScreenNameName)))
+    else Right(TokenResponse(entries(TokenName), entries(TokenSecretName)))
   }
 
   def sign(base: String, consumerSecret: String, tokenSecret: String): String = {
