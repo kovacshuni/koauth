@@ -129,7 +129,7 @@ class ConsumerServiceSpec extends Specification {
     "exclude secrets, encode, sort, concat correctly every parameter." in {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
-      createSignatureBase(request) must beEqualTo(SignatureBase)
+      synch.ConsumerService.createSignatureBase(request) must beEqualTo(SignatureBase)
     }
   }
 }
