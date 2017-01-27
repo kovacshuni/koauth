@@ -1,12 +1,9 @@
-package com.hunorkovacs.koauth.service.consumer
+package com.hunorkovacs.koauth.service.consumer.synch
 
-import com.hunorkovacs.koauth.domain.OauthParams.ConsumerSecretName
 import com.hunorkovacs.koauth.domain.KoauthRequest
+import com.hunorkovacs.koauth.domain.OauthParams.ConsumerSecretName
 import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
 import org.specs2.mutable.Specification
-
-import scala.concurrent.{ExecutionContext, Await}
-import scala.concurrent.duration._
 
 class ConsumerServiceSpec extends Specification {
 
@@ -40,15 +37,14 @@ class ConsumerServiceSpec extends Specification {
     ", oauth_version=\"1.0\""
   val SignatureBase = "POST&https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json&include_entities%3Dtrue%26oauth_consumer_key%3Dxvz1evFS4wEEPTGEFPHBog%26oauth_nonce%3DkYjzVBB8Y0ZFabxSWbWovY3uYSQ2pTgmZeNu2VS4cg%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1318622958%26oauth_token%3D370773112-GmHxMAgYyLbNEtIKZeRNFsMKPR9EyMZeS9weJAEb%26oauth_version%3D1.0%26status%3DHello%2520Ladies%2520%252B%2520Gentlemen%252C%2520a%2520signed%2520OAuth%2520request%2521"
 
-  private val service = new DefaultConsumerService(ExecutionContext.Implicits.global)
-  import service._
+  import ConsumerService._
 
   "Creating a 'Request Token' request" should {
     "include all the necessary OAuth parameters." in {
       val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
-      val requestAndInfoF = createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createRequestTokenRequest(request, ConsumerKey, ConsumerSecret, Callback)
+      val header = requestAndInfo.header
 
       header must contain("oauth_callback=\"" + urlEncode(Callback) + "\"") and {
         header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"")
@@ -70,8 +66,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
-      val requestAndInfoF = createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createAccessTokenRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret, Verifier)
+      val header = requestAndInfo.header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
         header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
@@ -95,8 +91,8 @@ class ConsumerServiceSpec extends Specification {
     "include all the necessary OAuth parameters." in {
       val request = KoauthRequest(Method, Url, None, List.empty, List.empty)
 
-      val requestAndInfoF = createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createOauthenticatedRequest(request, ConsumerKey, ConsumerSecret, Token, TokenSecret)
+      val header = requestAndInfo.header
 
       header must contain("oauth_consumer_key=\"" + urlEncode(ConsumerKey) + "\"") and {
         header must contain("oauth_token=\"" + urlEncode(Token) + "\"")
@@ -118,8 +114,8 @@ class ConsumerServiceSpec extends Specification {
     "sign correctly and include signature in Authorization header together with the rest of the parameters." in {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
-      val requestAndInfoF = createGeneralSignedRequest(request)
-      val header = Await.result(requestAndInfoF, 1.0 seconds).header
+      val requestAndInfo = createGeneralSignedRequest(request)
+      val header = requestAndInfo.header
 
       header must beEqualTo(AuthHeader)
     }
@@ -129,7 +125,7 @@ class ConsumerServiceSpec extends Specification {
     "exclude secrets, encode, sort, concat correctly every parameter." in {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, OauthParamsList)
 
-      synch.ConsumerService.createSignatureBase(request) must beEqualTo(SignatureBase)
+      createSignatureBase(request) must beEqualTo(SignatureBase)
     }
   }
 }

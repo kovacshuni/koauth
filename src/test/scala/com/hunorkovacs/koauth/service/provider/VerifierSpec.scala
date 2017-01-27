@@ -1,5 +1,7 @@
 package com.hunorkovacs.koauth.service.provider
 
+import java.util.concurrent.TimeUnit
+
 import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.{sign, urlEncode}
 import com.hunorkovacs.koauth.service.provider.VerifierObject._
@@ -7,7 +9,7 @@ import com.hunorkovacs.koauth.service.provider.persistence.Persistence
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
 
-import scala.concurrent.{ExecutionContext, Await}
+import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.Future.successful
 import scala.concurrent.duration._
 
@@ -183,7 +185,7 @@ class VerifierSpec extends Specification with Mockito {
       mockedPer.nonceExists(Nonce, ConsumerKey, Token) returns successful(false)
 
       verifier.fourVerifications(request, ConsumerSecret, Token, TokenSecret) must
-        equalTo (VerificationFailed(MessageInvalidSignature + signatureBase)).await
+        equalTo (VerificationFailed(MessageInvalidSignature + signatureBase)).await(0, FiniteDuration(10, TimeUnit.SECONDS))
     }
     "return negative if signature, method, nonce all ok but timestamp late." in new commonMocks {
       val time = now - 11 * 60
