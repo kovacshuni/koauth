@@ -22,11 +22,10 @@ libraryDependencies += "com.hunorkovacs" %% "koauth" % "2.0.0"
 
 ```scala
 private def sign(request: HttpRequest, token: String, secret: String) = {
-  consumer.createOauthenticatedRequest(KoauthRequest(
+  val requestWithInfo = consumer.createOauthenticatedRequest(KoauthRequest(
       request.method.value, request.uri.toString(), None, None),
-      ConsumerKey, ConsumerSecret, token, secret) map { requestWithInfo =>
-    request.withHeaders(RawHeader("Authorization", requestWithInfo.header))
-  }
+      ConsumerKey, ConsumerSecret, token, secret)
+  request.withHeaders(RawHeader("Authorization", requestWithInfo.header))
 }
 
 sign(pipelining.Get(lastTweetUrl)).flatMap(pipeline(_))
