@@ -38,7 +38,7 @@ pomExtra := {
       <connection>scm:git:github.com/kovacshuni/koauth</connection>
       <developerConnection>scm:git@github.com:kovacshuni/koauth.git</developerConnection>
       <url>github.com/kovacshuni/koauth</url>
-      <tag>1.1.x</tag>
+      <tag>2.0.x</tag>
     </scm>
     <developers>
       <developer>
