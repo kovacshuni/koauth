@@ -4,14 +4,17 @@ import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.service.Arithmetics.sign
 import com.hunorkovacs.koauth.service.provider.VerifierObject._
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
+import org.specs2.concurrent.ExecutionEnv
+import org.specs2.matcher.ThrownExpectations
 import org.specs2.mock.Mockito
 import org.specs2.mutable._
+import org.specs2.specification.Scope
 
 import scala.concurrent.Future.successful
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-class VerifierSpec extends Specification with Mockito {
+class VerifierSpec(implicit ee: ExecutionEnv) extends Specification with Mockito with Scope {
 
   val SignatureBase = "POST&https%3A%2F%2Fapi.twitter.com%2F1%2Fstatuses%2Fupdate.json" +
     "&include_entities%3Dtrue" +
@@ -142,6 +145,7 @@ class VerifierSpec extends Specification with Mockito {
   }
 
   "Verifying required parameters" should {
+    def createRequest(paramsList: List[(String, String)]) = KoauthRequest("", "", List.empty, List.empty, paramsList)
     "return positive if lists are the same but shuffled." in new commonMocks {
       val request = createRequest(List(("b", "2"), ("a", "1")))
       verifier.verifyRequiredParams(request, List("a", "b")) must beEqualTo (VerificationOk)
@@ -160,7 +164,6 @@ class VerifierSpec extends Specification with Mockito {
       val request = createRequest(List(("a", "1"), ("b", "2"), ("c", "3")))
       verifier.verifyRequiredParams(request, List("a", "b")) must beEqualTo (VerificationOk)
     }
-    def createRequest(paramsList: List[(String, String)]) = KoauthRequest("", "", List.empty, List.empty, paramsList)
   }
 
   "Verifying the four verifications" should {
@@ -253,6 +256,12 @@ class VerifierSpec extends Specification with Mockito {
   }
 
   "Verifying the requests with Token" should {
+
+    def getSecret(consumerKey: String, token: String) = {
+      if (ConsumerKey == consumerKey && Token == token) successful(Some(TokenSecret))
+      else successful(None)
+    }
+
     "return positive if signature, method, timestamp, nonce all ok." in new commonMocks  {
       val time = now
       val signatureBase = actualizeSignatureBase(SignatureBase, time)
@@ -288,11 +297,6 @@ class VerifierSpec extends Specification with Mockito {
         case _ => failure("result is not of type " + VerificationUnsupported.getClass.getSimpleName)
       }
     }
-
-    def getSecret(consumerKey: String, token: String) = {
-      if (ConsumerKey == consumerKey && Token == token) successful(Some(TokenSecret))
-      else successful(None)
-    }
   }
 
   private def actualizeSignatureBase(base: String, time: Long) =
@@ -308,7 +312,7 @@ class VerifierSpec extends Specification with Mockito {
 
   private def now = System.currentTimeMillis() / 1000
 
-  private trait commonMocks extends Before with Mockito {
+  private trait commonMocks extends Before with Mockito with ThrownExpectations {
     implicit lazy val mockedPer = mock[Persistence]
     val verifier = new CustomVerifier(mockedPer, ec)
 
