@@ -55,7 +55,7 @@ get("/me") {
 
 Define the HTTP paths required by OAuth 1.0a
 There are also `provider.requestToken()`, `provider.authorizeRequestToken()` and `provider.accessToken()` functions defined
-to aid you. 
+to aid you.
 
 * POST to /oauth/request-token
 * POST to /oauth/access-token
@@ -94,7 +94,7 @@ and a persistence to be able to create a provider:
     new MyExampleMemoryPersistence(ec), ec)
 ```
 
-You should see [the example projects](https://github.com/kovacshuni/koauth-samples), how to map your requests, 
+You should see [the example projects](https://github.com/kovacshuni/koauth-samples), how to map your requests,
 resonses, and how to handle authorization.
 
 ### Persistence
@@ -191,8 +191,8 @@ Too much code for a readme, [see the examples](https://github.com/kovacshuni/koa
 
 In a RESTful environment, and with Oauth 1.0a, every request is authenticated, so it's usually a
 good practice to have your authentication come in as either a filter or a separate proxy application.
-So instead of the _/me_ method that i defined above, you should have a proxy app that parses every _/*_ request, 
-and just verifies if the request was signed, and if it could be authenticated correctly, attaches this info 
+So instead of the _/me_ method that i defined above, you should have a proxy app that parses every _/*_ request,
+and just verifies if the request was signed, and if it could be authenticated correctly, attaches this info
 in a header and passes it on to the real app. There is another example, that does this:
 [koauth-sample-proxy-finagle](https://github.com/kovacshuni/koauth-sample-proxy-finagle)
 
@@ -208,7 +208,7 @@ this, recommended for use in Java or for when you don't want to bother with _fla
 
 ## Contributing
 
-Just create a pull-request, we'll discuss it, i'll try to be quick.
+Your pull-requests are welcome.
 
 Building and testing locally:
 
@@ -220,20 +220,16 @@ compile
 test
 ```
 
-Publishing (mostly for me :) )
+Publishing (mostly for me)
+
 [help](http://www.scala-sbt.org/0.13/docs/Using-Sonatype.html)
 
 ```
 sbt
-show */*:pgpSecretRing
-# rm that file
-show */*:pgpPublicRing
-# rm that file
-set pgpReadOnly := false
-pgp-cmd gen-key
-pgp-cmd send-key kovacshuni@yahoo.com hkp://pool.sks-keyservers.net
-# make sure this contains your credentials ~/.sbt/0.13/sonatype.sbt
+# make sure ~/.sbt/0.13/sonatype.sbt contains your credentials of sonatype, search in your LastPass.
+sonatypeOpen "com.hunorkovacs" "koauth"
 publishSigned
+# then on https://oss.sonatype.org/#stagingRepositories close and then release
 ```
 
 ## Owner
