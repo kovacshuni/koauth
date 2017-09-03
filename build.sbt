@@ -1,8 +1,4 @@
-import SonatypeKeys._
-
-sonatypeSettings
-
-profileName := "com.hunorkovacs"
+sonatypeProfileName := "com.hunorkovacs"
 
 organization := """com.hunorkovacs"""
 
@@ -26,29 +22,28 @@ libraryDependencies ++= Seq(
   "org.specs2" %% "specs2-mock" % "3.8.9"
 )
 
-pomExtra := {
-  <url>https://github.com/kovacshuni/koauth</url>
-    <licenses>
-      <license>
-        <name>Apache 2</name>
-        <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-      </license>
-    </licenses>
-    <scm>
-      <connection>scm:git:github.com/kovacshuni/koauth</connection>
-      <developerConnection>scm:git@github.com:kovacshuni/koauth.git</developerConnection>
-      <url>github.com/kovacshuni/koauth</url>
-      <tag>2.0.x</tag>
-    </scm>
-    <developers>
-      <developer>
-        <id>kovacshuni</id>
-        <name>Hunor Kovács</name>
-        <url>www.hunorkovacs.com</url>
-      </developer>
-    </developers>
-}
+useGpg := true
 
 publishTo := Some("releases"  at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
 
 publishMavenStyle := true
+
+licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
+
+homepage := Some(url("https://github.com/kovacshuni/koauth"))
+
+scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/kovacshuni/koauth"),
+    "scm:git@github.com:kovacshuni/koauth.git"
+  )
+)
+
+developers := List(
+  Developer(
+    id="kovacshuni",
+    name="Hunor Kovács",
+    email="kovacshuni@yahoo.com",
+    url=url("http://www.hunorkovacs.com")
+  )
+)
