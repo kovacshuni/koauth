@@ -1,9 +1,9 @@
 package com.hunorkovacs.koauth.service.provider.persistence
 
 import com.hunorkovacs.koauth.service.DefaultTokenGenerator._
-import org.specs2.mutable.Specification
 import org.specs2.concurrent.ExecutionEnv
 import org.specs2.mock.Mockito
+import org.specs2.mutable.Specification
 import org.specs2.specification.Scope
 
 import scala.concurrent.Await._

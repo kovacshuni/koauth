@@ -18,8 +18,8 @@ resolvers ++= Seq(
 libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.slf4j" % "slf4j-simple" % "1.7.25" % "test",
-  "org.specs2" %% "specs2-core" % "3.8.9",
-  "org.specs2" %% "specs2-mock" % "3.8.9"
+  "org.specs2" %% "specs2-core" % "3.8.9" % "test",
+  "org.specs2" %% "specs2-mock" % "3.8.9" % "test"
 )
 
 useGpg := true
