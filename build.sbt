@@ -1,30 +1,61 @@
-sonatypeProfileName := "com.hunorkovacs"
+ThisBuild / sonatypeProfileName := "com.hunorkovacs"
 
-organization := """com.hunorkovacs"""
+ThisBuild / organization := """com.hunorkovacs"""
+
+ThisBuild / version := "2.0.1-SNAPSHOT"
+
+ThisBuild / scalaVersion := "2.12.1"
+
+ThisBuild / crossScalaVersions := Seq("2.11.8")
+
+lazy val root = (project in file("."))
+  .aggregate(domain, provider, consumer)
 
 name := """koauth"""
 
-version := "2.0.1-SNAPSHOT"
+lazy val commonSettings = Seq(
+  libraryDependencies ++= {
+    val Test = "test"
+    val Specs2Version = "3.8.9"
+    val Slf4jVersion = "1.7.25"
 
-scalaVersion := "2.12.1"
-
-crossScalaVersions := Seq("2.10.4", "2.11.8")
-
-resolvers ++= Seq(
-  "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/",
-  "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases"
+    Seq(
+      "org.slf4j"  % "slf4j-api"    % Slf4jVersion,
+      "org.slf4j"  % "slf4j-simple" % Slf4jVersion % Test,
+      "org.specs2" %% "specs2-core" % Specs2Version,
+      "org.specs2" %% "specs2-mock" % Specs2Version
+    )
+  }
 )
 
-libraryDependencies ++= Seq(
-  "org.slf4j" % "slf4j-api" % "1.7.25",
-  "org.slf4j" % "slf4j-simple" % "1.7.25" % "test",
-  "org.specs2" %% "specs2-core" % "3.8.9",
-  "org.specs2" %% "specs2-mock" % "3.8.9"
+lazy val domain = (project in file("domain"))
+  .settings(
+    commonSettings,
+    name := """domain"""
+  )
+
+lazy val provider = (project in file("provider"))
+  .dependsOn(domain)
+  .settings(
+    commonSettings,
+    name := """provider"""
+  )
+
+lazy val consumer = (project in file("consumer"))
+  .dependsOn(domain)
+  .settings(
+    commonSettings,
+    name := """consumer"""
+  )
+
+resolvers ++= Seq(
+  "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/",
+  "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases"
 )
 
 useGpg := true
 
-publishTo := Some("releases"  at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
+publishTo := Some("releases" at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
 
 publishMavenStyle := true
 
@@ -41,9 +72,9 @@ scmInfo := Some(
 
 developers := List(
   Developer(
-    id="kovacshuni",
-    name="Hunor Kovács",
-    email="kovacshuni@yahoo.com",
-    url=url("http://www.hunorkovacs.com")
+    id = "kovacshuni",
+    name = "Hunor Kovács",
+    email = "kovacshuni@yahoo.com",
+    url = url("http://www.hunorkovacs.com")
   )
 )
