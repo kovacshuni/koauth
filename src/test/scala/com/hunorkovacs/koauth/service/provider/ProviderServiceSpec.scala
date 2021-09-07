@@ -5,7 +5,7 @@ import com.hunorkovacs.koauth.service.Arithmetics.urlEncode
 import com.hunorkovacs.koauth.service.DefaultTokenGenerator
 import com.hunorkovacs.koauth.service.provider.VerifierObject._
 import com.hunorkovacs.koauth.service.provider.persistence.Persistence
-import org.mockito.Matchers
+import org.mockito.ArgumentMatchers
 import org.specs2.mock._
 import org.specs2.mutable.Specification
 
@@ -44,15 +44,15 @@ class ProviderServiceSpec extends Specification with Mockito {
             a(1) match { case s: String => token = s }
             a(2) match { case s: String => secret = urlEncode(s) }
         }
-        successful(Unit)
+        successful(())
       }
-      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq("")) returns successful(Unit)
+      pers.persistNonce(anyString, ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq("")) returns successful(())
       verifier.verifyForRequestToken(request) returns successful(VerificationOk)
 
       val response = Await.result(service.requestToken(request), 1.0 seconds)
 
       there was one(pers).persistRequestToken(ConsumerKey, token, secret, Callback) and {
-        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(""))
+        there was one(pers).persistNonce(anyString, ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(""))
       } and {
         response must beEqualTo(ResponseOk(s"oauth_callback_confirmed=true" +
           "&oauth_token=" + urlEncode(token) +
@@ -119,8 +119,8 @@ class ProviderServiceSpec extends Specification with Mockito {
         ", oauth_verifier=\"" + urlEncode(Verifier) + "\"")
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForAccessToken(request) returns successful(VerificationOk)
-      pers.whoAuthorizedRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken),
-        Matchers.eq(Verifier)) returns successful(Some(Username))
+      pers.whoAuthorizedRequestToken(ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(RequestToken),
+        ArgumentMatchers.eq(Verifier)) returns successful(Some(Username))
       var accessToken, secret = ""
       pers.persistAccessToken(anyString, anyString, anyString, anyString) answers { (p, m) =>
         p match {
@@ -128,15 +128,15 @@ class ProviderServiceSpec extends Specification with Mockito {
             a(1) match { case s: String => accessToken = s }
             a(2) match { case s: String => secret = s }
         }
-        successful(Unit)
+        successful(())
       }
-      pers.deleteRequestToken(Matchers.eq(ConsumerKey), Matchers.eq(RequestToken)) returns successful(Unit)
-      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken)) returns successful(Unit)
+      pers.deleteRequestToken(ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(RequestToken)) returns successful(())
+      pers.persistNonce(anyString, ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(RequestToken)) returns successful(())
 
       val response = Await.result(service.accessToken(request), 1.0 seconds)
 
       there was one(pers).whoAuthorizedRequestToken(ConsumerKey, RequestToken, Verifier) and {
-        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))
+        there was one(pers).persistNonce(anyString, ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(RequestToken))
       } and {
         there was one(pers).persistAccessToken(ConsumerKey, accessToken, secret, Username)
       } and {
@@ -235,12 +235,12 @@ class ProviderServiceSpec extends Specification with Mockito {
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
       pers.getUsername(ConsumerKey, RequestToken) returns successful(Some(Username))
-      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken)) returns successful(Unit)
+      pers.persistNonce(anyString, ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(RequestToken)) returns successful(())
 
       val response = Await.result(service.oauthenticate(request), 1.0 seconds)
 
       response must beEqualTo(Right(Username)) and {
-        there was one(pers).persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken))
+        there was one(pers).persistNonce(anyString, ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(RequestToken))
       }
     }
     "return Unauthorized if signature and other parameters are ok, but token is not a valid access token." in {
@@ -268,7 +268,7 @@ class ProviderServiceSpec extends Specification with Mockito {
       val request = KoauthRequest("", "", header, List.empty, List.empty)
       verifier.verifyForOauthenticate(request) returns successful(VerificationOk)
       pers.getUsername(ConsumerKey, RequestToken) returns successful(None)
-      pers.persistNonce(anyString, Matchers.eq(ConsumerKey), Matchers.eq(RequestToken)) returns successful(Unit)
+      pers.persistNonce(anyString, ArgumentMatchers.eq(ConsumerKey), ArgumentMatchers.eq(RequestToken)) returns successful(())
 
       val response = Await.result(service.oauthenticate(request), 1.0 seconds)
 

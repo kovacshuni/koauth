@@ -65,14 +65,14 @@ class InMemoryPersistence(ec: ExecutionContext) extends Persistence {
   override def persistAccessToken(consumerKey: String, accessToken: String, accessTokenSecret: String, username: String): Future[Unit] = {
     Future {
       accessTokens += AccessToken(consumerKey, accessToken, accessTokenSecret, username)
-      Unit
+      ()
     }
   }
 
   override def persistRequestToken(consumerKey: String, requestToken: String, requestTokenSecret: String, callback: String): Future[Unit] = {
     Future {
       requestTokens += RequestToken(consumerKey, requestToken, requestTokenSecret, callback, None, None)
-      Unit
+      ()
     }
   }
 
@@ -100,7 +100,7 @@ class InMemoryPersistence(ec: ExecutionContext) extends Persistence {
   override def persistNonce(nonce: String, consumerKey: String, token: String): Future[Unit] = {
     Future {
       nonces += Nonce(nonce, consumerKey, token)
-      Unit
+      ()
     }
   }
 
