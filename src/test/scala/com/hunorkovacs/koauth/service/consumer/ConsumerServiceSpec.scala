@@ -1,4 +1,4 @@
-package com.hunorkovacs.koauth.service.consumer.synch
+package com.hunorkovacs.koauth.service.consumer
 
 import com.hunorkovacs.koauth.domain.KoauthRequest
 import com.hunorkovacs.koauth.domain.OauthParams.ConsumerSecretName
