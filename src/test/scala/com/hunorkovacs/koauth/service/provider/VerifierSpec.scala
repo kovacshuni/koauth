@@ -248,7 +248,7 @@ class VerifierSpec(implicit ee: ExecutionEnv) extends Specification with Mockito
     "return negative if required parameter is missing." in new commonMocks {
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, ParamsList)
 
-      (Await.result(verifier.verifyForRequestToken(request), 1.0 second) match {
+      (Await.result(verifier.verifyForRequestToken(request), 1.second) match {
         case VerificationUnsupported(message) => message
         case _ => ""
       }) must startingWith(MessageParameterMissing)
@@ -290,7 +290,7 @@ class VerifierSpec(implicit ee: ExecutionEnv) extends Specification with Mockito
       val params = ParamsListWithCallback.filterNot(p => p._1 == "oauth_version")
       val request = KoauthRequest(Method, Url, UrlParams, BodyParams, params)
 
-      val verification = Await.result(verifier.verifyWithToken(request, OauthenticateRequiredParams, getSecret), 1.0 second)
+      val verification = Await.result(verifier.verifyWithToken(request, OauthenticateRequiredParams, getSecret), 1.second)
 
       val message = verification match {
         case VerificationUnsupported(m) => m must startingWith(MessageParameterMissing)
