@@ -41,7 +41,7 @@ class InMemoryPersistence(ec: ExecutionContext) extends Persistence {
     Future {
       requestTokens.find(p => consumerKey == p.consumerKey
         && requestToken == p.requestToken
-        && Some(verifier) == p.verifier) match {
+        && p.verifier.contains(verifier)) match {
         case None => None
         case Some(foundRequestToken) => foundRequestToken.verifierUsername
       }
