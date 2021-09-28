@@ -4,7 +4,7 @@ organization := """com.hunorkovacs"""
 
 name := """koauth"""
 
-version := "2.0.2-SNAPSHOT"
+version := "2.1.0"
 
 scalaVersion := "2.13.6"
 

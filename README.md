@@ -15,7 +15,7 @@ I recommend trying them out, it will help you more than any readme.
 ```scala
 resolvers += "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
 
-libraryDependencies += "com.hunorkovacs" %% "koauth" % "2.0.0"
+libraryDependencies += "com.hunorkovacs" %% "koauth" % "2.1.0"
 ```
 
 ### Consumer (Spray)
@@ -234,8 +234,8 @@ publishSigned
 
 ## Owner
 
-Hunor Kovács  
-kovacshuni@yahoo.com  
+Hunor Kovács
+kovacshuni@yahoo.com
 [hunorkovacs.com](http://www.hunorkovacs.com)
 
 ## Licence
