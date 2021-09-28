@@ -4,25 +4,23 @@ organization := """com.hunorkovacs"""
 
 name := """koauth"""
 
-version := "2.0.1-SNAPSHOT"
+version := "2.0.2-SNAPSHOT"
 
-scalaVersion := "2.12.1"
+scalaVersion := "2.13.6"
 
-crossScalaVersions := Seq("2.10.4", "2.11.8")
+crossScalaVersions := Seq("2.11.12", "2.12.14")
 
 resolvers ++= Seq(
-  "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/",
+  "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/",
   "Sonatype OSS Releases" at "https://oss.sonatype.org/content/repositories/releases"
 )
 
 libraryDependencies ++= Seq(
-  "org.slf4j" % "slf4j-api" % "1.7.25",
-  "org.slf4j" % "slf4j-simple" % "1.7.25" % "test",
-  "org.specs2" %% "specs2-core" % "3.8.9",
-  "org.specs2" %% "specs2-mock" % "3.8.9"
+  "org.slf4j" % "slf4j-api" % "1.7.32",
+  "org.slf4j" % "slf4j-simple" % "1.7.32" % "test",
+  "org.specs2" %% "specs2-core" % "4.10.6",
+  "org.specs2" %% "specs2-mock" % "4.10.6"
 )
-
-useGpg := true
 
 publishTo := Some("releases"  at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
 

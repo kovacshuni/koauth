@@ -16,14 +16,14 @@ abstract class PersistenceSpec(val pers: Persistence)(implicit ee: ExecutionEnv)
     "return true if it was persisted before." in {
       val (nonce, consumerKey, token) = (generateNonce, generateTokenAndSecret._1, generateTokenAndSecret._1)
 
-      ready(pers.persistNonce(nonce, consumerKey, token), 1.0 second)
+      ready(pers.persistNonce(nonce, consumerKey, token), 1.second)
 
       pers.nonceExists(nonce, consumerKey, token) must beEqualTo(true).await
     }
     "return false if it was not persisted before." in {
       val (nonce, consumerKey, token) = (generateNonce, generateTokenAndSecret._1, generateTokenAndSecret._1)
 
-      ready(pers.persistNonce(nonce, consumerKey, token), 1.0 second)
+      ready(pers.persistNonce(nonce, consumerKey, token), 1.second)
 
       pers.nonceExists(generateNonce, consumerKey, token) must beEqualTo(false).await
     }
@@ -35,25 +35,25 @@ abstract class PersistenceSpec(val pers: Persistence)(implicit ee: ExecutionEnv)
       val (requestToken, requestTokenSecret) = generateTokenAndSecret
       val callback = "oob"
 
-      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 second)
+      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.second)
 
-      pers.getRequestTokenSecret(consumerKey, requestToken) must beEqualTo(Some(requestTokenSecret)).await
+      pers.getRequestTokenSecret(consumerKey, requestToken) must beSome(requestTokenSecret).await
     }
     "return None if the token has never been persisted before." in {
       val consumerKey = generateTokenAndSecret._1
       val requestToken = generateTokenAndSecret._1
 
-      pers.getRequestTokenSecret(consumerKey, requestToken) must beEqualTo(None).await
+      pers.getRequestTokenSecret(consumerKey, requestToken) must beNone.await
     }
     "return None if the token has existed before but was deleted since." in {
       val consumerKey = generateTokenAndSecret._1
       val (requestToken, requestTokenSecret) = generateTokenAndSecret
       val callback = "oob"
 
-      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 second)
-      ready(pers.deleteRequestToken(consumerKey, requestToken), 1.0 second)
+      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.second)
+      ready(pers.deleteRequestToken(consumerKey, requestToken), 1.second)
 
-      pers.getRequestTokenSecret(consumerKey, requestToken) must beEqualTo(None).await
+      pers.getRequestTokenSecret(consumerKey, requestToken) must beNone.await
     }
   }
 
@@ -63,15 +63,15 @@ abstract class PersistenceSpec(val pers: Persistence)(implicit ee: ExecutionEnv)
       val (accessToken, accessTokenSecret) = generateTokenAndSecret
       val username = generateNonce
 
-      ready(pers.persistAccessToken(consumerKey, accessToken, accessTokenSecret, username), 1.0 second)
+      ready(pers.persistAccessToken(consumerKey, accessToken, accessTokenSecret, username), 1.second)
 
-      pers.getAccessTokenSecret(consumerKey, accessToken) must beEqualTo(Some(accessTokenSecret)).await
+      pers.getAccessTokenSecret(consumerKey, accessToken) must beSome(accessTokenSecret).await
     }
     "return None if the token has never been persisted before." in {
       val consumerKey = generateTokenAndSecret._1
       val accessToken = generateTokenAndSecret._1
 
-      pers.getAccessTokenSecret(consumerKey, accessToken) must beEqualTo(None).await
+      pers.getAccessTokenSecret(consumerKey, accessToken) must beNone.await
     }
   }
 
@@ -82,16 +82,16 @@ abstract class PersistenceSpec(val pers: Persistence)(implicit ee: ExecutionEnv)
       val verifier = generateVerifier
       val callback = "oob"
 
-      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 seconds)
+      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.seconds)
 
-      pers.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) must beEqualTo(None).await
+      pers.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) must beNone.await
     }
     "return None if the token does not exist." in {
       val consumerKey = generateTokenAndSecret._1
       val requestToken = generateTokenAndSecret._1
       val verifier = generateVerifier
 
-      pers.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) must beEqualTo(None).await
+      pers.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) must beNone.await
     }
   }
 
@@ -101,12 +101,12 @@ abstract class PersistenceSpec(val pers: Persistence)(implicit ee: ExecutionEnv)
       val (requestToken, requestTokenSecret) = generateTokenAndSecret
       val callback = "http://www.example.com:5678/callback"
 
-      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.0 seconds)
+      ready(pers.persistRequestToken(consumerKey, requestToken, requestTokenSecret, callback), 1.seconds)
 
-      pers.getCallback(consumerKey, requestToken) must beEqualTo(Some(callback)).await
+      pers.getCallback(consumerKey, requestToken) must beSome(callback).await
     }
     "return None if the token does not exist." in {
-      pers.getCallback("ck", "rt") must beEqualTo(None).await
+      pers.getCallback("ck", "rt") must beNone.await
     }
   }
 
@@ -116,15 +116,15 @@ abstract class PersistenceSpec(val pers: Persistence)(implicit ee: ExecutionEnv)
       val (accessToken, accessTokenSecret) = generateTokenAndSecret
       val username = generateNonce
 
-      ready(pers.persistAccessToken(consumerKey, accessToken, accessTokenSecret, username), 1.0 second)
+      ready(pers.persistAccessToken(consumerKey, accessToken, accessTokenSecret, username), 1.second)
 
-      pers.getUsername(consumerKey, accessToken) must beEqualTo(Some(username)).await
+      pers.getUsername(consumerKey, accessToken) must beSome(username).await
     }
     "return None if the token does not exist." in {
       val consumerKey = generateTokenAndSecret._1
       val accessToken = generateTokenAndSecret._1
 
-      pers.getUsername(consumerKey, accessToken) must beEqualTo(None).await
+      pers.getUsername(consumerKey, accessToken) must beNone.await
     }
   }
 }

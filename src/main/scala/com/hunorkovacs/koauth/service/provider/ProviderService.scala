@@ -34,8 +34,8 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
   def requestToken(request: KoauthRequest): Future[KoauthResponse] = {
     logger.debug("Request Token request called. Incoming request is {}", request)
     verifyForRequestToken(request) flatMap {
-      case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
-      case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
+      case VerificationFailed(message) => successful(ResponseUnauthorized(message))
+      case VerificationUnsupported(message) => successful(ResponseBadRequest(message))
       case VerificationOk =>
         val consumerKey = request.oauthParamsMap(ConsumerKeyName)
         val callback = request.oauthParamsMap(CallbackName)
@@ -52,14 +52,14 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
   def accessToken(request: KoauthRequest): Future[KoauthResponse] = {
     logger.debug("Access Token request called. Incoming request is {}", request)
     verifyForAccessToken(request) flatMap {
-      case VerificationFailed(message) => successful(new ResponseUnauthorized(message))
-      case VerificationUnsupported(message) => successful(new ResponseBadRequest(message))
+      case VerificationFailed(message) => successful(ResponseUnauthorized(message))
+      case VerificationUnsupported(message) => successful(ResponseBadRequest(message))
       case VerificationOk =>
         val consumerKey = request.oauthParamsMap(ConsumerKeyName)
         val requestToken = request.oauthParamsMap(TokenName)
         val verifier = request.oauthParamsMap(VerifierName)
         persistence.whoAuthorizedRequestToken(consumerKey, requestToken, verifier) flatMap {
-          case None => successful(new ResponseUnauthorized(MessageNotAuthorized))
+          case None => successful(ResponseUnauthorized(MessageNotAuthorized))
           case Some(username) =>
             val (token, secret) = generateTokenAndSecret
             val nonce = request.oauthParamsMap(NonceName)
@@ -76,8 +76,8 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
   def oauthenticate(request: KoauthRequest): Future[Either[ResponseNok, String]] = {
     logger.debug("Accessing Protected Resources request called. Incoming request is {}", request)
     verifyForOauthenticate(request) flatMap {
-      case VerificationUnsupported(message) => successful(Left(new ResponseBadRequest(message)))
-      case VerificationFailed(message) => successful(Left(new ResponseUnauthorized(message)))
+      case VerificationUnsupported(message) => successful(Left(ResponseBadRequest(message)))
+      case VerificationFailed(message) => successful(Left(ResponseUnauthorized(message)))
       case VerificationOk =>
         val consumerKey = request.oauthParamsMap(ConsumerKeyName)
         val token = request.oauthParamsMap(TokenName)
@@ -86,7 +86,7 @@ protected class CustomProviderService(private val oauthVerifier: Verifier,
           case None =>
             logger.debug("User does not exist for Consumer Key {} and Access Token {}. Request id: {}",
               consumerKey, token, request.id)
-            successful(Left(new ResponseUnauthorized(MessageUserInexistent)))
+            successful(Left(ResponseUnauthorized(MessageUserInexistent)))
           case Some(username) => persistence.persistNonce(nonce, consumerKey, token).map(_ => Right(username))
         }
     }

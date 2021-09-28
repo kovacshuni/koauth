@@ -68,13 +68,13 @@ object Arithmetics {
   }
 
   def createRequestTokenResponse(token: String, secret: String): ResponseOk =
-    new ResponseOk(encodePairSortConcat(TokenName -> token
+    ResponseOk(encodePairSortConcat(TokenName -> token
       :: TokenSecretName -> secret
       :: CallbackConfirmedName -> "true"
       :: Nil))
 
   def createAccesTokenResponse(token: String, secret: String): ResponseOk =
-    new ResponseOk(encodePairSortConcat(TokenName -> token :: TokenSecretName -> secret :: Nil))
+    ResponseOk(encodePairSortConcat(TokenName -> token :: TokenSecretName -> secret :: Nil))
 
   def parseRequestTokenResponse(response: String): Either[String, TokenResponse] = {
     val entries = response.split("&").map { p =>

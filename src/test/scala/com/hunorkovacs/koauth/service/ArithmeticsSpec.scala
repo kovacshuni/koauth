@@ -168,42 +168,42 @@ class ArithmeticsSpec extends Specification {
   "Parsing a Request Token response" should {
     "parse key, secret and callback." in {
       parseRequestTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=true") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        beRight(TokenResponse(Token, TokenSecret))
     }
     "parse key, secret and callback in any order." in {
       parseRequestTokenResponse(s"$CallbackConfirmedName=true&$TokenSecretName=$TokenSecret&$TokenName=$Token") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        beRight(TokenResponse(Token, TokenSecret))
     }
     "signal unconfirmed callback" in {
       val response = s"$TokenName=$Token&$TokenSecretName=$TokenSecret&$CallbackConfirmedName=false"
-      parseRequestTokenResponse(response) must equalTo(Left(response))
+      parseRequestTokenResponse(response) must beLeft(response)
     }
     "signal incomplete response" in {
       val response = s"$TokenName=$Token&$CallbackConfirmedName=true"
-      parseRequestTokenResponse(response) must equalTo(Left(response))
+      parseRequestTokenResponse(response) must beLeft(response)
     }
     "signal incorrect syntax" in {
       val response = "abcd=&&"
-      parseRequestTokenResponse(response) must equalTo(Left(response))
+      parseRequestTokenResponse(response) must beLeft(response)
     }
   }
 
   "Parsing an Access Token response" should {
     "parse key and secret." in {
       parseAccessTokenResponse(s"$TokenName=$Token&$TokenSecretName=$TokenSecret") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        beRight(TokenResponse(Token, TokenSecret))
     }
     "parse in any order." in {
       parseAccessTokenResponse(s"$TokenSecretName=$TokenSecret&$TokenName=$Token") must
-        equalTo(Right(TokenResponse(Token, TokenSecret)))
+        beRight(TokenResponse(Token, TokenSecret))
     }
     "signal incomplete response" in {
       val response = s"$TokenSecretName=$TokenSecret"
-      parseAccessTokenResponse(response) must equalTo(Left(response))
+      parseAccessTokenResponse(response) must beLeft(response)
     }
     "signal incorrect syntax" in {
       val response = "abcd=&&"
-      parseAccessTokenResponse(response) must equalTo(Left(response))
+      parseAccessTokenResponse(response) must beLeft(response)
     }
   }
 
