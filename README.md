@@ -1,5 +1,9 @@
 # KOAuth - OAuth 1.0a Provider & Consumer Library in Scala
 
+__Archived once, unarchived only to release Scala 2.13 version of it, but considered this project outdated and obsolete.__
+
+---
+
 This library aids calculations according to the [OAuth 1.0a](http://oauth.net/core/1.0a/)
 specifications for both HTTP server and client.
 
@@ -247,7 +251,9 @@ publishSigned
 ## Owner
 
 Hunor Kovács
-kovacshuni@yahoo.com
+
+kovacshuni@gmail.com
+
 [hunorkovacs.com](http://www.hunorkovacs.com)
 
 ## Licence
