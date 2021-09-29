@@ -252,8 +252,6 @@ publishSigned
 
 Hunor Kovács
 
-kovacshuni@gmail.com
-
 [hunorkovacs.com](http://www.hunorkovacs.com)
 
 ## Licence
