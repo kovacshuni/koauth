@@ -222,12 +222,19 @@ test
 
 Publishing (mostly for me)
 
-[help](http://www.scala-sbt.org/0.13/docs/Using-Sonatype.html)
+[Detailed help here](https://www.scala-sbt.org/1.x/docs/Using-Sonatype.htm)
 
 ```
 sbt
-# make sure ~/.sbt/0.13/sonatype.sbt contains your credentials of sonatype, search in your LastPass.
-sonatypeOpen "com.hunorkovacs" "koauth"
+# make sure ~/.sbt/1.0/sonatype.sbt contains your credentials of sonatype, search in your LastPass. File format:
+realm=Sonatype Nexus Repository Manager
+host=oss.sonatype.org
+user=<your username>
+password=<your password>
+
+# you have to have a gpg key generated for yourself
+# you have to upload that gpg key to a keyserver e.g. keys.openpgp.org or keyserver.ubuntu.com [more explanation on the sbt site](https://www.scala-sbt.org/1.x/docs/Using-Sonatype.htm) because Sonatype will only release if the signed build matches your public key from the keyserver.
+
 publishSigned
 # then on https://oss.sonatype.org/#stagingRepositories close and then release
 ```
