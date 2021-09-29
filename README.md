@@ -233,7 +233,12 @@ user=<your username>
 password=<your password>
 
 # you have to have a gpg key generated for yourself
-# you have to upload that gpg key to a keyserver e.g. keys.openpgp.org or keyserver.ubuntu.com [more explanation on the sbt site](https://www.scala-sbt.org/1.x/docs/Using-Sonatype.htm) because Sonatype will only release if the signed build matches your public key from the keyserver.
+# you have to upload that gpg key to a keyserver e.g. keys.openpgp.org or keyserver.ubuntu.com 
+# [more explanation on the sbt site](https://www.scala-sbt.org/1.x/docs/Using-Sonatype.htm) 
+# because Sonatype will only release if the signed build matches your public key from the keyserver.
+# if you have multiple gpg keys, you have to specify which one sbt will use when signing.
+# one way i found was to create a file ~/.gnupg/gpg.conf with the content: default-key <key-fingerprint>
+# [stackoverflow question Set default key in gpg for signing](https://unix.stackexchange.com/questions/339077/set-default-key-in-gpg-for-signing)
 
 publishSigned
 # then on https://oss.sonatype.org/#stagingRepositories close and then release
